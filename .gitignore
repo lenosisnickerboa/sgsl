@@ -3,6 +3,7 @@ build/
 dist/
 *.spec
 *.exe
+*.vpk
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

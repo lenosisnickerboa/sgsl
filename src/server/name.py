@@ -16,6 +16,9 @@ def long_name(short_name: str) -> str:
 def is_valid_long_name(name: str) -> bool:
     return name in name_mappings.values()
 
+def is_valid_short_name(name: str) -> bool:
+    return name in name_mappings.keys()
+
 def get_all_short_names() -> list:
     return list(name_mappings.keys())
 

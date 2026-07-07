@@ -1,7 +1,10 @@
+import os
 import ui.widgets as ui
 import server.detect as detect
 import server.name as name
 #import configs.installed_servers as installed_servers
+import game.cs2.maps
+from pathlib import Path
 
 #def OnInstalledServers():
 #    installed_servers_config.open_once()
@@ -9,7 +12,7 @@ import server.name as name
 def on_install_game_server(name: str):
     print(f"Installing game server for {name}...")
 
-def install_game():
+def setup_install_game(dir:str):
     game_frame = ui.EditGroupFrame(master=main_frame, name="No game server detected")
     game_frame.pack()
 
@@ -22,7 +25,7 @@ def install_game():
     spacer_at_end = ui.Spacer(master=main_frame)
     spacer_at_end.pack()
 
-def detected_game(name: str):
+def setup_detected_game_server(dir:str, name: str):
     game_frame = ui.EditGroupFrame(master=main_frame, name=name)
     game_frame.pack()
 
@@ -46,10 +49,12 @@ def detected_game(name: str):
     game_mode = ui.StringCombobox(master=shortcut_frame, name="Game mode", values=(r"Deathmatch", r"Gungame", r"Casual"), selected=2, tooltip="Selected game mode")
     game_mode.pack()
 
-    map_group = ui.StringCombobox(master=shortcut_frame, name="Map group", values=(r"Mapgroup-1", r"Mapgroup-2", r"Mapgroup-3"), selected=1, tooltip="Selected map group")
-    map_group.pack()
+#    map_group = ui.StringCombobox(master=shortcut_frame, name="Map group", values=(r"Mapgroup-1", r"Mapgroup-2", r"Mapgroup-3"), selected=1, tooltip="Selected map group")
+#    map_group.pack()
 
-    map = ui.StringCombobox(master=shortcut_frame, name="Map", values=(r"Map-1", r"Map-2", r"Map-3"), selected=r"Map-3", tooltip="Selected map within selected game mode")
+    maps = game.cs2.maps.maps(dir)
+    print(f"Maps found: {maps}")
+    map = ui.StringCombobox(master=shortcut_frame, name="Map", values=maps, selected=maps[0], tooltip="Selected map within selected game mode")
     map.pack()
 
     player_count = ui.IntegerSpinbox(master=shortcut_frame, name="Player count", range=(1,64), initial_value=5, tooltip="Number of players on server")
@@ -67,12 +72,16 @@ root = ui.Window(title="sgsl 0.1")
 main_frame = ui.MainFrame(master=root)
 main_frame.pack()
 
-detected_game = detect.detect()
+current_dir = os.getcwd()
+print(f"Current directory: {current_dir}")
+#current_dir = Path(current_dir) / "test-data" / "cs2" / "server"
+print(f"Current directory: {current_dir}")
+detected_game = detect.detect(current_dir)
 
 if detected_game == "":
-    install_game()
+    setup_install_game(current_dir)
 elif name.is_valid_short_name(detected_game):
-    detected_game(name.long_name(detected_game))
+    setup_detected_game_server(current_dir, name.long_name(detected_game))
 else:
     exit(1)
 
