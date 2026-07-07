@@ -42,7 +42,7 @@ def on_start_game_server(dir :str, name: str):
 
     global server_process_handle
     server_process_handle = process_handle.run_command_interactive(
-        f"{exe} -dedicated -headless -usercon +game_type 0 +game_mode 1 +map de_inferno",
+        f"{exe} -dedicated -usercon +game_type 0 +game_mode 1 +map de_inferno",
         shell=True,
         on_output=handle_output,
         on_done=handle_done,
@@ -146,8 +146,5 @@ elif name.is_valid_short_name(detected_game):
     setup_detected_game_server(current_dir, name.long_name(detected_game))
 else:
     exit(1)
-
-for i in range(256):
-    print_to_terminal(f"Test line {i+1}")
 
 root.mainloop()
