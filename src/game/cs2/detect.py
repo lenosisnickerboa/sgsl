@@ -1,5 +1,5 @@
 from pathlib import Path
+import game.cs2.runner
 
-
-def detect(dir: str) -> bool:
-    return (Path(dir) / "game" / "bin" / "win64" / "cs2.exe").is_file()
+def is_installed(dir: str) -> bool:
+    return (game.cs2.runner.get(dir)).is_file()

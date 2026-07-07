@@ -123,3 +123,28 @@ class ExpandingButton(ttk.Labelframe):
 
     def pack(self):
         super().pack(side=LEFT, padx=5, fill=X, expand=True)
+
+class CheckButton(ttk.Labelframe):
+    def __init__(self, master, name : str, tooltip : str, initial_value: bool = False, command = Nop(), **kwargs):
+        super().__init__(master, borderwidth=0, padding=2, **kwargs)
+
+        self.value = ttk.BooleanVar(value=initial_value)    
+        self.button = ttk.Checkbutton(master=self, bootstyle="round-toggle", text=name, command=command, variable=self.value)
+        self.button.pack(side=LEFT, padx=5, fill=X)
+        ToolTip(self.button, text=tooltip)
+        self.button.pack(side=TOP)
+
+    def off(self):
+        self.value.set(False)
+
+    def on(self):
+        self.value.set(True)
+
+    def toggle(self):
+        if self.value.get():
+            self.off()
+        else:
+            self.on()
+
+    def pack(self):
+        super().pack(side=LEFT, padx=5, fill=X)
