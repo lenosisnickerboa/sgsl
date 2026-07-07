@@ -83,7 +83,11 @@ class StringCombobox(ttk.Labelframe):
             values=values,
             exportselection=False,
         )
+        self.combobox.set(values[0])
+        max_width = max(len(value) for value in values)
+        self.combobox.configure(width=max_width+10)
         self.combobox.pack(side=LEFT, expand=YES, padx=5, fill=X)
+
         if readonly:
             self.combobox.configure(state="readonly")
         if isinstance(selected, int):

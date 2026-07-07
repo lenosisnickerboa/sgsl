@@ -1,16 +1,28 @@
 import ui.widgets as ui
 import server.detect as detect
+import server.name as name
 #import configs.installed_servers as installed_servers
 
 #def OnInstalledServers():
 #    installed_servers_config.open_once()
 
-def InstallGame():
-    game_frame = ui.EditGroupFrame(master=main_frame, name="No game detected, install one")
-    selected_game = ui.StringCombobox(master=game_frame, name="Game to install", values=(r"Counter-Strike 2", r"Counter-Strike Global Offensive", r"server-3"), selected=r"Venice Unleashed", tooltip="Selected game to install")
+def on_install_game_server(name: str):
+    print(f"Installing game server for {name}...")
+
+def install_game():
+    game_frame = ui.EditGroupFrame(master=main_frame, name="No game server detected")
+    game_frame.pack()
+
+    selected_game = ui.StringCombobox(master=game_frame, name="Select a game server to install", values=name.get_all_long_names(), selected=name.get_all_long_names()[0], tooltip="Select a game server to install")
     selected_game.pack()
 
-def DetectedGame(name: str):
+    install_server = ui.ExpandingButton(game_frame, name="Install game server", tooltip="Install selected game server", command=lambda: on_install_game_server(selected_game.combobox.get()))
+    install_server.pack()
+
+    spacer_at_end = ui.Spacer(master=main_frame)
+    spacer_at_end.pack()
+
+def detected_game(name: str):
     game_frame = ui.EditGroupFrame(master=main_frame, name=name)
     game_frame.pack()
 
@@ -58,13 +70,9 @@ main_frame.pack()
 detected_game = detect.detect()
 
 if detected_game == "":
-    InstallGame()
-elif detected_game == "cs2":
-    DetectedGame("Counter-Strike 2")
-elif detected_game == "csgo":
-    DetectedGame("Counter-Strike Global Offensive")
-elif detected_game == "vu":
-    DetectedGame("Venice Unleashed")
+    install_game()
+elif name.is_valid_short_name(detected_game):
+    detected_game(name.long_name(detected_game))
 else:
     exit(1)
 

@@ -1,2 +1,2 @@
-def detect():
-    return "cs2"
+def detect() -> str:
+    return ""
