@@ -1,1 +1,1 @@
-Fix detect server running or not.
+Somehow handle an already running server.

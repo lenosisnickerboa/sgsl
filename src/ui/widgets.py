@@ -109,6 +109,12 @@ class Button(ttk.Labelframe):
         ToolTip(self.button, text=tooltip)
         self.button.pack(side=TOP)
 
+    def set_name(self, name: str):
+        self.button.configure(text=name)
+
+    def set_tooltip(self, tooltip: str):
+        ToolTip(self.button, text=tooltip)
+
     def pack(self):
         super().pack(side=LEFT, padx=5, fill=X)
 
@@ -120,6 +126,12 @@ class ExpandingButton(ttk.Labelframe):
         self.button.pack(side=LEFT, padx=5, fill=X)
         ToolTip(self.button, text=tooltip)
         self.button.pack(side=TOP)
+
+    def set_name(self, name: str):
+        self.button.configure(text=name)
+
+    def set_tooltip(self, tooltip: str):
+        ToolTip(self.button, text=tooltip)
 
     def pack(self):
         super().pack(side=LEFT, padx=5, fill=X, expand=True)

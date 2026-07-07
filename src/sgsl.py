@@ -12,12 +12,10 @@ server_process_handle = None
 terminal_window = None
 terminal_is_open = False
 terminal_open_close = None
+start_stop_server = None
 
-def is_server_running() -> bool:
-    global server_process_handle
-    if server_process_handle is None:
-        return False
-    return server_process_handle.is_running()
+def get_server_binary_path(dir: str) -> str:
+    return str(game.cs2.runner.get(dir))
 
 def is_terminal_open() -> bool:
     global terminal_is_open
@@ -36,28 +34,26 @@ def handle_output(line, stream):
 def handle_done(returncode):
     print_to_terminal(f"Process tree finished with exit code {returncode}")
 
-def on_start_game_server(dir :str, name: str):
-    exe = game.cs2.runner.get(dir)
-    print_to_terminal(f"Starting game server for {name} with {exe}...")
-
-    global server_process_handle
-    server_process_handle = process_handle.run_command_interactive(
-        f"{exe} -dedicated -usercon +game_type 0 +game_mode 1 +map de_inferno",
-        shell=True,
-        on_output=handle_output,
-        on_done=handle_done,
-    )
+def on_start_stop_game_server(dir :str, name: str):
     global start_stop_server
-    start_stop_server.config(command=lambda: on_stop_game_server(dir, name), name="Stop", tooltip="Stop server")
-
-def on_stop_game_server(dir :str, name: str):
-    exe = game.cs2.runner.get(dir)
-    print(f"Stopping game server for {name} with {exe}...")
-
     global server_process_handle
-    server_process_handle = process_handle.kill(timeout=5.0)
-    global start_stop_server
-    start_stop_server.config(command=lambda: on_start_game_server(dir, name), name="Start", tooltip="Start server")
+    exe = get_server_binary_path(dir)
+    running_servers = process_handle.ProcessHandle.find_running(exe)
+    if len(running_servers) == 0:
+        print_to_terminal(f"Starting game server {name} with executable {exe}...")
+        server_process_handle = process_handle.run_command_interactive(
+            f"{exe} -dedicated -usercon +game_type 0 +game_mode 1 +map de_inferno",
+            shell=True,
+            on_output=handle_output,
+            on_done=handle_done,
+        )
+        start_stop_server.set_name(name="Stop")
+        start_stop_server.set_tooltip(tooltip="Stop server")
+    else:
+        print_to_terminal(f"Stopping game server {name} with executable {exe}...")
+        server_process_handle.kill(timeout=10.0)
+        start_stop_server.set_name(name="Start")
+        start_stop_server.set_tooltip(tooltip="Start server")
 
 def on_toggle_terminal_window():
     global terminal_is_open
@@ -84,10 +80,12 @@ def setup_detected_game_server(dir:str, name: str):
     edit_configuration = ui.Button(master=game_frame, name="Config", tooltip="Edit configuration")
     edit_configuration.pack()
 
-    if is_server_running():
-        start_stop_server = ui.Button(master=game_frame, name="Stop", tooltip="Stop server", command=lambda: on_stop_game_server(dir, name))
+    running_servers = process_handle.ProcessHandle.find_running(get_server_binary_path(dir))
+    global start_stop_server
+    if len(running_servers) > 0:
+        start_stop_server = ui.Button(master=game_frame, name="Stop", tooltip="Stop server", command=lambda: on_start_stop_game_server(dir, name))
     else:
-        start_stop_server = ui.Button(master=game_frame, name="Start", tooltip="Start server", command=lambda: on_start_game_server(dir, name))
+        start_stop_server = ui.Button(master=game_frame, name="Start", tooltip="Start server", command=lambda: on_start_stop_game_server(dir, name))
     start_stop_server.pack()
 
     global terminal_open_close
