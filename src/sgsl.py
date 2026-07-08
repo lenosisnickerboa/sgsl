@@ -1,4 +1,5 @@
 import os
+from config import toml_handler
 import process.process_handler as process_handler
 import ui.widgets as ui
 import server.detect as detect
@@ -7,12 +8,16 @@ import game.cs2.maps
 from pathlib import Path
 import time
 import ui.terminal as terminal
+from version import VERSION
 
+g_main_frame = None
 g_process_handler = None
 g_terminal_window = None
 g_terminal_is_open = False
 g_terminal_open_close = None
 g_start_stop_server = None
+g_config_default = None
+g_config = None
 
 def get_server_binary_path(dir: str) -> str:
     return str(game.cs2.runner.get(dir))
@@ -69,7 +74,8 @@ def on_toggle_terminal_window():
     g_terminal_window.toggle()
 
 def setup_install_game(dir:str):
-    game_frame = ui.EditGroupFrame(master=main_frame, name="No game server detected")
+    global g_main_frame
+    game_frame = ui.EditGroupFrame(master=g_main_frame, name="No game server detected")
     game_frame.pack()
 
     selected_game = ui.StringCombobox(master=game_frame, name="Select a game server to install", values=name.get_all_long_names(), selected=name.get_all_long_names()[0], tooltip="Select a game server to install")
@@ -78,7 +84,7 @@ def setup_install_game(dir:str):
     install_server = ui.ExpandingButton(game_frame, name="Install game server", tooltip="Install selected game server", command=lambda: on_install_game_server(selected_game.combobox.get()))
     install_server.pack()
 
-    spacer_at_end = ui.Spacer(master=main_frame)
+    spacer_at_end = ui.Spacer(master=g_main_frame)
     spacer_at_end.pack()
 
 def setup_detected_game_server(dir:str, name: str):
@@ -86,7 +92,9 @@ def setup_detected_game_server(dir:str, name: str):
     global g_process_handler
     g_process_handler = process_handler.ProcessHandler(get_server_binary_path(dir))
 
-    game_frame = ui.EditGroupFrame(master=main_frame, name=name)
+    global g_main_frame
+
+    game_frame = ui.EditGroupFrame(master=g_main_frame, name=name)
     game_frame.pack()
 
     edit_configuration = ui.Button(master=game_frame, name="Config", tooltip="Edit configuration")
@@ -107,12 +115,12 @@ def setup_detected_game_server(dir:str, name: str):
 
     # -- spacer
 
-    spacer_between_game_and_shortcut_frame = ui.Spacer(master=main_frame)
+    spacer_between_game_and_shortcut_frame = ui.Spacer(master=g_main_frame)
     spacer_between_game_and_shortcut_frame.pack()
 
     # -- shortcut frame
 
-    shortcut_frame = ui.EditGroupFrame(master=main_frame, name="Shortcuts")
+    shortcut_frame = ui.EditGroupFrame(master=g_main_frame, name="Shortcuts")
     shortcut_frame.pack()
 
     game_mode = ui.StringCombobox(master=shortcut_frame, name="Game mode", values=(r"Deathmatch", r"Gungame", r"Casual"), selected=2, tooltip="Selected game mode")
@@ -128,7 +136,7 @@ def setup_detected_game_server(dir:str, name: str):
     player_count = ui.IntegerSpinbox(master=shortcut_frame, name="Player count", range=(1,64), initial_value=5, tooltip="Number of players on server")
     player_count.pack()
 
-    spacer_at_end = ui.Spacer(master=main_frame)
+    spacer_at_end = ui.Spacer(master=g_main_frame)
     spacer_at_end.pack()
 
 def on_close_terminal_window():
@@ -138,18 +146,25 @@ def on_close_terminal_window():
 
 # main
 
-root = ui.Window(title="sgsl 0.1")
+g_config_default = {
+    "app": {"terminal": False},
+#    "server": {"host": "0.0.0.0", "port": 8080},
+}    
+
+root = ui.Window(title="Simple Game Server Launcher" + " " + VERSION)
 
 g_terminal_window = terminal.TerminalWindow(root, on_close_terminal_window, title="Log Output")
 
-main_frame = ui.MainFrame(master=root)
-main_frame.pack()
+g_main_frame = ui.MainFrame(master=root)
+g_main_frame.pack()
 
 current_dir = os.getcwd()
 test_dir = Path(current_dir) / "test-data" / "cs2" / "server"
 if test_dir.exists():
     current_dir = test_dir
 detected_game = detect.detect(current_dir)
+
+g_config = toml_handler.TomlHandler(Path(current_dir) / "sgsl.toml", defaults=g_config_default)
 
 if detected_game == "":
     setup_install_game(current_dir)
@@ -158,5 +173,7 @@ elif name.is_valid_short_name(detected_game):
 else:
     # TODO: Show dialog box here
     exit(1)
+
+g_config.write()
 
 root.mainloop()
