@@ -1,1 +1,0 @@
-Somehow handle an already running server.
