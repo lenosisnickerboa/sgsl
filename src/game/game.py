@@ -57,12 +57,12 @@ class Game(ABC):
             self.process_handler.kill_pids(server_pids, timeout=10.0, force=True)
         self.print(f"Stopped game server {self.get_long_name()} with pids {server_pids}")
 
-    def is_running(self) -> bool:
+    def is_server_running(self) -> bool:
         """Check if the game is running."""
         if not self.process_handler:
             return False
         pids = self.process_handler.list_pids()
-        print(f"Found {len(pids)} running server(s) {pids} for {self.get_long_name()} with executable {self.get_server_binary_path()}")
+        self.print(f"Found {len(pids)} running server(s) {pids} for {self.get_long_name()} with executable {self.get_server_binary_path()}")
         return len(pids) > 0
 
     @abstractmethod

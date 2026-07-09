@@ -36,7 +36,7 @@ class CS2Game(Game):
         super().stop_server()
 
     def is_running(self) -> bool:
-        return super().is_running()
+        return super().is_server_running()
 
     def get_server_binary_path(self) -> Path:
         return self.server_binary
