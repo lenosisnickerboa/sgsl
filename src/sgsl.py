@@ -27,6 +27,9 @@ def print_to_terminal(line: str):
 
 def on_install_game_server(name: str):
     print_to_terminal(f"Installing game server for {name}...")
+    game = GameFactory.create_from_name(name, current_dir, terminal_printer)
+    if game:
+        game.install()
 
 def install_game_server(dir: str, name: str):
     print_to_terminal(f"Installing game server for {name} in directory {dir}...")
@@ -102,7 +105,7 @@ def setup_detected_game_server(game: Game):
 #    map_group = ui.StringCombobox(master=shortcut_frame, name="Map group", values=(r"Mapgroup-1", r"Mapgroup-2", r"Mapgroup-3"), selected=1, tooltip="Selected map group")
 #    map_group.pack()
 
-    maps = game.cs2.maps.get(dir)
+    maps = game.maps()
     map = ui.StringCombobox(master=shortcut_frame, name="Map", values=maps, selected=maps[0], tooltip="Selected map within selected game mode")
     map.pack()
 

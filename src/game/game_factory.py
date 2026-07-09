@@ -14,7 +14,7 @@ class GameFactory:
 
     @classmethod
     def register(cls, name: str, game_cls: Type[Game]) -> None:
-        cls._registry[name.lower()] = game_cls
+        cls._registry[name] = game_cls
 
     @classmethod
     def create(cls, directory: Union[str, Path], terminal) -> Game:
@@ -25,6 +25,16 @@ class GameFactory:
         if game .detect():
             return game
         return None
+
+    @classmethod
+    def create_from_name(cls, name: str, directory: Union[str, Path], terminal) -> Game:
+        try:
+            game_cls = cls._registry[name]
+        except KeyError:
+            raise ValueError(
+                f"Unknown game: {name!r}. Available: {sorted(cls._registry.keys())}"
+            )
+        return game_cls(directory, terminal)
     
     @classmethod
     def games(cls) -> list[str]:

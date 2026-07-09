@@ -24,10 +24,10 @@ class NullGame(Game):
         return self.server_binary.exists()
 
     def install(self) -> None:
-        print(f"Installing {self.get_long_name()} into {self.server_root}")
-        print(f"touch({self.server_binary})")
+        self.print(f"Installing {self.get_long_name()} into {self.server_root}")
+        self.print(f"touch({self.server_binary})")
         self.server_binary.touch(exist_ok=True)
-        print(f"Installed {self.get_long_name()} into {self.server_root}")
+        self.print(f"Installed {self.get_long_name()} into {self.server_root}")
 
     def update(self) -> None:
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
