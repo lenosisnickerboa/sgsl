@@ -71,7 +71,10 @@ class IntegerSpinbox(ttk.Labelframe):
         self.spinbox.pack(fill=BOTH, side=TOP)
 
     def pack(self):
-        super().pack(fill=X, side=TOP)
+        super().pack(side=LEFT, expand=YES, padx=5, fill=X)
+
+    def update(self, value: int):
+        self.spinbox.set(value)
 
 
 class StringCombobox(ttk.Labelframe):
@@ -99,6 +102,9 @@ class StringCombobox(ttk.Labelframe):
 
     def pack(self):
         super().pack(side=LEFT, expand=YES, padx=5, fill=X)
+
+    def update(self, value):
+        self.combobox.set(value)
 
 class Button(ttk.Labelframe):
     def __init__(self, master, name : str, tooltip : str, command = Nop(), **kwargs):
@@ -160,3 +166,6 @@ class CheckButton(ttk.Labelframe):
 
     def pack(self):
         super().pack(side=LEFT, padx=5, fill=X)
+
+    def update(self, value: bool):
+        self.value.set(value)

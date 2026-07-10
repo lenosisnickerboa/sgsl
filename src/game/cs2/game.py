@@ -48,7 +48,11 @@ class CS2Game(Game):
         return [p.stem for p in (Path(self.server_root) / "game" / "csgo" / "maps").glob("*.vpk")]
     
     def config_defaults(self) -> Config[IndexT]:
-        return build_game_defaults()
+        defaults = build_game_defaults()
+        maps = self.maps()
+        defaults[ConfigIndex.SELECTED_MAP].allowed_values = maps
+        defaults[ConfigIndex.SELECTED_MAP].value = maps[0]
+        return defaults
 
     def config_shortcuts(self) -> list[IndexT]:
         return [ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP_GROUP, ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT, ConfigIndex.FRIENDLY_FIRE_ENABLED]

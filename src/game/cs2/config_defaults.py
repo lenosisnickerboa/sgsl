@@ -15,7 +15,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
             name="selected_map_group",
             visible_name="Selected map group",
             type=ConfigType.STRING,
-            value="",
+            value="", #will be filled in later
+            #allowed_values=... will be filled in later
         ),
         ConfigIndex.GAME_MODE: ConfigItem(
             name="game_mode",

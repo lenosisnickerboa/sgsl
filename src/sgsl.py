@@ -8,6 +8,7 @@ import ui.terminal as terminal
 from game.game import Game
 from game.game_factory import GameFactory
 from app.config_index import ConfigIndex
+from ui_builder.ui_builder import UiBuilder
 
 g_main_frame = None
 g_terminal_window = None
@@ -16,6 +17,8 @@ g_terminal_open_close = None
 g_start_stop_server = None
 g_config_default = None
 g_app_config = None
+g_game_config = None
+g_ui_builder = None
 
 def build_app_defaults() -> Config[ConfigIndex]:
     return {
@@ -111,11 +114,19 @@ def setup_detected_game_server(game: Game):
     shortcut_frame = ui.EditGroupFrame(master=g_main_frame, name="Shortcuts")
     shortcut_frame.pack()
 
+    global g_game_config
+    game_config_file = game.get_directory() / "game.toml"
+    g_game_config = TomlConfigParser.read(game_config_file, game.config_defaults())
+
+    # global g_ui_builder
+    # g_ui_builder = UiBuilder()
+    # g_ui_builder.build_shortcuts(shortcut_frame, game.config_shortcuts(), g_game_config)
+
     game_mode = ui.StringCombobox(master=shortcut_frame, name="Game mode", values=(r"Deathmatch", r"Gungame", r"Classic"), selected=2, tooltip="Selected game mode")
     game_mode.pack()
 
-#    map_group = ui.StringCombobox(master=shortcut_frame, name="Map group", values=(r"Mapgroup-1", r"Mapgroup-2", r"Mapgroup-3"), selected=1, tooltip="Selected map group")
-#    map_group.pack()
+    map_group = ui.StringCombobox(master=shortcut_frame, name="Map group", values=(r"Mapgroup-1", r"Mapgroup-2", r"Mapgroup-3"), selected=1, tooltip="Selected map group")
+    map_group.pack()
 
     maps = game.maps()
     map = ui.StringCombobox(master=shortcut_frame, name="Map", values=maps, selected=maps[0], tooltip="Selected map within selected game mode")
@@ -123,6 +134,9 @@ def setup_detected_game_server(game: Game):
 
     player_count = ui.IntegerSpinbox(master=shortcut_frame, name="Player count", range=(1,64), initial_value=5, tooltip="Number of players on server")
     player_count.pack()
+
+    friendly_fire = ui.CheckButton(master=shortcut_frame, name="Friendly fire", initial_value=False, tooltip="Friendly fire")
+    friendly_fire.pack()
 
     spacer_at_end = ui.Spacer(master=g_main_frame)
     spacer_at_end.pack()

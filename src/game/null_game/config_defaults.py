@@ -17,7 +17,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
             name="selected_map",
             visible_name="Selected map",
             type=ConfigType.STRING,
-            value="",
+            value="", #will be filled in later
+            #allowed_values=... will be filled in later
         ),
         ConfigIndex.PLAYER_COUNT: ConfigItem(
             name="player_count",
