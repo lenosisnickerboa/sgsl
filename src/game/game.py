@@ -15,7 +15,6 @@ class Game(ABC):
     def __init__(self, directory: Union[str, Path], terminal):
         self.directory = Path(directory)
         self.terminal = terminal
-        self.pid = None
         self.server_root = self.directory / "server"
         self.server_root.mkdir(parents=True, exist_ok=True)
         self.process_handler = None
@@ -41,14 +40,14 @@ class Game(ABC):
         if not self.process_handler:
             self.process_handler = process_handler.ProcessHandler(self.get_server_binary_path())
         self.print(f"Starting game server {self.get_long_name()} with executable \"{self.get_server_binary_path()}\" and arguments \"{args}\"...")
-        self.pid = self.process_handler.start(
+        pid = self.process_handler.start(
             args,
             no_window=True, 
             stdout_callback=self.handle_stdout_output, 
             stderr_callback=self.handle_stderr_output, 
             on_exit=self.handle_done
         )
-        self.print(f"Started game server {self.get_long_name()} with pid {self.pid}")
+        self.print(f"Started game server {self.get_long_name()} with pid {pid}")
 
     def stop_server(self):
         self.print(f"Stopping game server {self.get_long_name()} with executable \"{self.get_server_binary_path()}\" ...")
