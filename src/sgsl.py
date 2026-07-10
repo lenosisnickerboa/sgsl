@@ -1,11 +1,14 @@
 import os
+import sys
 from pathlib import Path
-from version import VERSION
-from config import toml_handler
+from config.config_item import ConfigItem, ConfigType
+from config.toml_config import Config, TomlConfigParser
+from app.version import VERSION
 import ui.widgets as ui
 import ui.terminal as terminal
 from game.game import Game
 from game.game_factory import GameFactory
+from app.config_index import ConfigIndex
 
 g_main_frame = None
 g_terminal_window = None
@@ -13,7 +16,17 @@ g_terminal_is_open = False
 g_terminal_open_close = None
 g_start_stop_server = None
 g_config_default = None
-g_config = None
+g_app_config = None
+
+def build_app_defaults() -> Config[ConfigIndex]:
+    return {
+        ConfigIndex.TERMINAL_ENABLED: ConfigItem(
+            name="terminal_enable",
+            visible_name="Enable terminal",
+            type=ConfigType.BOOLEAN,
+            value=False,
+        ),
+    }
 
 def get_server_binary_path(dir: str) -> str:
     return str(game.cs2.runner.get(dir))
@@ -122,11 +135,6 @@ def on_close_terminal_window():
 
 # main
 
-g_config_default = {
-    "app": {"terminal": False},
-#    "server": {"host": "0.0.0.0", "port": 8080},
-}    
-
 root = ui.Window(title="Simple Game Server Launcher" + " " + VERSION)
 
 g_terminal_window = terminal.TerminalWindow(root, on_close_terminal_window, title="Log Output")
@@ -135,7 +143,9 @@ g_main_frame = ui.MainFrame(master=root)
 g_main_frame.pack()
 
 current_dir = os.getcwd()
-g_config = toml_handler.TomlHandler(Path(current_dir) / "sgsl.toml", defaults=g_config_default)
+
+app_config_file = Path(current_dir) / "sgsl.toml"
+g_app_config = TomlConfigParser.read(app_config_file, build_app_defaults())
 
 terminal_printer = lambda line: g_terminal_window.add_line(line)
 game = GameFactory.create(current_dir, terminal_printer)
@@ -145,6 +155,6 @@ if game is None:
 else:
     setup_detected_game_server(game)
 
-g_config.write()
+TomlConfigParser.write(app_config_file, g_app_config)
 
 root.mainloop()
