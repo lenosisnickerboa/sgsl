@@ -80,7 +80,7 @@ def setup_install_game(dir: str):
     install_server.pack()
 
     global g_terminal_open_close
-    g_terminal_open_close = ui.CheckButton(master=game_frame, name="Terminal", tooltip="Toggle terminal window", command=lambda: on_toggle_terminal_window())
+    g_terminal_open_close = ui.CheckButton(master=game_frame, name="Terminal", tooltip="Toggle terminal window", command=lambda _value: on_toggle_terminal_window())
     g_terminal_open_close.pack()
 
     spacer_at_end = ui.Spacer(master=g_main_frame)
@@ -102,7 +102,7 @@ def setup_detected_game_server(game: Game):
     g_start_stop_server.pack()
 
     global g_terminal_open_close
-    g_terminal_open_close = ui.CheckButton(master=game_frame, name="Terminal", tooltip="Toggle terminal window", command=lambda: on_toggle_terminal_window())
+    g_terminal_open_close = ui.CheckButton(master=game_frame, name="Terminal", tooltip="Toggle terminal window", command=lambda _value: on_toggle_terminal_window())
     g_terminal_open_close.pack()
 
     # -- spacer
@@ -119,9 +119,12 @@ def setup_detected_game_server(game: Game):
     game_config_file = game.get_directory() / "game.toml"
     g_game_config = TomlConfigParser.read(game_config_file, game.config_defaults())
 
+    def on_shortcut_changed(config_item, config):
+        game.config_item_changed(config_item, config)
+
     global g_ui_builder
     g_ui_builder = UiBuilder()
-    g_ui_builder.build_shortcuts(shortcut_frame, game.config_shortcuts(), g_game_config)
+    g_ui_builder.build_shortcuts(shortcut_frame, game.config_shortcuts(), g_game_config, on_shortcut_changed)
 
     spacer_at_end = ui.Spacer(master=g_main_frame)
     spacer_at_end.pack()

@@ -61,14 +61,26 @@ class Spacer(ttk.Frame):
 
 
 class IntegerSpinbox(ttk.Labelframe):
-    def __init__(self, master, name : str, range : list, initial_value : int, tooltip : str, **kwargs):
+    def __init__(self, master, name : str, range : list, initial_value : int, tooltip : str, command = Nop(), **kwargs):
         super().__init__(master, text=name, padding=2, **kwargs)
 
-        self.spinbox = ttk.Spinbox(master=self, from_=[range[0]], to=[range[-1]])
+        self.command = command
+        self.spinbox = ttk.Spinbox(master=self, from_=[range[0]], to=[range[-1]], command=self.on_event)
         self.spinbox.set(initial_value)
         self.spinbox.pack(side=LEFT, expand=YES, padx=5, fill=X)
+        self.spinbox.bind("<Return>", self.on_event)
+        self.spinbox.bind("<FocusOut>", self.on_event)
         ToolTip(self.spinbox, text=tooltip)
         self.spinbox.pack(fill=BOTH, side=TOP)
+
+    def on_event(self, event=None):
+        if self.command is None:
+            return
+        try:
+            value = int(self.spinbox.get())
+        except ValueError:
+            return
+        self.command(value)
 
     def pack(self):
         super().pack(side=LEFT, expand=YES, padx=5, fill=X)
@@ -81,6 +93,7 @@ class StringCombobox(ttk.Labelframe):
     def __init__(self, master, name : str, values : list, selected, tooltip : str, command = Nop(), readonly=True, **kwargs):
         super().__init__(master, text=name, padding=2, **kwargs)
 
+        self.command = command
         self.combobox = ttk.Combobox(
             master=self,
             values=values,
@@ -90,6 +103,7 @@ class StringCombobox(ttk.Labelframe):
         max_width = max(len(value) for value in values)
         self.combobox.configure(width=max_width+10)
         self.combobox.pack(side=LEFT, expand=YES, padx=5, fill=X)
+        self.combobox.bind("<<ComboboxSelected>>", self.on_event)
 
         if readonly:
             self.combobox.configure(state="readonly")
@@ -99,6 +113,10 @@ class StringCombobox(ttk.Labelframe):
             self.combobox.current(values.index(selected))
         ToolTip(self.combobox, text=tooltip)
         self.combobox.pack(fill=BOTH, side=TOP)
+
+    def on_event(self, event=None):
+        if self.command is not None:
+            self.command(self.combobox.get())
 
     def pack(self):
         super().pack(side=LEFT, expand=YES, padx=5, fill=X)
@@ -146,11 +164,16 @@ class CheckButton(ttk.Labelframe):
     def __init__(self, master, name : str, tooltip : str, initial_value: bool = False, command = Nop(), **kwargs):
         super().__init__(master, borderwidth=0, padding=2, **kwargs)
 
-        self.value = ttk.BooleanVar(value=initial_value)    
-        self.button = ttk.Checkbutton(master=self, bootstyle="round-toggle", text=name, command=command, variable=self.value)
+        self.command = command
+        self.value = ttk.BooleanVar(value=initial_value)
+        self.button = ttk.Checkbutton(master=self, bootstyle="round-toggle", text=name, command=self.on_event, variable=self.value)
         self.button.pack(side=LEFT, padx=5, fill=X)
         ToolTip(self.button, text=tooltip)
         self.button.pack(side=TOP)
+
+    def on_event(self):
+        if self.command is not None:
+            self.command(self.value.get())
 
     def off(self):
         self.value.set(False)

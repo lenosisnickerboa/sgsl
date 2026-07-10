@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Union
 
+from config.config_item import ConfigItem
 from config.toml_config import Config, IndexT
 from process import process_handler
 
@@ -125,6 +126,12 @@ class Game(ABC):
     def config_shortcuts(self) -> list[IndexT]:
         """Return a list of config items to include in the shortcut menu for the game."""
         raise NotImplementedError
+
+    def config_item_changed(self, config_item: IndexT, config: Config[IndexT]) -> None:
+        """Called after a UI edit has already updated config_item's
+        value in `config`. The default is a no-op; override to react
+        to specific changes, e.g. keeping other config items in sync."""
+        pass
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(directory={self.directory!r})"

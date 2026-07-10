@@ -1,3 +1,5 @@
+from typing import Callable, Optional
+
 from config.config_item import ConfigItem, ConfigType
 from config.toml_config import Config, IndexT
 import ui.widgets as ui
@@ -20,13 +22,22 @@ class UiBuilder:
     def __init__(self):
         self._widgets: dict[IndexT, object] = {}
 
-    def build_shortcuts(self, master, shortcuts: list[IndexT], config: Config[IndexT]) -> dict[IndexT, object]:
+    def build_shortcuts(
+        self,
+        master,
+        shortcuts: list[IndexT],
+        config: Config[IndexT],
+        config_changed_callback: Optional[Callable[[ConfigItem, Config[IndexT]], None]] = None,
+    ) -> dict[IndexT, object]:
         """Build one widget per index in `shortcuts` into `master`, each
         reflecting the current value of the matching ConfigItem in
-        `config`."""
+        `config`. When the user edits a widget, its ConfigItem is
+        updated in place and, if valid, `config_changed_callback` is
+        invoked with (config_item, config) so the caller can react
+        (e.g. forward it to Game.config_item_changed)."""
         for shortcut in shortcuts:
             config_item = config[shortcut]
-            widget = self._build_widget(master, config_item)
+            widget = self._build_widget(master, config_item, config, config_changed_callback)
             widget.pack()
             self._widgets[shortcut] = widget
         return self._widgets
@@ -41,41 +52,62 @@ class UiBuilder:
                 continue
             widget.update(config[index].value)
 
-    def _build_widget(self, master, item: ConfigItem):
+    def _build_widget(
+        self,
+        master,
+        item: ConfigItem,
+        config: Config[IndexT],
+        config_changed_callback: Optional[Callable[[ConfigItem, Config[IndexT]], None]],
+    ):
         tooltip = item.tooltip if item.tooltip else item.visible_name
 
+        def on_widget_changed(new_value):
+            previous = item.value
+            try:
+                item.set(new_value)
+            except (TypeError, ValueError):
+                # Reject the edit and snap the widget back to the last
+                # valid value rather than leaving item/widget out of sync.
+                widget.update(previous)
+                return
+            if config_changed_callback is not None:
+                config_changed_callback(item, config)
+
         if item.type is ConfigType.BOOLEAN:
-            return ui.CheckButton(
+            widget = ui.CheckButton(
                 master=master,
                 name=item.visible_name,
                 tooltip=tooltip,
                 initial_value=item.value,
+                command=on_widget_changed,
             )
-
-        if item.type is ConfigType.INTEGER:
-            return ui.IntegerSpinbox(
+        elif item.type is ConfigType.INTEGER:
+            widget = ui.IntegerSpinbox(
                 master=master,
                 name=item.visible_name,
                 range=self._integer_range(item),
                 initial_value=item.value,
                 tooltip=tooltip,
+                command=on_widget_changed,
             )
-
-        if item.type is ConfigType.STRING:
+        elif item.type is ConfigType.STRING:
             # A closed set of allowed_values becomes a read-only dropdown;
             # an unconstrained string becomes a free-typing combobox seeded
             # with its current value (widgets.py has no plain text entry).
             values = item.allowed_values if item.allowed_values else [item.value]
-            return ui.StringCombobox(
+            widget = ui.StringCombobox(
                 master=master,
                 name=item.visible_name,
                 values=values,
                 selected=item.value,
                 tooltip=tooltip,
                 readonly=item.allowed_values is not None,
+                command=on_widget_changed,
             )
+        else:
+            raise ValueError(f"{item.name}: builder does not support ConfigType.{item.type.name} yet")
 
-        raise ValueError(f"{item.name}: builder does not support ConfigType.{item.type.name} yet")
+        return widget
 
     def _integer_range(self, item: ConfigItem) -> list[int]:
         lo, hi = _INT_MIN, _INT_MAX

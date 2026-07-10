@@ -37,7 +37,7 @@ class NullGame(Game):
 
     def run(self, config: Config[IndexT]) -> None:
         self.print(f"Running {self.get_long_name()} from {self.server_root}")
-        args=f"map={config[ConfigIndex.SELECTED_MAP].value}"
+        args=f"game_mode={config[ConfigIndex.GAME_MODE].value} map={config[ConfigIndex.SELECTED_MAP].value} player_count={config[ConfigIndex.PLAYER_COUNT].value} friendly_fire={config[ConfigIndex.FRIENDLY_FIRE_ENABLED].value}"
         self.print(f"Starting with args: {args}")
         self.running = True
 
@@ -63,3 +63,6 @@ class NullGame(Game):
 
     def config_shortcuts(self) -> list[IndexT]:
         return [ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT, ConfigIndex.FRIENDLY_FIRE_ENABLED]
+
+    def config_item_changed(self, config_item: IndexT, config: Config[IndexT]) -> None:
+        self.print(f"config_item_changed({config_item}, {config})")
