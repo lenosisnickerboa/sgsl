@@ -92,7 +92,7 @@ class Game(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def run(self) -> None:
+    def run(self, config: Config[IndexT]) -> None:
         """Launch the game."""
         raise NotImplementedError
 

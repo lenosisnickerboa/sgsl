@@ -17,6 +17,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             name="selected_map",
             visible_name="Selected map",
             type=ConfigType.STRING,
+            tooltip="The currently selected map",
             value="", #will be filled in later
             #allowed_values=... will be filled in later
         ),
@@ -24,6 +25,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             name="player_count",
             visible_name="Players",
             type=ConfigType.INTEGER,
+            tooltip="Number of players",
             value=4,
             range=Range(min_value=1, max_value=32),
 #            validator=lambda v: 1 <= v <= 32,
@@ -32,6 +34,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             name="friendly_fire_enabled",
             visible_name="Friendly fire",
             type=ConfigType.BOOLEAN,
+            tooltip="When enabled you can shoot your team mates",
             value=False,
         ),
     }

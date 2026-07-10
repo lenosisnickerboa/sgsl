@@ -35,8 +35,10 @@ class NullGame(Game):
     def update(self) -> None:
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
 
-    def run(self) -> None:
+    def run(self, config: Config[IndexT]) -> None:
         self.print(f"Running {self.get_long_name()} from {self.server_root}")
+        args=f"map={config[ConfigIndex.SELECTED_MAP].value}"
+        self.print(f"Starting with args: {args}")
         self.running = True
 
     def stop(self) -> None:

@@ -81,6 +81,10 @@ class ConfigItem:
     min_value/max_value declare an inclusive bound the value must fall
     within (either or both may be given). Setting it on a non-numeric
     item raises ValueError immediately.
+
+    `tooltip`, if provided, is shown by a UI in place of `visible_name`
+    when hovering over this item's widget. If unset, a UI should fall
+    back to `visible_name`.
     """
 
     name: str
@@ -92,6 +96,7 @@ class ConfigItem:
     validator: Optional[Callable[[Any], bool]] = None
     allowed_values: Optional[list[Any]] = None
     range: Optional[Range] = None
+    tooltip: Optional[str] = None
 
     def __post_init__(self) -> None:
         if self.type is ConfigType.ARRAY and self.item_type is None:

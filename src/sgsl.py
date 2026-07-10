@@ -53,7 +53,8 @@ def on_start_stop_game_server(game: Game):
     global g_start_stop_server
 
     if not game.is_running():
-        game.run()
+        global g_game_config
+        game.run(g_game_config)
         g_start_stop_server.set_name(name="Stop")
         g_start_stop_server.set_tooltip(tooltip="Stop server")
     else:

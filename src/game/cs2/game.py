@@ -31,7 +31,7 @@ class CS2Game(Game):
     def update(self) -> None:
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
 
-    def run(self) -> None:
+    def run(self, config: Config[IndexT]) -> None:
         args=["-dedicated", "-usercon", "+game_type", "0", "+game_mode", "1", "+map", "de_inferno"]
         super().start_server(args)
 

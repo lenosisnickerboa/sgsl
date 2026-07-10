@@ -42,11 +42,13 @@ class UiBuilder:
             widget.update(config[index].value)
 
     def _build_widget(self, master, item: ConfigItem):
+        tooltip = item.tooltip if item.tooltip else item.visible_name
+
         if item.type is ConfigType.BOOLEAN:
             return ui.CheckButton(
                 master=master,
                 name=item.visible_name,
-                tooltip=item.visible_name,
+                tooltip=tooltip,
                 initial_value=item.value,
             )
 
@@ -56,7 +58,7 @@ class UiBuilder:
                 name=item.visible_name,
                 range=self._integer_range(item),
                 initial_value=item.value,
-                tooltip=item.visible_name,
+                tooltip=tooltip,
             )
 
         if item.type is ConfigType.STRING:
@@ -69,7 +71,7 @@ class UiBuilder:
                 name=item.visible_name,
                 values=values,
                 selected=item.value,
-                tooltip=item.visible_name,
+                tooltip=tooltip,
                 readonly=item.allowed_values is not None,
             )
 
