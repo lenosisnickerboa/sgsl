@@ -1,2 +1,9 @@
-Write the install and update server parts
-Start working on config and shortcuts for setting map and number of players...
+Restart program after install done. Consider adding a disabled restart button which is enabled when the install finishes successfully.
+
+import subprocess
+import sys
+
+def restart_program():
+    subprocess.Popen([sys.executable] + sys.argv)
+    sys.exit(0)
+

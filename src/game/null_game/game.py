@@ -1,6 +1,9 @@
 from pathlib import Path
 from typing import Union
+from config.toml_config import Config, IndexT
 from game.game import Game
+from game.null_game.config_defaults import build_game_defaults
+from game.null_game.config_index import ConfigIndex
 
 
 GameExe = "null_game.exe"
@@ -48,3 +51,9 @@ class NullGame(Game):
 
     def maps(self) -> list[str]:
         return ["NullGameMap1", "NullGameMap2", "NullGameMap3"]
+    
+    def config_defaults(self) -> Config[IndexT]:
+        return build_game_defaults()
+
+    def config_shortcuts(self) -> list[IndexT]:
+        return [ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT, ConfigIndex.FRIENDLY_FIRE_ENABLED]

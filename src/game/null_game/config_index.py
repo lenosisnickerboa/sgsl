@@ -11,12 +11,8 @@ class ConfigIndex(IntEnum):
     """
 
     SELECTED_MAP = 1
-    SELECTED_MAP_GROUP = 2
-    GAME_MODE = 3
-    PLAYER_COUNT = 4
-    FRIENDLY_FIRE = 5
-    # DEPRECATED_OLD_FIELD = 6   # <- if removed, leave a comment, don't reuse 6
-    # LANGUAGE = 7
+    PLAYER_COUNT = 2
+    FRIENDLY_FIRE_ENABLED = 3
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"

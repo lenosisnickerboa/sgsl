@@ -1,5 +1,8 @@
 from pathlib import Path
 from typing import Union
+from config.toml_config import Config, IndexT
+from game.cs2.config_defaults import build_game_defaults
+from game.cs2.config_index import ConfigIndex
 from game.game import Game
 
 
@@ -43,3 +46,9 @@ class CS2Game(Game):
 
     def maps(self) -> list[str]:
         return [p.stem for p in (Path(self.server_root) / "game" / "csgo" / "maps").glob("*.vpk")]
+    
+    def config_defaults(self) -> Config[IndexT]:
+        return build_game_defaults()
+
+    def config_shortcuts(self) -> list[IndexT]:
+        return [ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP_GROUP, ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT, ConfigIndex.FRIENDLY_FIRE_ENABLED]

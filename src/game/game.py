@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Union
 
+from config.toml_config import Config, IndexT
 from process import process_handler
 
 
@@ -113,6 +114,16 @@ class Game(ABC):
     @abstractmethod
     def maps(self) -> list[str]:
         """Return a list of available maps for the game."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def config_defaults(self) -> Config[IndexT]:
+        """Return default config for the game."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def config_shortcuts(self) -> list[IndexT]:
+        """Return a list of config items to include in the shortcut menu for the game."""
         raise NotImplementedError
 
     def __repr__(self) -> str:
