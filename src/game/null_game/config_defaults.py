@@ -1,4 +1,4 @@
-from config.config_item import ConfigItem, ConfigType
+from config.config_item import ConfigItem, ConfigType, Range
 from config.toml_config import Config
 from game.null_game.config_index import ConfigIndex
 
@@ -24,8 +24,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Players",
             type=ConfigType.INTEGER,
             value=4,
-            min_value=1,
-            max_value=32,
+            range=Range(min_value=1, max_value=32),
 #            validator=lambda v: 1 <= v <= 32,
         ),
         ConfigIndex.FRIENDLY_FIRE_ENABLED: ConfigItem(

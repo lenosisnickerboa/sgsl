@@ -20,6 +20,19 @@ class ConfigType(Enum):
     TABLE = dict
 
 
+@dataclass(frozen=True)
+class Range:
+    """An inclusive min/max bound for a numeric ConfigItem. Either
+    bound may be omitted (None) to leave that side unconstrained."""
+
+    min_value: Optional[Union[int, float]] = None
+    max_value: Optional[Union[int, float]] = None
+
+    def __post_init__(self) -> None:
+        if self.min_value is not None and self.max_value is not None and self.min_value > self.max_value:
+            raise ValueError(f"min_value ({self.min_value}) > max_value ({self.max_value})")
+
+
 def _check_scalar(name: str, value: Any, expected_type: ConfigType) -> None:
     """Validate a single scalar value against a ConfigType, with the
     bool/int special case handled explicitly."""
@@ -64,10 +77,10 @@ class ConfigItem:
     value is checked for membership as part of validation, and it's
     also exposed via `values()` — e.g. for a UI to populate a dropdown.
 
-    `min_value` / `max_value`, only valid for INTEGER and FLOAT items,
-    declare an inclusive range the value must fall within (either or
-    both may be given). Setting either on a non-numeric item raises
-    ValueError immediately.
+    `range`, only valid for INTEGER and FLOAT items, is a Range whose
+    min_value/max_value declare an inclusive bound the value must fall
+    within (either or both may be given). Setting it on a non-numeric
+    item raises ValueError immediately.
     """
 
     name: str
@@ -78,29 +91,18 @@ class ConfigItem:
     schema: Optional[dict[str, ConfigType]] = None
     validator: Optional[Callable[[Any], bool]] = None
     allowed_values: Optional[list[Any]] = None
-    min_value: Optional[Union[int, float]] = None
-    max_value: Optional[Union[int, float]] = None
+    range: Optional[Range] = None
 
     def __post_init__(self) -> None:
         if self.type is ConfigType.ARRAY and self.item_type is None:
             raise ValueError(f"{self.name}: ARRAY items require item_type")
         if self.type is ConfigType.TABLE and self.schema is None:
             raise ValueError(f"{self.name}: TABLE items require schema")
-        if (self.min_value is not None or self.max_value is not None) and self.type not in (
+        if self.range is not None and self.type not in (
             ConfigType.INTEGER,
             ConfigType.FLOAT,
         ):
-            raise ValueError(
-                f"{self.name}: min_value/max_value only apply to INTEGER or FLOAT items"
-            )
-        if (
-            self.min_value is not None
-            and self.max_value is not None
-            and self.min_value > self.max_value
-        ):
-            raise ValueError(
-                f"{self.name}: min_value ({self.min_value}) > max_value ({self.max_value})"
-            )
+            raise ValueError(f"{self.name}: range only applies to INTEGER or FLOAT items")
         self._validate()
 
     def _validate(self) -> None:
@@ -111,14 +113,14 @@ class ConfigItem:
         else:
             _check_scalar(self.name, self.value, self.type)
 
-        if self.type in (ConfigType.INTEGER, ConfigType.FLOAT):
-            if self.min_value is not None and self.value < self.min_value:
+        if self.type in (ConfigType.INTEGER, ConfigType.FLOAT) and self.range is not None:
+            if self.range.min_value is not None and self.value < self.range.min_value:
                 raise ValueError(
-                    f"{self.name}: value {self.value!r} is below min_value {self.min_value!r}"
+                    f"{self.name}: value {self.value!r} is below min_value {self.range.min_value!r}"
                 )
-            if self.max_value is not None and self.value > self.max_value:
+            if self.range.max_value is not None and self.value > self.range.max_value:
                 raise ValueError(
-                    f"{self.name}: value {self.value!r} is above max_value {self.max_value!r}"
+                    f"{self.name}: value {self.value!r} is above max_value {self.range.max_value!r}"
                 )
 
         if self.allowed_values is not None and self.value not in self.allowed_values:
