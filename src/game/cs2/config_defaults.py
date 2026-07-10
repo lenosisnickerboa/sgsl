@@ -26,7 +26,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.STRING,
             tooltip="Currently selected game mode",
             value="Casual",
-            allowed_values=["Casual", "GunGame", "DeatMatch"]
+            allowed_values=["Casual", "Competitive", "ArmsRace", "DeathMatch", "Demolition"]
         ),
         ConfigIndex.PLAYER_COUNT: ConfigItem(
             name="player_count",
@@ -34,12 +34,5 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             tooltip="Number of players",
             value=4,
-        ),
-        ConfigIndex.FRIENDLY_FIRE_ENABLED: ConfigItem(
-            name="friendly_fire_enabled",
-            visible_name="Friendly fire",
-            type=ConfigType.BOOLEAN,
-            tooltip="When enabled you can shoot your team mates",
-            value=False,
         ),
     }

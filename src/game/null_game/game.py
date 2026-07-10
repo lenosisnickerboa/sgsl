@@ -64,5 +64,5 @@ class NullGame(Game):
     def config_shortcuts(self) -> list[IndexT]:
         return [ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT, ConfigIndex.FRIENDLY_FIRE_ENABLED]
 
-    def config_item_changed(self, config_item: IndexT, config: Config[IndexT]) -> None:
-        self.print(f"config_item_changed({config_item}, {config})")
+    # def config_item_changed(self, config_item: IndexT, config: Config[IndexT]) -> None:
+    #     self.print(f"config_item_changed({config_item}, {config})")

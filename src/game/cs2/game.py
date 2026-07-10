@@ -32,7 +32,27 @@ class CS2Game(Game):
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
 
     def run(self, config: Config[IndexT]) -> None:
-        args=["-dedicated", "-usercon", "+game_type", "0", "+game_mode", "1", "+map", "de_inferno"]
+        args=["-dedicated", "-usercon", "+game_type", "TYPE", "+game_mode", "MODE", "+map", "MAP", "-maxplayers", "<number>"]
+        game_mode = config[ConfigIndex.GAME_MODE].value
+        if game_mode == "Casual":
+            args[3]="0" # game_type
+            args[5]="0" # gamne_mode
+        if game_mode == "Competitive":
+            args[3]="0" # game_type
+            args[5]="1" # gamne_mode
+        elif game_mode == "ArmsRace":
+            args[3]="1" # game_type
+            args[5]="0" # gamne_mode
+        elif game_mode == "DeathMatch":
+            args[3]="1" # game_type
+            args[5]="2" # gamne_mode
+        elif game_mode == "Demolition":
+            args[3]="1" # game_type
+            args[5]="1" # gamne_mode
+        else:
+            exit(1)
+        args[7]=config[ConfigIndex.SELECTED_MAP].value
+        args[9]=str(config[ConfigIndex.PLAYER_COUNT].value)
         super().start_server(args)
 
     def stop(self) -> None:
@@ -55,4 +75,7 @@ class CS2Game(Game):
         return defaults
 
     def config_shortcuts(self) -> list[IndexT]:
-        return [ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP_GROUP, ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT, ConfigIndex.FRIENDLY_FIRE_ENABLED]
+        return [ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP_GROUP, ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT]
+
+    # def config_item_changed(self, config_item: IndexT, config: Config[IndexT]) -> None:
+    #     self.print(f"config_item_changed({config_item}, {config})")

@@ -17,7 +17,9 @@ g_terminal_open_close = None
 g_start_stop_server = None
 g_config_default = None
 g_app_config = None
+g_app_config_file = None
 g_game_config = None
+g_game_config_file = None
 g_ui_builder = None
 
 def build_app_defaults() -> Config[ConfigIndex]:
@@ -116,8 +118,9 @@ def setup_detected_game_server(game: Game):
     shortcut_frame.pack()
 
     global g_game_config
-    game_config_file = game.get_directory() / "game.toml"
-    g_game_config = TomlConfigParser.read(game_config_file, game.config_defaults())
+    global g_game_config_file
+    g_game_config_file = game.get_directory() / "game.toml"
+    g_game_config = TomlConfigParser.read(g_game_config_file, game.config_defaults())
 
     def on_shortcut_changed(config_item, config):
         game.config_item_changed(config_item, config)
@@ -145,8 +148,8 @@ g_main_frame.pack()
 
 current_dir = os.getcwd()
 
-app_config_file = Path(current_dir) / "sgsl.toml"
-g_app_config = TomlConfigParser.read(app_config_file, build_app_defaults())
+g_app_config_file = Path(current_dir) / "sgsl.toml"
+g_app_config = TomlConfigParser.read(g_app_config_file, build_app_defaults())
 
 terminal_printer = lambda line: g_terminal_window.add_line(line)
 game = GameFactory.create(current_dir, terminal_printer)
@@ -156,6 +159,7 @@ if game is None:
 else:
     setup_detected_game_server(game)
 
-TomlConfigParser.write(app_config_file, g_app_config)
+TomlConfigParser.write(g_app_config_file, g_app_config)
+TomlConfigParser.write(g_game_config_file, g_game_config)
 
 root.mainloop()

@@ -14,7 +14,6 @@ class ConfigIndex(IntEnum):
     SELECTED_MAP_GROUP = 2
     GAME_MODE = 3
     PLAYER_COUNT = 4
-    FRIENDLY_FIRE = 5
     # DEPRECATED_OLD_FIELD = 6   # <- if removed, leave a comment, don't reuse 6
     # LANGUAGE = 7
 
