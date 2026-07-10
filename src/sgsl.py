@@ -51,6 +51,9 @@ def on_install_game_server(name: str):
 def install_game_server(dir: str, name: str):
     print_to_terminal(f"Installing game server for {name} in directory {dir}...")
 
+def on_update_game_server(game: Game):
+    game.update()
+
 def on_start_stop_game_server(game: Game):
     global g_start_stop_server
 
@@ -95,6 +98,9 @@ def setup_detected_game_server(game: Game):
 
     edit_configuration = ui.Button(master=game_frame, name="Configure", tooltip="Edit game server configuration")
     edit_configuration.pack()
+
+    update_server = ui.Button(master=game_frame, name="Update", tooltip="Update game server", command=lambda: on_update_game_server(game))
+    update_server.pack()
 
     global g_start_stop_server
     if game.is_running():
