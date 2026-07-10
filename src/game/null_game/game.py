@@ -56,4 +56,4 @@ class NullGame(Game):
         return build_game_defaults()
 
     def config_shortcuts(self) -> list[IndexT]:
-        return [ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT, ConfigIndex.FRIENDLY_FIRE_ENABLED]
+        return [ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT, ConfigIndex.FRIENDLY_FIRE_ENABLED]

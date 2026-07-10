@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date, datetime, time
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Callable, Optional, Union
 
 
 class ConfigType(Enum):
@@ -49,6 +49,25 @@ class ConfigItem:
     For TABLE items, `schema` declares the expected keys and their
     ConfigType, e.g. {"x": ConfigType.INTEGER, "y": ConfigType.INTEGER}.
     The table's keys must match the schema's keys exactly.
+
+    `validator`, if provided, is an additional check run after the
+    built-in type/item_type/schema validation passes. It's called with
+    the candidate value as its only argument (the same value/element
+    passed to `set()` or the constructor) and must return True if the
+    value is acceptable, or False to reject it. It may also raise its
+    own exception (e.g. ValueError) instead of returning False, if it
+    wants to report a more specific reason.
+
+    `possible_values`, if provided, is the closed set of values this
+    item is allowed to hold (e.g. ["low", "medium", "high"] for a
+    STRING item, or [0, 1, 2] for an INTEGER item). If set, the current
+    value is checked for membership as part of validation, and it's
+    also exposed via `values()` — e.g. for a UI to populate a dropdown.
+
+    `min_value` / `max_value`, only valid for INTEGER and FLOAT items,
+    declare an inclusive range the value must fall within (either or
+    both may be given). Setting either on a non-numeric item raises
+    ValueError immediately.
     """
 
     name: str
@@ -57,12 +76,31 @@ class ConfigItem:
     value: Any
     item_type: Optional[ConfigType] = None
     schema: Optional[dict[str, ConfigType]] = None
+    validator: Optional[Callable[[Any], bool]] = None
+    allowed_values: Optional[list[Any]] = None
+    min_value: Optional[Union[int, float]] = None
+    max_value: Optional[Union[int, float]] = None
 
     def __post_init__(self) -> None:
         if self.type is ConfigType.ARRAY and self.item_type is None:
             raise ValueError(f"{self.name}: ARRAY items require item_type")
         if self.type is ConfigType.TABLE and self.schema is None:
             raise ValueError(f"{self.name}: TABLE items require schema")
+        if (self.min_value is not None or self.max_value is not None) and self.type not in (
+            ConfigType.INTEGER,
+            ConfigType.FLOAT,
+        ):
+            raise ValueError(
+                f"{self.name}: min_value/max_value only apply to INTEGER or FLOAT items"
+            )
+        if (
+            self.min_value is not None
+            and self.max_value is not None
+            and self.min_value > self.max_value
+        ):
+            raise ValueError(
+                f"{self.name}: min_value ({self.min_value}) > max_value ({self.max_value})"
+            )
         self._validate()
 
     def _validate(self) -> None:
@@ -72,6 +110,34 @@ class ConfigItem:
             self._validate_table()
         else:
             _check_scalar(self.name, self.value, self.type)
+
+        if self.type in (ConfigType.INTEGER, ConfigType.FLOAT):
+            if self.min_value is not None and self.value < self.min_value:
+                raise ValueError(
+                    f"{self.name}: value {self.value!r} is below min_value {self.min_value!r}"
+                )
+            if self.max_value is not None and self.value > self.max_value:
+                raise ValueError(
+                    f"{self.name}: value {self.value!r} is above max_value {self.max_value!r}"
+                )
+
+        if self.allowed_values is not None and self.value not in self.allowed_values:
+            raise ValueError(
+                f"{self.name}: value {self.value!r} not in possible_values "
+                f"{self.allowed_values!r}"
+            )
+
+        if self.validator is not None:
+            self._run_validator(self.value)
+
+    def _run_validator(self, value: Any) -> None:
+        try:
+            ok = self.validator(value)
+        except Exception as e:
+            raise ValueError(f"{self.name}: validator raised an error: {e}") from e
+
+        if not ok:
+            raise ValueError(f"{self.name}: rejected by validator (value={value!r})")
 
     def _validate_array(self) -> None:
         if not isinstance(self.value, list):
@@ -109,9 +175,22 @@ class ConfigItem:
                 raise TypeError(f"{self.name}.{key}: {e}") from e
 
     def set(self, value: Any) -> None:
-        """Update the value, re-validating against the declared type."""
+        """Update the value, re-validating against the declared type,
+        item_type/schema, and validator. If validation fails, the item
+        is left unchanged (the old value is restored) rather than
+        being left holding an invalid value."""
+        previous = self.value
         self.value = value
-        self._validate()
+        try:
+            self._validate()
+        except Exception:
+            self.value = previous
+            raise
+
+    def values(self) -> Optional[list[Any]]:
+        """Return the possible values for this item, or None if it's
+        unconstrained (any value matching the declared type is fine)."""
+        return self.allowed_values
 
     def __repr__(self) -> str:
         return (

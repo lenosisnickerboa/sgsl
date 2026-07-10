@@ -1,5 +1,4 @@
 import os
-import sys
 from pathlib import Path
 from config.config_item import ConfigItem, ConfigType
 from config.toml_config import Config, TomlConfigParser
@@ -112,7 +111,7 @@ def setup_detected_game_server(game: Game):
     shortcut_frame = ui.EditGroupFrame(master=g_main_frame, name="Shortcuts")
     shortcut_frame.pack()
 
-    game_mode = ui.StringCombobox(master=shortcut_frame, name="Game mode", values=(r"Deathmatch", r"Gungame", r"Casual"), selected=2, tooltip="Selected game mode")
+    game_mode = ui.StringCombobox(master=shortcut_frame, name="Game mode", values=(r"Deathmatch", r"Gungame", r"Classic"), selected=2, tooltip="Selected game mode")
     game_mode.pack()
 
 #    map_group = ui.StringCombobox(master=shortcut_frame, name="Map group", values=(r"Mapgroup-1", r"Mapgroup-2", r"Mapgroup-3"), selected=1, tooltip="Selected map group")
