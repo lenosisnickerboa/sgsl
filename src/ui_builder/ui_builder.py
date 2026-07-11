@@ -70,7 +70,7 @@ class UiBuilder:
             for index in tab_spec.items:
                 config_item = config[index]
                 widget = self._build_widget(tab, config_item, config, config_changed_callback)
-                widget.pack()
+                widget.pack(side=ui.TOP)
                 self._register(index, widget)
         return window
 

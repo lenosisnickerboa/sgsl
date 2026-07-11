@@ -129,8 +129,11 @@ class IntegerSpinbox(ttk.Labelframe):
             return
         self.command(value)
 
-    def pack(self):
-        super().pack(side=LEFT, expand=YES, padx=5, fill=X)
+    def pack(self, side=LEFT):
+        if side == TOP:
+            super().pack(side=TOP, padx=5, pady=2, fill=X)
+        else:
+            super().pack(side=LEFT, expand=YES, padx=5, fill=X)
 
     def update(self, value: int):
         self.spinbox.set(value)
@@ -165,8 +168,11 @@ class StringCombobox(ttk.Labelframe):
         if self.command is not None:
             self.command(self.combobox.get())
 
-    def pack(self):
-        super().pack(side=LEFT, expand=YES, padx=5, fill=X)
+    def pack(self, side=LEFT):
+        if side == TOP:
+            super().pack(side=TOP, padx=5, pady=2, fill=X)
+        else:
+            super().pack(side=LEFT, expand=YES, padx=5, fill=X)
 
     def update(self, value):
         self.combobox.set(value)
@@ -236,8 +242,11 @@ class CheckButton(ttk.Labelframe):
         else:
             self.on()
 
-    def pack(self):
-        super().pack(side=LEFT, padx=5, fill=X)
+    def pack(self, side=LEFT):
+        if side == TOP:
+            super().pack(side=TOP, padx=5, pady=2, fill=X)
+        else:
+            super().pack(side=LEFT, padx=5, fill=X)
 
     def update(self, value: bool):
         self.value.set(value)
