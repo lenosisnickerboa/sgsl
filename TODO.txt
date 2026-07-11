@@ -1,5 +1,7 @@
 Update game functionality (same as install?)
 
+Source code formatting
+
 Restart program after install done. Consider adding a disabled restart button which is enabled when the install finishes successfully.
 
 import subprocess

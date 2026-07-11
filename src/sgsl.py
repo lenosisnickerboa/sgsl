@@ -14,6 +14,9 @@ g_main_frame = None
 g_terminal_window = None
 g_terminal_is_open = False
 g_terminal_open_close = None
+g_configure_window = None
+g_configure_is_open = False
+g_configure_open_close = None
 g_start_stop_server = None
 g_config_default = None
 g_app_config = None
@@ -53,6 +56,11 @@ def install_game_server(dir: str, name: str):
 
 def on_update_game_server(game: Game):
     game.update()
+
+def on_toggle_configure_window():
+    global g_configure_is_open
+    g_configure_is_open = not g_configure_is_open
+    g_configure_window.toggle()
 
 def on_start_stop_game_server(game: Game):
     global g_start_stop_server
@@ -96,9 +104,6 @@ def setup_detected_game_server(game: Game):
     game_frame = ui.EditGroupFrame(master=g_main_frame, name=game.get_long_name())
     game_frame.pack()
 
-    edit_configuration = ui.Button(master=game_frame, name="Configure", tooltip="Edit game server configuration")
-    edit_configuration.pack()
-
     update_server = ui.Button(master=game_frame, name="Update", tooltip="Update game server", command=lambda: on_update_game_server(game))
     update_server.pack()
 
@@ -108,6 +113,10 @@ def setup_detected_game_server(game: Game):
     else:
         g_start_stop_server = ui.Button(master=game_frame, name="Start", tooltip="Start server", command=lambda: on_start_stop_game_server(game))
     g_start_stop_server.pack()
+
+    global g_configure_open_close
+    g_configure_open_close = ui.CheckButton(master=game_frame, name="Configure", tooltip="Edit game server configuration", command=lambda _value: on_toggle_configure_window())
+    g_configure_open_close.pack()
 
     global g_terminal_open_close
     g_terminal_open_close = ui.CheckButton(master=game_frame, name="Terminal", tooltip="Toggle terminal window", command=lambda _value: on_toggle_terminal_window())
@@ -128,12 +137,22 @@ def setup_detected_game_server(game: Game):
     g_game_config_file = game.get_directory() / "game.toml"
     g_game_config = TomlConfigParser.read(g_game_config_file, game.config_defaults())
 
-    def on_shortcut_changed(config_item, config):
+    def on_config_item_changed(config_item, config):
         game.config_item_changed(config_item, config)
 
     global g_ui_builder
     g_ui_builder = UiBuilder()
-    g_ui_builder.build_shortcuts(shortcut_frame, game.config_shortcuts(), g_game_config, on_shortcut_changed)
+    g_ui_builder.build_shortcuts(shortcut_frame, game.config_shortcuts(), g_game_config, on_config_item_changed)
+
+    global g_configure_window
+    g_configure_window = g_ui_builder.build_configuration_window(
+        root,
+        on_close_configure_window,
+        f"Configure {game.get_long_name()}",
+        game.config_tabs(),
+        g_game_config,
+        on_config_item_changed,
+    )
 
     spacer_at_end = ui.Spacer(master=g_main_frame)
     spacer_at_end.pack()
@@ -142,6 +161,11 @@ def on_close_terminal_window():
     global g_terminal_is_open
     g_terminal_is_open = False
     g_terminal_open_close.off()
+
+def on_close_configure_window():
+    global g_configure_is_open
+    g_configure_is_open = False
+    g_configure_open_close.off()
 
 # main
 

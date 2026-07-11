@@ -18,6 +18,53 @@ class TopLevelWindow(ttk.Toplevel):
         super().__init__(title=title)
 
 
+class TabbedWindow(ttk.Toplevel):
+    """A tabbed window that stays alive for the lifetime of the app;
+    use show()/hide()/toggle() instead of creating/destroying it."""
+
+    def __init__(self, master, on_close, title: str, **kwargs):
+        super().__init__(title=title, master=master, **kwargs)
+
+        self.on_close = on_close
+        self.notebook = ttk.Notebook(self)
+        self.notebook.pack(fill=BOTH, expand=YES, padx=5, pady=5)
+
+        # Intercept the window's own close (X) button: hide instead of destroy
+        self.protocol("WM_DELETE_WINDOW", self.hide)
+
+        # Start hidden — the main app decides when to show it
+        self.withdraw()
+
+    def add_tab(self, tab: "Tab"):
+        self.notebook.add(tab, text=tab.title)
+
+    def show(self):
+        """Reveal the window and bring it to the front."""
+        self.deiconify()
+        self.lift()
+        self.focus_force()
+
+    def hide(self):
+        """Hide the window without destroying it or losing its contents."""
+        self.withdraw()
+        self.on_close()
+
+    def toggle(self):
+        if self.state() == "withdrawn":
+            self.show()
+        else:
+            self.hide()
+
+    def is_visible(self):
+        return self.state() != "withdrawn"
+
+
+class Tab(ttk.Frame):
+    def __init__(self, master, title: str, **kwargs):
+        super().__init__(master, padding=5, **kwargs)
+        self.title = title
+
+
 class MainFrame(ttk.Frame):
     def __init__(self, master, **kwargs):
         super().__init__(master, padding=5, **kwargs)
