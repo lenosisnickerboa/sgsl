@@ -17,6 +17,8 @@ g_terminal_open_close = None
 g_configure_window = None
 g_configure_is_open = False
 g_configure_open_close = None
+g_install_open_close = None
+g_update_open_close = None
 g_start_stop_server = None
 g_config_default = None
 g_app_config = None
@@ -48,12 +50,24 @@ def print_to_terminal(line: str):
 def on_install_game_server(name: str):
     print_to_terminal(f"Installing game server for {name}...")
     game = GameFactory.create_from_name(name, current_dir, terminal_printer)
-    if game:
-        game.install()
+    if not game:
+        g_install_open_close.off()
+        return
+
+    def on_install_result(result):
+        print_to_terminal(f"Install for {game.get_long_name()} finished: {result.value}")
+        g_install_open_close.off()
+
+    game.install(on_install_result)
 
 def on_update_game_server(game: Game):
     print_to_terminal(f"Updating game server for {game.get_long_name()} in directory {game.get_directory()}...")
-    game.update()
+
+    def on_update_result(result):
+        print_to_terminal(f"Update for {game.get_long_name()} finished: {result.value}")
+        g_update_open_close.off()
+
+    game.update(on_update_result)
 
 def on_toggle_configure_window():
     global g_configure_is_open
@@ -87,8 +101,9 @@ def setup_install_game(dir: str):
     selected_game = ui.StringCombobox(master=game_frame, name="Select a game server to install", values=all_games, selected=all_games[0], tooltip="Select a game server to install")
     selected_game.pack()
 
-    install_server = ui.ExpandingButton(game_frame, name="Install game server", tooltip="Install selected game server", command=lambda: on_install_game_server(selected_game.combobox.get()))
-    install_server.pack()
+    global g_install_open_close
+    g_install_open_close = ui.CheckButton(master=game_frame, name="Install game server", tooltip="Install selected game server", command=lambda value: on_install_game_server(selected_game.combobox.get()) if value else None)
+    g_install_open_close.pack()
 
     global g_terminal_open_close
     g_terminal_open_close = ui.CheckButton(master=game_frame, name="Terminal", tooltip="Toggle terminal window", command=lambda _value: on_toggle_terminal_window())
@@ -102,15 +117,16 @@ def setup_detected_game_server(game: Game):
     game_frame = ui.EditGroupFrame(master=g_main_frame, name=game.get_long_name())
     game_frame.pack()
 
-    update_server = ui.Button(master=game_frame, name="Update", tooltip="Update game server", command=lambda: on_update_game_server(game))
-    update_server.pack()
-
     global g_start_stop_server
     if game.is_running():
         g_start_stop_server = ui.Button(master=game_frame, name="Stop", tooltip="Stop server", command=lambda: on_start_stop_game_server(game))
     else:
         g_start_stop_server = ui.Button(master=game_frame, name="Start", tooltip="Start server", command=lambda: on_start_stop_game_server(game))
     g_start_stop_server.pack()
+
+    global g_update_open_close
+    g_update_open_close = ui.CheckButton(master=game_frame, name="Update", tooltip="Update game server", command=lambda value: on_update_game_server(game) if value else None)
+    g_update_open_close.pack()
 
     global g_configure_open_close
     g_configure_open_close = ui.CheckButton(master=game_frame, name="Configure", tooltip="Edit game server configuration", command=lambda _value: on_toggle_configure_window())
@@ -188,6 +204,7 @@ else:
     setup_detected_game_server(game)
 
 TomlConfigParser.write(g_app_config_file, g_app_config)
-TomlConfigParser.write(g_game_config_file, g_game_config)
+if g_game_config != None:
+    TomlConfigParser.write(g_game_config_file, g_game_config)
 
 root.mainloop()

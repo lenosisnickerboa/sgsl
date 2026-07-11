@@ -1,13 +1,22 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from enum import Enum
 from pathlib import Path
-from typing import Union
+from typing import Callable, Union
 
 from config.config_item import ConfigItem
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from process import process_handler
+
+
+class OperationResult(Enum):
+    """Outcome reported to install()'s/update()'s result_callback."""
+
+    OK = "OK"
+    FAIL = "FAIL"
+    NOT_SUPPORTED = "NOT_SUPPORTED"
 
 
 class Game(ABC):
@@ -83,13 +92,16 @@ class Game(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def install(self) -> None:
-        """Install the game into self.directory."""
+    def install(self, result_callback: Callable[[OperationResult], None]) -> None:
+        """Install the game into self.directory. Must call
+        result_callback exactly once with the outcome (OK, FAIL, or
+        NOT_SUPPORTED)."""
         raise NotImplementedError
 
     @abstractmethod
-    def update(self) -> None:
-        """Update an already-installed game."""
+    def update(self, result_callback: Callable[[OperationResult], None]) -> None:
+        """Update an already-installed game. Must call result_callback
+        exactly once with the outcome (OK, FAIL, or NOT_SUPPORTED)."""
         raise NotImplementedError
 
     @abstractmethod

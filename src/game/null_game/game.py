@@ -1,8 +1,8 @@
 from pathlib import Path
-from typing import Union
+from typing import Callable, Union
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
-from game.game import Game
+from game.game import Game, OperationResult
 from game.null_game.config_defaults import build_game_defaults
 from game.null_game.config_index import ConfigIndex
 
@@ -27,14 +27,16 @@ class NullGame(Game):
     def detect(self) -> bool:
         return self.server_binary.exists()
 
-    def install(self) -> None:
+    def install(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Installing {self.get_long_name()} into {self.server_root}")
         self.print(f"touch({self.server_binary})")
         self.server_binary.touch(exist_ok=True)
         self.print(f"Installed {self.get_long_name()} into {self.server_root}")
+        result_callback(OperationResult.OK)
 
-    def update(self) -> None:
+    def update(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
+        result_callback(OperationResult.OK)
 
     def run(self, config: Config[IndexT]) -> None:
         self.print(f"Running {self.get_long_name()} from {self.server_root}")

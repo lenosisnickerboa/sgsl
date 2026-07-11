@@ -1,10 +1,10 @@
 from pathlib import Path
-from typing import Union
+from typing import Callable, Union
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from game.cs2.config_defaults import build_game_defaults
 from game.cs2.config_index import ConfigIndex
-from game.game import Game
+from game.game import Game, OperationResult
 
 
 GameExe = "cs2.exe"
@@ -26,11 +26,13 @@ class CS2Game(Game):
     def get_long_name(self) -> str:
         return "Counter-Strike 2"
 
-    def install(self) -> None:
+    def install(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Installing {self.get_long_name()} into {self.server_root}")
+        result_callback(OperationResult.OK)
 
-    def update(self) -> None:
+    def update(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
+        result_callback(OperationResult.OK)
 
     def run(self, config: Config[IndexT]) -> None:
         args=["-dedicated", "-usercon", "+game_type", "TYPE", "+game_mode", "MODE", "+map", "MAP", "-maxplayers", "<number>"]
