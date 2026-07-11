@@ -30,6 +30,11 @@ class TomlConfigParser:
     Config always has an entry for every index present in `defaults`,
     even if the TOML file is empty, partial, or missing.
 
+    An entry that no longer validates against its default (e.g. a
+    saved file from before that item's declared type or constraints
+    changed) is treated like an unknown key: it's skipped and the
+    default value is kept, rather than failing the whole load.
+
     This class is agnostic to which specific index enum you use — it
     only ever treats index values as opaque dict keys and, when
     ordering for output, as plain integers via int(idx). Different
@@ -64,9 +69,14 @@ class TomlConfigParser:
                 continue
 
             item = config[idx]
-            # set() re-validates against the item's declared type,
-            # item_type (ARRAY), or schema (TABLE).
-            item.set(toml_value)
+            try:
+                # set() re-validates against the item's declared type,
+                # item_type (ARRAY), or schema (TABLE).
+                item.set(toml_value)
+            except (TypeError, ValueError):
+                # Stale value from before this item's type/constraints
+                # changed — keep the default rather than fail the load.
+                continue
 
         return config
 

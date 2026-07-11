@@ -10,6 +10,11 @@ class ConfigType(Enum):
     """Maps to the value types TOML supports."""
 
     STRING = str
+    # A single string chosen from ConfigItem.allowed_values (e.g. for a
+    # dropdown). Serialized the same as STRING (a plain TOML string);
+    # given a distinct sentinel value (rather than `str`) purely so it
+    # doesn't alias STRING as an Enum member — see _check_scalar().
+    STRING_LIST = "string_list"
     INTEGER = int
     FLOAT = float
     BOOLEAN = bool
@@ -37,7 +42,7 @@ def _check_scalar(name: str, value: Any, expected_type: ConfigType) -> None:
     """Validate a single scalar value against a ConfigType, with the
     bool/int special case handled explicitly."""
 
-    py_type = expected_type.value
+    py_type = str if expected_type is ConfigType.STRING_LIST else expected_type.value
 
     if expected_type is ConfigType.INTEGER and isinstance(value, bool):
         raise TypeError(f"{name}: expected int, got bool")
@@ -82,6 +87,10 @@ class ConfigItem:
     within (either or both may be given). Setting it on a non-numeric
     item raises ValueError immediately.
 
+    `max_length`, only valid for STRING items, caps the length of the
+    string value. Setting it on a non-STRING item raises ValueError
+    immediately.
+
     `tooltip`, if provided, is shown by a UI in place of `visible_name`
     when hovering over this item's widget. If unset, a UI should fall
     back to `visible_name`.
@@ -96,6 +105,7 @@ class ConfigItem:
     validator: Optional[Callable[[Any], bool]] = None
     allowed_values: Optional[list[Any]] = None
     range: Optional[Range] = None
+    max_length: Optional[int] = None
     tooltip: Optional[str] = None
 
     def __post_init__(self) -> None:
@@ -108,6 +118,8 @@ class ConfigItem:
             ConfigType.FLOAT,
         ):
             raise ValueError(f"{self.name}: range only applies to INTEGER or FLOAT items")
+        if self.max_length is not None and self.type is not ConfigType.STRING:
+            raise ValueError(f"{self.name}: max_length only applies to STRING items")
         self._validate()
 
     def _validate(self) -> None:
@@ -127,6 +139,11 @@ class ConfigItem:
                 raise ValueError(
                     f"{self.name}: value {self.value!r} is above max_value {self.range.max_value!r}"
                 )
+
+        if self.type is ConfigType.STRING and self.max_length is not None and len(self.value) > self.max_length:
+            raise ValueError(
+                f"{self.name}: value {self.value!r} exceeds max_length {self.max_length}"
+            )
 
         if self.allowed_values is not None and self.value not in self.allowed_values:
             raise ValueError(

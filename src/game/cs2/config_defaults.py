@@ -8,14 +8,14 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ConfigIndex.SELECTED_MAP: ConfigItem(
             name="selected_map",
             visible_name="Selected map",
-            type=ConfigType.STRING,
+            type=ConfigType.STRING_LIST,
             tooltip="The currently selected map, one of the maps in the selected map group",
             value="",
         ),
         ConfigIndex.SELECTED_MAP_GROUP: ConfigItem(
             name="selected_map_group",
             visible_name="Selected map group",
-            type=ConfigType.STRING,
+            type=ConfigType.STRING_LIST,
             tooltip="The currently selected map group, if \"ALL\" all maps are included",
             value="ALL",
             #allowed_values=... will be filled in later
@@ -23,7 +23,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ConfigIndex.GAME_MODE: ConfigItem(
             name="game_mode",
             visible_name="Game mode",
-            type=ConfigType.STRING,
+            type=ConfigType.STRING_LIST,
             tooltip="Currently selected game mode",
             value="Casual",
             allowed_values=["Casual", "Competitive", "ArmsRace", "DeathMatch", "Demolition"]

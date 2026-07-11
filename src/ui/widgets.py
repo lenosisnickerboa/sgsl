@@ -139,6 +139,32 @@ class IntegerSpinbox(ttk.Labelframe):
         self.spinbox.set(value)
 
 
+class StringEntry(ttk.Labelframe):
+    def __init__(self, master, name : str, initial_value : str, tooltip : str, command = Nop(), **kwargs):
+        super().__init__(master, text=name, padding=2, **kwargs)
+
+        self.command = command
+        self.value = ttk.StringVar(value=initial_value)
+        self.entry = ttk.Entry(master=self, textvariable=self.value)
+        self.entry.pack(side=LEFT, expand=YES, padx=5, fill=X)
+        self.entry.bind("<Return>", self.on_event)
+        self.entry.bind("<FocusOut>", self.on_event)
+        ToolTip(self.entry, text=tooltip)
+
+    def on_event(self, event=None):
+        if self.command is not None:
+            self.command(self.value.get())
+
+    def pack(self, side=LEFT):
+        if side == TOP:
+            super().pack(side=TOP, padx=5, pady=2, fill=X)
+        else:
+            super().pack(side=LEFT, expand=YES, padx=5, fill=X)
+
+    def update(self, value: str):
+        self.value.set(value)
+
+
 class StringCombobox(ttk.Labelframe):
     def __init__(self, master, name : str, values : list, selected, tooltip : str, command = Nop(), readonly=True, **kwargs):
         super().__init__(master, text=name, padding=2, **kwargs)

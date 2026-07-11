@@ -124,9 +124,17 @@ class UiBuilder:
                 command=on_widget_changed,
             )
         elif item.type is ConfigType.STRING:
+            widget = ui.StringEntry(
+                master=master,
+                name=item.visible_name,
+                initial_value=item.value,
+                tooltip=tooltip,
+                command=on_widget_changed,
+            )
+        elif item.type is ConfigType.STRING_LIST:
             # A closed set of allowed_values becomes a read-only dropdown;
-            # an unconstrained string becomes a free-typing combobox seeded
-            # with its current value (widgets.py has no plain text entry).
+            # an unconstrained STRING_LIST falls back to a free-typing
+            # combobox seeded with its current value.
             values = item.allowed_values if item.allowed_values else [item.value]
             widget = ui.StringCombobox(
                 master=master,

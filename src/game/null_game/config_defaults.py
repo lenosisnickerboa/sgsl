@@ -8,7 +8,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ConfigIndex.GAME_MODE: ConfigItem(
             name="selected_map",
             visible_name="Game mode",
-            type=ConfigType.STRING,
+            type=ConfigType.STRING_LIST,
             value="GunGame",
             allowed_values=["GunGame", "DeathMatch", "Classic"],
 #            validator=lambda v: v in ["GunGame", "DeathMatch", "Classic"],
@@ -16,7 +16,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ConfigIndex.SELECTED_MAP: ConfigItem(
             name="selected_map",
             visible_name="Selected map",
-            type=ConfigType.STRING,
+            type=ConfigType.STRING_LIST,
             tooltip="The currently selected map",
             value="", #will be filled in later
             #allowed_values=... will be filled in later
@@ -54,7 +54,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ConfigIndex.DUMMY_2: ConfigItem(
             name="dummy_2",
             visible_name="Dummy 2",
-            type=ConfigType.STRING,
+            type=ConfigType.STRING_LIST,
             tooltip="This is tooltip for dummy 2 with default value \"dummy_2_value_3\"",
             value="dummy_2_value_3",
             allowed_values=["dummy_2_value_0", "dummy_2_value_1", "dummy_2_value_2", "dummy_2_value_3", "dummy_2_value_4"]
@@ -77,7 +77,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ConfigIndex.DUMMY_5: ConfigItem(
             name="dummy_5",
             visible_name="Dummy 5",
-            type=ConfigType.STRING,
+            type=ConfigType.STRING_LIST,
             tooltip="This is tooltip for dummy 5 with default value \"dummy_5_value_0\"",
             value="dummy_5_value_0",
             allowed_values=["dummy_5_value_0", "dummy_5_value_1", "dummy_5_value_2", "dummy_5_value_3", "dummy_5_value_4"]
@@ -85,10 +85,10 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ConfigIndex.DUMMY_6: ConfigItem(
             name="dummy_6",
             visible_name="Dummy 6",
-            type=ConfigType.INTEGER,
-            tooltip="This is tooltip for dummy 6 with default value 43",
-            value=43,
-            range=Range(min_value=40, max_value=49),
+            type=ConfigType.STRING,
+            tooltip="This is tooltip for dummy 6 with default value \"nisse\"",
+            value="nisse",
+            max_length=12,
         ),
         ConfigIndex.DUMMY_7: ConfigItem(
             name="dummy_7",
