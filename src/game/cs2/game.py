@@ -5,6 +5,9 @@ from config.toml_config import Config, IndexT
 from game.cs2.config_defaults import build_game_defaults
 from game.cs2.config_index import ConfigIndex
 from game.game import Game, OperationResult
+from support.unzip import unzip_with_return
+from support.wget import download_with_return
+from thread.run_task import TaskRunner
 
 
 GameExe = "cs2.exe"
@@ -26,12 +29,40 @@ class CS2Game(Game):
     def get_long_name(self) -> str:
         return "Counter-Strike 2"
 
+    def download_steamcmd(self, cancel_token, progress_cb=None) -> bool:
+        steamcmd_dir = self.directory / "steamcmd"
+        steamcmd_zip = steamcmd_dir / "steamcmd.zip"
+
+        def on_download_progress(downloaded, total):
+            cancel_token.raise_if_cancelled()
+            if progress_cb and total:
+                progress_cb(int(downloaded / total * 100))
+
+        result = download_with_return(
+            "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip",
+            steamcmd_zip,
+            progress_callback=on_download_progress,
+        )
+        if not result:
+            return False
+        return unzip_with_return(steamcmd_zip)
+
     def install(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Installing {self.get_long_name()} into {self.server_root}")
-        result_callback(OperationResult.OK)
+
+        def on_done(result):
+            self.print(f"Downloaded steamcmd finished: {result}")
+            result_callback(OperationResult.OK if result else OperationResult.FAIL)
+
+        def on_progress(pct):
+            self.print(f"Downloaded steamcmd : {pct}")
+
+        task = TaskRunner("Download steamcmd", self.download_steamcmd, done_cb=on_done, progress_cb=on_progress)
+        task.start()
 
     def update(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
+
         result_callback(OperationResult.OK)
 
     def run(self, config: Config[IndexT]) -> None:

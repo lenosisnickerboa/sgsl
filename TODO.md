@@ -1,10 +1,10 @@
-# Forced save config (otherwise done on exit only)
+# Install/Update game functionality
 
-# Update game functionality (same as install?)
-
-Add a checkbutton, make it work as terminal...
+Add checkbuttons, make them work as terminal...
 
 # Source code formatting
+
+# Forced save config (otherwise done on exit only)
 
 # Restart program after install done. 
 

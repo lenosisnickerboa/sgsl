@@ -37,13 +37,6 @@ def build_app_defaults() -> Config[ConfigIndex]:
         ),
     }
 
-def get_server_binary_path(dir: str) -> str:
-    return str(game.cs2.runner.get(dir))
-
-def is_terminal_open() -> bool:
-    global g_terminal_is_open
-    return g_terminal_is_open
-
 def print_to_terminal(line: str):
     g_terminal_window.add_line(f"{line}")
 

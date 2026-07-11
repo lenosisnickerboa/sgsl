@@ -3,7 +3,7 @@ from thread.run_async import TaskCancelled, run_async
 
 
 class TaskRunner:
-    def __init__(self, name: str, task, *args, done_cb, , progress_cb = None, terminal = None, timeout = None):
+    def __init__(self, name: str, task, *args, done_cb, progress_cb = None, terminal = None, timeout = None):
         self.name = name
         self.task = task
         self.args = args
