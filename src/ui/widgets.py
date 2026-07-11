@@ -213,10 +213,12 @@ class CheckButton(ttk.Labelframe):
 
         self.command = command
         self.value = ttk.BooleanVar(value=initial_value)
-        self.button = ttk.Checkbutton(master=self, bootstyle="round-toggle", text=name, command=self.on_event, variable=self.value)
-        self.button.pack(side=LEFT, padx=5, fill=X)
+        self.label = ttk.Label(master=self, text=name)
+        self.label.pack(side=LEFT, padx=5)
+        self.button = ttk.Checkbutton(master=self, bootstyle="round-toggle", command=self.on_event, variable=self.value)
+        self.button.pack(side=LEFT, padx=5)
+        ToolTip(self.label, text=tooltip)
         ToolTip(self.button, text=tooltip)
-        self.button.pack(side=TOP)
 
     def on_event(self):
         if self.command is not None:
