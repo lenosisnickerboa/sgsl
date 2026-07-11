@@ -1,2 +1,0 @@
-sgsl.exe
-pause
