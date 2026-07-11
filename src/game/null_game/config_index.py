@@ -14,6 +14,16 @@ class ConfigIndex(IntEnum):
     SELECTED_MAP = 2
     PLAYER_COUNT = 3
     FRIENDLY_FIRE_ENABLED = 4
+    DUMMY_0 = 5
+    DUMMY_1 = 6
+    DUMMY_2 = 7
+    DUMMY_3 = 8
+    DUMMY_4 = 9
+    DUMMY_5 = 10
+    DUMMY_6 = 11
+    DUMMY_7 = 12
+    DUMMY_8 = 13
+    DUMMY_9 = 14
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"

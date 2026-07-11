@@ -127,12 +127,13 @@ class Game(ABC):
         """Return a list of config items to include in the shortcut menu for the game."""
         raise NotImplementedError
 
+    @abstractmethod
     def config_tabs(self) -> list[TabSpec]:
         """Return the tab layout for the detailed configuration window
         opened by the Configure button. The default puts every config
         item on a single "General" tab; override to group items across
         multiple tabs."""
-        return [TabSpec(title="General", items=list(self.config_defaults().keys()))]
+        raise NotImplementedError
 
     def config_item_changed(self, config_item: IndexT, config: Config[IndexT]) -> None:
         """Called after a UI edit has already updated config_item's

@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Union
+from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from game.game import Game
 from game.null_game.config_defaults import build_game_defaults
@@ -63,6 +64,11 @@ class NullGame(Game):
 
     def config_shortcuts(self) -> list[IndexT]:
         return [ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT, ConfigIndex.FRIENDLY_FIRE_ENABLED]
+
+    def config_tabs(self) -> list[TabSpec]:
+        return [TabSpec(title="1st tab title", items=[ConfigIndex.DUMMY_0, ConfigIndex.DUMMY_1]), 
+                TabSpec(title="2nd tab title", items=[ConfigIndex.DUMMY_2, ConfigIndex.DUMMY_3]), 
+                TabSpec(title="3rd tab title", items=[ConfigIndex.DUMMY_4, ConfigIndex.DUMMY_5])]
 
     # def config_item_changed(self, config_item: IndexT, config: Config[IndexT]) -> None:
     #     self.print(f"config_item_changed({config_item}, {config})")

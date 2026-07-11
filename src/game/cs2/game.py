@@ -1,5 +1,6 @@
 from pathlib import Path
 from typing import Union
+from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from game.cs2.config_defaults import build_game_defaults
 from game.cs2.config_index import ConfigIndex
@@ -76,6 +77,9 @@ class CS2Game(Game):
 
     def config_shortcuts(self) -> list[IndexT]:
         return [ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP_GROUP, ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT]
+
+    def config_tabs(self) -> list[TabSpec]:
+        return [TabSpec(title="General", items=list(self.config_defaults().keys()))]
 
     # def config_item_changed(self, config_item: IndexT, config: Config[IndexT]) -> None:
     #     self.print(f"config_item_changed({config_item}, {config})")
