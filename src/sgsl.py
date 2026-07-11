@@ -51,10 +51,8 @@ def on_install_game_server(name: str):
     if game:
         game.install()
 
-def install_game_server(dir: str, name: str):
-    print_to_terminal(f"Installing game server for {name} in directory {dir}...")
-
 def on_update_game_server(game: Game):
+    print_to_terminal(f"Updating game server for {game.get_long_name()} in directory {game.get_directory()}...")
     game.update()
 
 def on_toggle_configure_window():
