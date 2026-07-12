@@ -59,12 +59,15 @@ class UiBuilder:
         """Build a tabbed window titled `title` with one tab per TabSpec
         in `tabs`, each populated with a widget per index in that
         spec's `items` — same widget building and change wiring as
-        build_shortcuts(). The window is created hidden; use its
-        show()/hide()/toggle() to control visibility. `on_close` is
+        build_shortcuts(). A final "All" tab is always appended,
+        containing every config item in `config`, regardless of how the
+        game grouped its other tabs. The window is created hidden; use
+        its show()/hide()/toggle() to control visibility. `on_close` is
         called when the window is closed via its own close button (see
         TabbedWindow)."""
         window = ui.TabbedWindow(master=master, on_close=on_close, title=title)
-        for tab_spec in tabs:
+        all_tabs = [*tabs, TabSpec(title="All", items=list(config.keys()))]
+        for tab_spec in all_tabs:
             tab = ui.Tab(master=window.notebook, title=tab_spec.title)
             window.add_tab(tab)
             for index in tab_spec.items:
