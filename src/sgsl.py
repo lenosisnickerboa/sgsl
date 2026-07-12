@@ -196,8 +196,8 @@ if game is None:
 else:
     setup_detected_game_server(game)
 
+root.mainloop()
+
 TomlConfigParser.write(g_app_config_file, g_app_config)
 if g_game_config != None:
     TomlConfigParser.write(g_game_config_file, g_game_config)
-
-root.mainloop()

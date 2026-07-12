@@ -6,7 +6,7 @@ from game.null_game.config_index import ConfigIndex
 def build_game_defaults() -> Config[ConfigIndex]:
     return {
         ConfigIndex.GAME_MODE: ConfigItem(
-            name="selected_map",
+            name="game_mode",
             visible_name="Game mode",
             type=ConfigType.STRING_LIST,
             value="GunGame",
