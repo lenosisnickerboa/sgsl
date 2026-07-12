@@ -1,5 +1,7 @@
+import re
+import shutil
 from pathlib import Path
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from game.cs2.config_defaults import build_game_defaults
@@ -76,6 +78,45 @@ class CS2Game(Game):
     #     args=["+force_install_dir", str(self.server_root), "+login", "anonymous", "+app_update", "730", "validate", "+quit"]
     #     super().start_command(command, args)
 
+    # steamcmd, on a freshly-unzipped install, typically spends its
+    # first invocation only self-updating: it downloads its own
+    # bootstrapper, relaunches itself, and the +app_update job that
+    # was requested on the original command line never actually runs
+    # (fails immediately with e.g. "state is 0x202"). The fix used
+    # throughout the community is simply to run the same steamcmd
+    # command again -- so we retry update_install.bat, without
+    # re-downloading/re-extracting steamcmd, until the server binary
+    # actually shows up.
+    #
+    # A separate, non-retryable cause of the same opaque "state is
+    # 0x202" stdout error is insufficient disk space: steamcmd only
+    # logs the real reason ("Failed to preallocate (Not enough disk
+    # space)") to steamcmd/logs/content_log.txt, never to stdout, so
+    # we check that log after a failed attempt and fail fast with a
+    # readable message instead of burning through retries that can't
+    # possibly succeed.
+    InstallAttempts = 3
+
+    _DiskSpaceLogPattern = re.compile(r'Failed to preallocate \(Not enough disk space\) "([^"]+)"')
+
+    def _disk_space_failure_reason(self, steamcmd_dir: Path) -> Optional[str]:
+        content_log = steamcmd_dir / "logs" / "content_log.txt"
+        try:
+            log_text = content_log.read_text(encoding="utf-8", errors="ignore")
+        except OSError:
+            return None
+
+        matches = self._DiskSpaceLogPattern.findall(log_text)
+        if not matches:
+            return None
+
+        required = matches[-1]
+        free_gb = shutil.disk_usage(self.server_root).free / (1024 ** 3)
+        return (
+            f"Not enough disk space to install {self.get_long_name()}: needs {required} free, "
+            f"but only {free_gb:.2f} GB free on {self.server_root.drive or self.server_root.anchor}"
+        )
+
     def install_or_update(self, result_callback: Callable[[OperationResult], None]) -> None:
         steamcmd_dir = self.directory / "steamcmd"
         steamcmd_zip = steamcmd_dir / "steamcmd.zip"
@@ -85,8 +126,37 @@ class CS2Game(Game):
         def on_output(l):
             self.print(l)
 
-        def on_result(r):
-            result_callback(r)
+        def run_update_install(attempt: int):
+            def on_result(exit_code):
+                if self.server_binary.exists():
+                    result_callback(OperationResult.OK)
+                    return
+
+                disk_space_reason = self._disk_space_failure_reason(steamcmd_dir)
+                if disk_space_reason:
+                    self.print(disk_space_reason)
+                    result_callback(OperationResult.FAIL)
+                    return
+
+                if attempt < self.InstallAttempts:
+                    self.print(
+                        f"steamcmd exited ({exit_code}) without installing {self.get_long_name()} "
+                        f"(likely just a steamcmd self-update run); retrying, attempt {attempt + 1}/{self.InstallAttempts}..."
+                    )
+                    run_update_install(attempt + 1)
+                else:
+                    self.print(f"Failed to install {self.get_long_name()} after {self.InstallAttempts} attempts")
+                    result_callback(OperationResult.FAIL)
+
+            bat_runner.run(
+                [f"cd {steamcmd_dir}", "update_install.bat"],
+                self.directory,
+                on_output,
+                on_result,
+            )
+
+        def on_setup_result(exit_code):
+            run_update_install(1)
 
         # Pinned to the Windows-native executables via their full paths:
         # PATH commonly also resolves to Git for Windows' curl/tar
@@ -98,11 +168,10 @@ class CS2Game(Game):
             f"tar.exe -xf {steamcmd_zip} -C {steamcmd_dir}",
             f"cd {steamcmd_dir}",
             f"echo steamcmd +force_install_dir {self.server_root} +login anonymous +app_update 730 validate +quit > update_install.bat",
-            f"update_install.bat",
             ],
-            self.directory, 
+            self.directory,
             on_output,
-            on_result,
+            on_setup_result,
         )
 
     def install(self, result_callback: Callable[[OperationResult], None]) -> None:
