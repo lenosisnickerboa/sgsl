@@ -1,5 +1,6 @@
 import re
 import shutil
+import winreg
 from pathlib import Path
 from typing import Callable, Optional, Union
 from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType
@@ -33,52 +34,6 @@ class CS2Game(Game):
     def get_long_name(self) -> str:
         return "Counter-Strike 2"
 
-    # def download_steamcmd(self, cancel_token, progress_cb=None) -> bool:
-    #     steamcmd_dir = self.directory / "steamcmd"
-    #     steamcmd_zip = steamcmd_dir / "steamcmd.zip"
-    #     steamcmd_command= steamcmd_dir / "steamcmd"
-
-    #     steamcmd_dir.mkdir(parents=True, exist_ok=True)
-
-    #     bat_runner.run([
-    #         f"curl https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip -o {steamcmd_zip}",
-    #         f"tar -xf {steamcmd_zip} -C {steamcmd_command}",
-    #         f"{steamcmd_command} +force_install_dir {self.server_root} +login anonymous +app_update 730 validate +quit",
-    #         ], 
-    #         self.directory, 
-    #         lambda l: self.print(l)
-    #     )
-
-    #     def on_download_progress(downloaded, total):
-    #         cancel_token.raise_if_cancelled()
-    #         if progress_cb and total:
-    #             progress_cb(int(downloaded / total * 100))
-
-    #     result = download_with_return(
-    #         "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip",
-    #         steamcmd_zip,
-    #         progress_callback=on_download_progress,
-    #     )
-    #     if not result:
-    #         return False
-    #     return unzip_with_return(steamcmd_zip)
-
-    # def install_or_update(self, result_callback: Callable[[OperationResult], None]) -> None:
-
-    #     def on_done(result):
-    #         self.print(f"Downloaded steamcmd finished: {result}")
-    #         result_callback(OperationResult.OK if result else OperationResult.FAIL)
-
-    #     def on_progress(pct):
-    #         self.print(f"Downloading steamcmd : {pct}")
-
-    #     task = TaskRunner("Download steamcmd", self.download_steamcmd, done_cb=on_done, progress_cb=on_progress)
-    #     task.run_async()
-
-    #     command = Path("steamcmd") / "steamcmd"
-    #     args=["+force_install_dir", str(self.server_root), "+login", "anonymous", "+app_update", "730", "validate", "+quit"]
-    #     super().start_command(command, args)
-
     # steamcmd, on a freshly-unzipped install, typically spends its
     # first invocation only self-updating: it downloads its own
     # bootstrapper, relaunches itself, and the +app_update job that
@@ -101,6 +56,71 @@ class CS2Game(Game):
     _DiskSpaceLogPattern = re.compile(r'Failed to preallocate \(Not enough disk space\) "([^"]+)"')
 
     _ServerCfgName = "sgsl_server.cfg"
+
+    # A SteamCMD-only install doesn't ship these Steamworks
+    # redistributable DLLs, so the dedicated server fails at startup
+    # with "Failed to initialize Steamworks SDK for gameserver. Could
+    # not determine Steam client install directory." Copying them
+    # from a local Steam client install fixes it.
+    _SteamworksDllNames = ["steamclient64.dll", "tier0_s64.dll", "vstdlib_s64.dll"]
+
+    def _locate_steam_install_dir(self) -> Optional[Path]:
+        """Find a local Steam client install via the registry."""
+        candidates = [
+            (winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam", "SteamPath"),
+            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath"),
+            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Valve\Steam", "InstallPath"),
+        ]
+        for hive, subkey, value_name in candidates:
+            try:
+                with winreg.OpenKey(hive, subkey) as key:
+                    path_str, _ = winreg.QueryValueEx(key, value_name)
+            except OSError:
+                continue
+            path = Path(path_str)
+            if path.exists():
+                return path
+        return None
+
+    def _find_steamworks_dll(self, steam_dir: Path, dll_name: str) -> Optional[Path]:
+        candidates = [
+            steam_dir / dll_name,
+            steam_dir / "bin64" / dll_name,
+            steam_dir / "steamapps" / "common" / "Steamworks Shared" / dll_name,
+        ]
+        for candidate in candidates:
+            if candidate.exists():
+                return candidate
+        # Last resort: a shallow recursive search, Steam installs
+        # aren't so deep that this is expensive.
+        matches = list(steam_dir.glob(f"**/{dll_name}"))
+        return matches[0] if matches else None
+
+    def _copy_steamworks_dlls(self) -> None:
+        """Best-effort: locate a local Steam client install and copy
+        the Steamworks redistributable DLLs into game/bin/win64, next
+        to cs2.exe. Missing DLLs/Steam install are logged, not fatal —
+        the server may already have them from a previous copy."""
+        steam_dir = self._locate_steam_install_dir()
+        if steam_dir is None:
+            self.print(
+                "Could not find a local Steam client install to copy Steamworks DLLs "
+                f"({', '.join(self._SteamworksDllNames)}) from; if the server fails to start "
+                "with \"Failed to initialize Steamworks SDK for gameserver\", install Steam on "
+                "this machine and update/install the server again."
+            )
+            return
+
+        dest_dir = self.server_root / "game" / "bin" / "win64"
+        dest_dir.mkdir(parents=True, exist_ok=True)
+
+        for dll_name in self._SteamworksDllNames:
+            source = self._find_steamworks_dll(steam_dir, dll_name)
+            if source is None:
+                self.print(f"Could not find {dll_name} under {steam_dir}; skipping")
+                continue
+            shutil.copy2(source, dest_dir / dll_name)
+            self.print(f"Copied {dll_name} from {source} to {dest_dir}")
 
     def _disk_space_failure_reason(self, steamcmd_dir: Path) -> Optional[str]:
         content_log = steamcmd_dir / "logs" / "content_log.txt"
@@ -132,6 +152,7 @@ class CS2Game(Game):
         def run_update_install(attempt: int):
             def on_result(exit_code):
                 if self.server_binary.exists():
+                    self._copy_steamworks_dlls()
                     result_callback(OperationResult.OK)
                     return
 
