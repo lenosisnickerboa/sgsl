@@ -25,6 +25,17 @@ class ConfigType(Enum):
     TABLE = dict
 
 
+class ConfigDeliveryType(Enum):
+    """How a config item's value should reach the running game
+    server."""
+
+    # Passed as a command-line argument/option when launching the
+    # server process.
+    COMMAND_LINE = "command_line"
+    # Written into a server-side .cfg file the game reads on startup.
+    SERVER_CFG_FILE = "server_cfg_file"
+
+
 @dataclass(frozen=True)
 class Range:
     """An inclusive min/max bound for a numeric ConfigItem. Either
@@ -94,12 +105,18 @@ class ConfigItem:
     `tooltip`, if provided, is shown by a UI in place of `visible_name`
     when hovering over this item's widget. If unset, a UI should fall
     back to `visible_name`.
+
+    `config_type`, if provided, tells a Game how to deliver this
+    item's value to the server process — as a COMMAND_LINE argument or
+    written into a SERVER_CFG_FILE. Left unset for config items that
+    aren't fed to a game server at all (e.g. app-level settings).
     """
 
     name: str
     visible_name: str
     type: ConfigType
     value: Any
+    config_type: Optional[ConfigDeliveryType] = None
     item_type: Optional[ConfigType] = None
     schema: Optional[dict[str, ConfigType]] = None
     validator: Optional[Callable[[Any], bool]] = None

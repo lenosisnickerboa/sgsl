@@ -2,6 +2,7 @@ import re
 import shutil
 from pathlib import Path
 from typing import Callable, Optional, Union
+from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from game.cs2.config_defaults import build_game_defaults
@@ -99,6 +100,8 @@ class CS2Game(Game):
 
     _DiskSpaceLogPattern = re.compile(r'Failed to preallocate \(Not enough disk space\) "([^"]+)"')
 
+    _ServerCfgName = "sgsl_server.cfg"
+
     def _disk_space_failure_reason(self, steamcmd_dir: Path) -> Optional[str]:
         content_log = steamcmd_dir / "logs" / "content_log.txt"
         try:
@@ -183,7 +186,7 @@ class CS2Game(Game):
         self.install_or_update(result_callback)
 
     def run(self, config: Config[IndexT]) -> None:
-        args=["-dedicated", "-usercon", "+game_type", "TYPE", "+game_mode", "MODE", "+map", "MAP", "-maxplayers", "<number>"]
+        args=["-dedicated", "-usercon", "+game_type", "TYPE", "+game_mode", "MODE", "+map", "MAP", "-maxplayers", "<number>", "-exec", f"{self._ServerCfgName}"]
         game_mode = config[ConfigIndex.GAME_MODE].value
         if game_mode == "Casual":
             args[3]="0" # game_type
@@ -204,7 +207,25 @@ class CS2Game(Game):
             exit(1)
         args[7]=config[ConfigIndex.SELECTED_MAP].value
         args[9]=str(config[ConfigIndex.PLAYER_COUNT].value)
+        self._write_server_cfg(config)
         super().start_server(args)
+
+    def _write_server_cfg(self, config: Config[IndexT]) -> None:
+        cfg_dir = self.server_root / "game" / "csgo" / "cfg"
+        cfg_dir.mkdir(parents=True, exist_ok=True)
+        lines = [
+            self._format_cvar_line(item)
+            for item in config.values()
+            if item.config_type is ConfigDeliveryType.SERVER_CFG_FILE
+        ]
+        (cfg_dir / self._ServerCfgName).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    def _format_cvar_line(self, item: ConfigItem) -> str:
+        if item.type in (ConfigType.STRING, ConfigType.STRING_LIST):
+            return f'{item.name} "{item.value}"'
+        if item.type is ConfigType.BOOLEAN:
+            return f"{item.name} {1 if item.value else 0}"
+        return f"{item.name} {item.value}"
 
     def stop(self) -> None:
         super().stop_server()
