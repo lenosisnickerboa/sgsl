@@ -10,6 +10,10 @@ import ui.widgets as ui
 _INT_MIN = -2_147_483_648
 _INT_MAX = 2_147_483_647
 
+# A tab with more items than this gets a scrollbar instead of growing
+# past this many rows.
+MAX_VISIBLE_CONFIG_ITEMS_PER_TAB = 8
+
 
 class UiBuilder:
     """Builds ui widgets from ConfigItems and keeps them in
@@ -68,14 +72,35 @@ class UiBuilder:
         window = ui.TabbedWindow(master=master, on_close=on_close, title=title)
         all_tabs = [*tabs, TabSpec(title="All", items=list(config.keys()))]
         for tab_spec in all_tabs:
-            tab = ui.Tab(master=window.notebook, title=tab_spec.title)
+            overflowing = len(tab_spec.items) > MAX_VISIBLE_CONFIG_ITEMS_PER_TAB
+            if overflowing:
+                tab = ui.ScrollableTab(master=window.notebook, title=tab_spec.title)
+            else:
+                tab = ui.Tab(master=window.notebook, title=tab_spec.title)
             window.add_tab(tab)
             for index in tab_spec.items:
                 config_item = config[index]
                 widget = self._build_widget(tab, index, config_item, config, config_changed_callback, compact=False)
                 widget.pack(side=ui.TOP)
                 self._register(index, widget)
+            if overflowing:
+                self._clip_tab_to_visible_items(tab, len(tab_spec.items))
         return window
+
+    def _clip_tab_to_visible_items(self, tab: "ui.ScrollableTab", item_count: int) -> None:
+        """Size a ScrollableTab's viewport so only
+        MAX_VISIBLE_CONFIG_ITEMS_PER_TAB of its widgets are visible at
+        once, based on the height they actually took (widgets differ
+        in height, so this isn't a fixed per-row constant), leaving the
+        rest reachable by scrolling. Width is left at its natural
+        (unclipped) size so nothing is cut off horizontally."""
+        tab.update_idletasks()
+        content_width = tab.winfo_reqwidth()
+        content_height = tab.winfo_reqheight()
+        per_item_height = content_height / item_count
+        visible_height = round(per_item_height * MAX_VISIBLE_CONFIG_ITEMS_PER_TAB)
+        tab.container.configure(width=content_width)
+        tab.set_visible_height(visible_height)
 
     def config_changed(self, changed: list[IndexT], config: Config[IndexT]) -> None:
         """Refresh the widget(s) for `changed` indexes to reflect their

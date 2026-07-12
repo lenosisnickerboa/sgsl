@@ -11,6 +11,8 @@ def Nop():
 class Window(ttk.Window):
     def __init__(self, title: str):
         super().__init__(themename="superhero", title=title)
+        # Horizontal resize only — vertical layout is fixed.
+        self.resizable(True, False)
 
 
 class TopLevelWindow(ttk.Toplevel):
@@ -32,11 +34,15 @@ class TabbedWindow(ttk.Toplevel):
         # Intercept the window's own close (X) button: hide instead of destroy
         self.protocol("WM_DELETE_WINDOW", self.hide)
 
+        # Horizontal resize only — vertical layout is fixed; tabs that
+        # overflow it get their own scrollbar instead (see ScrollableTab).
+        self.resizable(True, False)
+
         # Start hidden — the main app decides when to show it
         self.withdraw()
 
     def add_tab(self, tab: "Tab"):
-        self.notebook.add(tab, text=tab.title)
+        self.notebook.add(tab.notebook_widget, text=tab.title)
 
     def show(self):
         """Reveal the window and bring it to the front."""
@@ -63,6 +69,26 @@ class Tab(ttk.Frame):
     def __init__(self, master, title: str, **kwargs):
         super().__init__(master, padding=5, **kwargs)
         self.title = title
+        # What TabbedWindow.add_tab() hands to the Notebook — plain
+        # Tabs add themselves; see ScrollableTab for the alternative.
+        self.notebook_widget = self
+
+
+class ScrollableTab(ttk.scrolled.ScrolledFrame):
+    """A notebook tab whose content scrolls vertically once it grows
+    past its viewport height (see set_visible_height)."""
+
+    def __init__(self, master, title: str, **kwargs):
+        super().__init__(master, padding=5, autohide=True, **kwargs)
+        self.title = title
+        # ScrolledFrame is itself the content frame; the Notebook must
+        # be given .container instead (see the class docstring).
+        self.notebook_widget = self.container
+
+    def set_visible_height(self, height: int):
+        """Clip the viewport to `height` screen units so content
+        beyond it requires scrolling instead of growing the tab."""
+        self.container.configure(height=height)
 
 
 class MainFrame(ttk.Frame):
