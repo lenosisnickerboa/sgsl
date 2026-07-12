@@ -107,18 +107,45 @@ class Spacer(ttk.Frame):
         super().pack(fill=X, side=TOP)
 
 
-class IntegerSpinbox(ttk.Labelframe):
-    def __init__(self, master, name : str, range : list, initial_value : int, tooltip : str, command = Nop(), **kwargs):
-        super().__init__(master, text=name, padding=2, **kwargs)
+class HintedWidget(ttk.Frame):
+    """Base for widgets that show a hint (name) for their core widget.
+
+    If compact is True, the core widget is wrapped in a Labelframe
+    with the hint as its title (the old, default layout). If compact
+    is False, the core widget is left bare and the hint is placed as
+    a plain label to its left instead."""
+
+    def __init__(self, master, name: str, compact: bool = True, **kwargs):
+        super().__init__(master, padding=0, **kwargs)
+        self.compact = compact
+        if compact:
+            self.container = ttk.Labelframe(self, text=name, padding=2)
+            self.container.pack(side=LEFT, fill=BOTH, expand=YES)
+        else:
+            self.hint = ttk.Label(self, text=name)
+            self.hint.pack(side=LEFT, padx=5)
+            self.container = self
+
+    def pack(self, side=LEFT):
+        if side == TOP:
+            super().pack(side=TOP, padx=5, pady=2, fill=X)
+        else:
+            super().pack(side=LEFT, expand=YES, padx=5, fill=X)
+
+
+class IntegerSpinbox(HintedWidget):
+    def __init__(self, master, name : str, range : list, initial_value : int, tooltip : str, command = Nop(), compact: bool = True, **kwargs):
+        super().__init__(master, name=name, compact=compact, **kwargs)
 
         self.command = command
-        self.spinbox = ttk.Spinbox(master=self, from_=[range[0]], to=[range[-1]], command=self.on_event)
+        self.spinbox = ttk.Spinbox(master=self.container, from_=[range[0]], to=[range[-1]], command=self.on_event)
         self.spinbox.set(initial_value)
         self.spinbox.pack(side=LEFT, expand=YES, padx=5, fill=X)
         self.spinbox.bind("<Return>", self.on_event)
         self.spinbox.bind("<FocusOut>", self.on_event)
         ToolTip(self.spinbox, text=tooltip)
-        self.spinbox.pack(fill=BOTH, side=TOP)
+        if not compact:
+            ToolTip(self.hint, text=tooltip)
 
     def on_event(self, event=None):
         if self.command is None:
@@ -129,49 +156,39 @@ class IntegerSpinbox(ttk.Labelframe):
             return
         self.command(value)
 
-    def pack(self, side=LEFT):
-        if side == TOP:
-            super().pack(side=TOP, padx=5, pady=2, fill=X)
-        else:
-            super().pack(side=LEFT, expand=YES, padx=5, fill=X)
-
     def update(self, value: int):
         self.spinbox.set(value)
 
 
-class StringEntry(ttk.Labelframe):
-    def __init__(self, master, name : str, initial_value : str, tooltip : str, command = Nop(), **kwargs):
-        super().__init__(master, text=name, padding=2, **kwargs)
+class StringEntry(HintedWidget):
+    def __init__(self, master, name : str, initial_value : str, tooltip : str, command = Nop(), compact: bool = True, **kwargs):
+        super().__init__(master, name=name, compact=compact, **kwargs)
 
         self.command = command
         self.value = ttk.StringVar(value=initial_value)
-        self.entry = ttk.Entry(master=self, textvariable=self.value)
+        self.entry = ttk.Entry(master=self.container, textvariable=self.value)
         self.entry.pack(side=LEFT, expand=YES, padx=5, fill=X)
         self.entry.bind("<Return>", self.on_event)
         self.entry.bind("<FocusOut>", self.on_event)
         ToolTip(self.entry, text=tooltip)
+        if not compact:
+            ToolTip(self.hint, text=tooltip)
 
     def on_event(self, event=None):
         if self.command is not None:
             self.command(self.value.get())
 
-    def pack(self, side=LEFT):
-        if side == TOP:
-            super().pack(side=TOP, padx=5, pady=2, fill=X)
-        else:
-            super().pack(side=LEFT, expand=YES, padx=5, fill=X)
-
     def update(self, value: str):
         self.value.set(value)
 
 
-class StringCombobox(ttk.Labelframe):
-    def __init__(self, master, name : str, values : list, selected, tooltip : str, command = Nop(), readonly=True, **kwargs):
-        super().__init__(master, text=name, padding=2, **kwargs)
+class StringCombobox(HintedWidget):
+    def __init__(self, master, name : str, values : list, selected, tooltip : str, command = Nop(), readonly=True, compact: bool = True, **kwargs):
+        super().__init__(master, name=name, compact=compact, **kwargs)
 
         self.command = command
         self.combobox = ttk.Combobox(
-            master=self,
+            master=self.container,
             values=values,
             exportselection=False,
         )
@@ -188,29 +205,27 @@ class StringCombobox(ttk.Labelframe):
         else:
             self.combobox.current(values.index(selected))
         ToolTip(self.combobox, text=tooltip)
-        self.combobox.pack(fill=BOTH, side=TOP)
+        if not compact:
+            ToolTip(self.hint, text=tooltip)
 
     def on_event(self, event=None):
         if self.command is not None:
             self.command(self.combobox.get())
 
-    def pack(self, side=LEFT):
-        if side == TOP:
-            super().pack(side=TOP, padx=5, pady=2, fill=X)
-        else:
-            super().pack(side=LEFT, expand=YES, padx=5, fill=X)
-
     def update(self, value):
         self.combobox.set(value)
 
-class Button(ttk.Labelframe):
-    def __init__(self, master, name : str, tooltip : str, command = Nop(), **kwargs):
-        super().__init__(master, borderwidth=0, padding=2, **kwargs)
+class Button(ttk.Frame):
+    def __init__(self, master, name : str, tooltip : str, command = Nop(), compact: bool = True, **kwargs):
+        super().__init__(master, padding=2, **kwargs)
 
+        # A button's name is shown on the button itself, so there is no
+        # separate hint to reposition; compact is accepted for a
+        # consistent constructor signature across widgets.
+        self.compact = compact
         self.button = ttk.Button(master=self, text=name, command=command)
         self.button.pack(side=LEFT, padx=5, fill=X)
         ToolTip(self.button, text=tooltip)
-        self.button.pack(side=TOP)
 
     def set_name(self, name: str):
         self.button.configure(text=name)
@@ -221,14 +236,14 @@ class Button(ttk.Labelframe):
     def pack(self):
         super().pack(side=LEFT, padx=5, fill=X)
 
-class ExpandingButton(ttk.Labelframe):
-    def __init__(self, master, name : str, tooltip : str, command = Nop(), **kwargs):
-        super().__init__(master, borderwidth=0, padding=2, **kwargs)
+class ExpandingButton(ttk.Frame):
+    def __init__(self, master, name : str, tooltip : str, command = Nop(), compact: bool = True, **kwargs):
+        super().__init__(master, padding=2, **kwargs)
 
+        self.compact = compact
         self.button = ttk.Button(master=self, text=name, command=command)
         self.button.pack(side=LEFT, padx=5, fill=X)
         ToolTip(self.button, text=tooltip)
-        self.button.pack(side=TOP)
 
     def set_name(self, name: str):
         self.button.configure(text=name)
@@ -239,18 +254,17 @@ class ExpandingButton(ttk.Labelframe):
     def pack(self):
         super().pack(side=LEFT, padx=5, fill=X, expand=True)
 
-class CheckButton(ttk.Labelframe):
-    def __init__(self, master, name : str, tooltip : str, initial_value: bool = False, command = Nop(), **kwargs):
-        super().__init__(master, borderwidth=0, padding=2, **kwargs)
+class CheckButton(HintedWidget):
+    def __init__(self, master, name : str, tooltip : str, initial_value: bool = False, command = Nop(), compact: bool = True, **kwargs):
+        super().__init__(master, name=name, compact=compact, **kwargs)
 
         self.command = command
         self.value = ttk.BooleanVar(value=initial_value)
-        self.label = ttk.Label(master=self, text=name)
-        self.label.pack(side=LEFT, padx=5)
-        self.button = ttk.Checkbutton(master=self, bootstyle="round-toggle", command=self.on_event, variable=self.value)
+        self.button = ttk.Checkbutton(master=self.container, bootstyle="round-toggle", command=self.on_event, variable=self.value)
         self.button.pack(side=LEFT, padx=5)
-        ToolTip(self.label, text=tooltip)
         ToolTip(self.button, text=tooltip)
+        if not compact:
+            ToolTip(self.hint, text=tooltip)
 
     def on_event(self):
         if self.command is not None:
@@ -270,9 +284,9 @@ class CheckButton(ttk.Labelframe):
 
     def pack(self, side=LEFT):
         if side == TOP:
-            super().pack(side=TOP, padx=5, pady=2, fill=X)
+            ttk.Frame.pack(self, side=TOP, padx=5, pady=2, fill=X)
         else:
-            super().pack(side=LEFT, padx=5, fill=X)
+            ttk.Frame.pack(self, side=LEFT, padx=5, fill=X)
 
     def update(self, value: bool):
         self.value.set(value)

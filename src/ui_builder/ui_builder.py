@@ -41,7 +41,7 @@ class UiBuilder:
         built: dict[IndexT, object] = {}
         for shortcut in shortcuts:
             config_item = config[shortcut]
-            widget = self._build_widget(master, config_item, config, config_changed_callback)
+            widget = self._build_widget(master, config_item, config, config_changed_callback, compact=True)
             widget.pack()
             self._register(shortcut, widget)
             built[shortcut] = widget
@@ -69,7 +69,7 @@ class UiBuilder:
             window.add_tab(tab)
             for index in tab_spec.items:
                 config_item = config[index]
-                widget = self._build_widget(tab, config_item, config, config_changed_callback)
+                widget = self._build_widget(tab, config_item, config, config_changed_callback, compact=False)
                 widget.pack(side=ui.TOP)
                 self._register(index, widget)
         return window
@@ -91,6 +91,7 @@ class UiBuilder:
         item: ConfigItem,
         config: Config[IndexT],
         config_changed_callback: Optional[Callable[[ConfigItem, Config[IndexT]], None]],
+        compact: bool,
     ):
         tooltip = item.tooltip if item.tooltip else item.visible_name
 
@@ -113,6 +114,7 @@ class UiBuilder:
                 tooltip=tooltip,
                 initial_value=item.value,
                 command=on_widget_changed,
+                compact=compact,
             )
         elif item.type is ConfigType.INTEGER:
             widget = ui.IntegerSpinbox(
@@ -122,6 +124,7 @@ class UiBuilder:
                 initial_value=item.value,
                 tooltip=tooltip,
                 command=on_widget_changed,
+                compact=compact,
             )
         elif item.type is ConfigType.STRING:
             widget = ui.StringEntry(
@@ -130,6 +133,7 @@ class UiBuilder:
                 initial_value=item.value,
                 tooltip=tooltip,
                 command=on_widget_changed,
+                compact=compact,
             )
         elif item.type is ConfigType.STRING_LIST:
             # A closed set of allowed_values becomes a read-only dropdown;
@@ -144,6 +148,7 @@ class UiBuilder:
                 tooltip=tooltip,
                 readonly=item.allowed_values is not None,
                 command=on_widget_changed,
+                compact=compact,
             )
         else:
             raise ValueError(f"{item.name}: builder does not support ConfigType.{item.type.name} yet")

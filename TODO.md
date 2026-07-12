@@ -1,3 +1,5 @@
+# Host workshop maps and collections
+
 # Status line
 Installing... Updating... Started game server... Game server running...
 
@@ -39,6 +41,4 @@ def restart_program():
 # Add map images
 
 # Add map group images
-
-# Support workshop maps
 
