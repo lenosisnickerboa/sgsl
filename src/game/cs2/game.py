@@ -229,7 +229,43 @@ class CS2Game(Game):
         return [ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP_GROUP, ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT]
 
     def config_tabs(self) -> list[TabSpec]:
-        return [TabSpec(title="General", items=list(self.config_defaults().keys()))]
+        return [
+            TabSpec(title="General", items=[
+                ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP_GROUP, ConfigIndex.SELECTED_MAP,
+                ConfigIndex.PLAYER_COUNT,
+            ]),
+            TabSpec(title="Network", items=[
+                ConfigIndex.HOSTNAME, ConfigIndex.SV_LAN, ConfigIndex.SV_PASSWORD,
+                ConfigIndex.SV_VISIBLEMAXPLAYERS, ConfigIndex.SV_REGION,
+            ]),
+            TabSpec(title="Bots", items=[
+                ConfigIndex.BOT_DIFFICULTY, ConfigIndex.BOT_QUOTA, ConfigIndex.BOT_QUOTA_MODE,
+                ConfigIndex.BOT_CHATTER, ConfigIndex.BOT_WALK, ConfigIndex.BOT_JOIN_AFTER_PLAYER,
+                ConfigIndex.BOT_ALL_WEAPONS, ConfigIndex.BOT_AUTO_DIFFICULTY,
+            ]),
+            TabSpec(title="Match Rules", items=[
+                ConfigIndex.MP_ROUNDTIME, ConfigIndex.MP_FREEZETIME, ConfigIndex.MP_BUYTIME,
+                ConfigIndex.MP_MAXROUNDS, ConfigIndex.MP_HALFTIME, ConfigIndex.MP_OVERTIME_ENABLE,
+                ConfigIndex.MP_OVERTIME_MAXROUNDS, ConfigIndex.MP_STARTMONEY, ConfigIndex.MP_MAXMONEY,
+                ConfigIndex.MP_FRIENDLYFIRE, ConfigIndex.MP_AUTOTEAMBALANCE, ConfigIndex.MP_LIMITTEAMS,
+                ConfigIndex.MP_WARMUPTIME, ConfigIndex.MP_WARMUP_PAUSETIMER,
+                ConfigIndex.MP_RESPAWN_ON_DEATH_CT, ConfigIndex.MP_RESPAWN_ON_DEATH_T,
+            ]),
+            TabSpec(title="Economy", items=[
+                ConfigIndex.MP_FREE_ARMOR, ConfigIndex.MP_AFTERROUNDMONEY,
+                ConfigIndex.MP_DEATH_DROP_GUN, ConfigIndex.MP_DEATH_DROP_GRENADE,
+            ]),
+            TabSpec(title="Voice", items=[
+                ConfigIndex.SV_VOICEENABLE, ConfigIndex.SV_ALLTALK, ConfigIndex.SV_DEADTALK,
+            ]),
+            TabSpec(title="Security", items=[
+                ConfigIndex.SV_CHEATS, ConfigIndex.SV_PURE, ConfigIndex.SV_ALLOW_WAIT_COMMAND,
+            ]),
+            TabSpec(title="Performance", items=[
+                ConfigIndex.SV_MAXUPDATERATE, ConfigIndex.SV_MINUPDATERATE,
+                ConfigIndex.SV_MAXCMDRATE, ConfigIndex.SV_MINCMDRATE,
+            ]),
+        ]
 
     # def config_item_changed(self, config_item: IndexT, config: Config[IndexT]) -> None:
     #     self.print(f"config_item_changed({config_item}, {config})")

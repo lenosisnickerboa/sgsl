@@ -5,10 +5,12 @@ from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 import ui.widgets as ui
 
-# Fallback bounds for an INTEGER item that declares no range, so
-# IntegerSpinbox always has something usable to pass as from_/to.
+# Fallback bounds for an INTEGER/FLOAT item that declares no range, so
+# IntegerSpinbox/FloatSpinbox always has something usable to pass as from_/to.
 _INT_MIN = -2_147_483_648
 _INT_MAX = 2_147_483_647
+_FLOAT_MIN = -1e9
+_FLOAT_MAX = 1e9
 
 # A tab with more items than this gets a scrollbar instead of growing
 # past this many rows.
@@ -64,13 +66,15 @@ class UiBuilder:
         in `tabs`, each populated with a widget per index in that
         spec's `items` — same widget building and change wiring as
         build_shortcuts(). A final "All" tab is always appended,
-        containing every config item in `config`, regardless of how the
-        game grouped its other tabs. The window is created hidden; use
+        containing every config item in `config` sorted alphabetically
+        by visible name, regardless of how the game grouped its other
+        tabs. The window is created hidden; use
         its show()/hide()/toggle() to control visibility. `on_close` is
         called when the window is closed via its own close button (see
         TabbedWindow)."""
         window = ui.TabbedWindow(master=master, on_close=on_close, title=title)
-        all_tabs = [*tabs, TabSpec(title="All", items=list(config.keys()))]
+        alphabetical_items = sorted(config.keys(), key=lambda index: config[index].visible_name.lower())
+        all_tabs = [*tabs, TabSpec(title="All", items=alphabetical_items)]
         for tab_spec in all_tabs:
             overflowing = len(tab_spec.items) > MAX_VISIBLE_CONFIG_ITEMS_PER_TAB
             if overflowing:
@@ -159,6 +163,16 @@ class UiBuilder:
                 command=on_widget_changed,
                 compact=compact,
             )
+        elif item.type is ConfigType.FLOAT:
+            widget = ui.FloatSpinbox(
+                master=master,
+                name=item.visible_name,
+                range=self._float_range(item),
+                initial_value=item.value,
+                tooltip=tooltip,
+                command=on_widget_changed,
+                compact=compact,
+            )
         elif item.type is ConfigType.STRING:
             widget = ui.StringEntry(
                 master=master,
@@ -190,6 +204,15 @@ class UiBuilder:
 
     def _integer_range(self, item: ConfigItem) -> list[int]:
         lo, hi = _INT_MIN, _INT_MAX
+        if item.range is not None:
+            if item.range.min_value is not None:
+                lo = item.range.min_value
+            if item.range.max_value is not None:
+                hi = item.range.max_value
+        return [lo, hi]
+
+    def _float_range(self, item: ConfigItem) -> list[float]:
+        lo, hi = _FLOAT_MIN, _FLOAT_MAX
         if item.range is not None:
             if item.range.min_value is not None:
                 lo = item.range.min_value

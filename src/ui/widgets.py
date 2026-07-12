@@ -186,6 +186,33 @@ class IntegerSpinbox(HintedWidget):
         self.spinbox.set(value)
 
 
+class FloatSpinbox(HintedWidget):
+    def __init__(self, master, name : str, range : list, initial_value : float, tooltip : str, command = Nop(), compact: bool = True, increment: float = 0.01, **kwargs):
+        super().__init__(master, name=name, compact=compact, **kwargs)
+
+        self.command = command
+        self.spinbox = ttk.Spinbox(master=self.container, from_=range[0], to=range[-1], increment=increment, command=self.on_event)
+        self.spinbox.set(initial_value)
+        self.spinbox.pack(side=LEFT, expand=YES, padx=5, fill=X)
+        self.spinbox.bind("<Return>", self.on_event)
+        self.spinbox.bind("<FocusOut>", self.on_event)
+        ToolTip(self.spinbox, text=tooltip)
+        if not compact:
+            ToolTip(self.hint, text=tooltip)
+
+    def on_event(self, event=None):
+        if self.command is None:
+            return
+        try:
+            value = float(self.spinbox.get())
+        except ValueError:
+            return
+        self.command(value)
+
+    def update(self, value: float):
+        self.spinbox.set(value)
+
+
 class StringEntry(HintedWidget):
     def __init__(self, master, name : str, initial_value : str, tooltip : str, command = Nop(), compact: bool = True, **kwargs):
         super().__init__(master, name=name, compact=compact, **kwargs)
