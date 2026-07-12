@@ -44,12 +44,12 @@ def on_install_game_server(name: str):
     print_to_terminal(f"Installing game server for {name}...")
     game = GameFactory.create_from_name(name, current_dir, terminal_printer)
     if not game:
-        g_install_open_close.off()
+        root.after(0, g_install_open_close.off)
         return
 
     def on_install_result(result):
-        print_to_terminal(f"Install for {game.get_long_name()} finished: {result.value}")
-        g_install_open_close.off()
+        print_to_terminal(f"Install for {game.get_long_name()} finished: {result}")
+        root.after(0, g_install_open_close.off)
 
     game.install(on_install_result)
 
@@ -57,8 +57,8 @@ def on_update_game_server(game: Game):
     print_to_terminal(f"Updating game server for {game.get_long_name()} in directory {game.get_directory()}...")
 
     def on_update_result(result):
-        print_to_terminal(f"Update for {game.get_long_name()} finished: {result.value}")
-        g_update_open_close.off()
+        print_to_terminal(f"Update for {game.get_long_name()} finished: {result}")
+        root.after(0, g_update_open_close.off)
 
     game.update(on_update_result)
 

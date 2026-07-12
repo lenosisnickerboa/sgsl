@@ -2,6 +2,8 @@
 
 Add checkbuttons, make them work as terminal...
 
+# Open terminal without hiding sgsl window
+
 # Source code formatting
 
 # Forced save config (otherwise done on exit only)

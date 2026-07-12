@@ -34,7 +34,7 @@ class TaskRunner:
             self.terminal_output(f"Task '{self.name}' failed with exception: {exc}")
             self.done_cb(False)
 
-    def start(self):
+    def run_async(self):
         self.handle = run_async(
             self.task, *self.args,
             on_result=self.on_result,

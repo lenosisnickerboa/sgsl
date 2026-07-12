@@ -59,6 +59,18 @@ class Game(ABC):
         )
         self.print(f"Started game server {self.get_long_name()} with pid {pid}")
 
+    # def start_command(self, command: Path, args) -> None:
+    #     command_handler = process_handler.ProcessHandler(command)
+    #     self.print(f"Starting command: \"{command}\" with arguments \"{args}\"...")
+    #     pid = command_handler.start(
+    #         args,
+    #         no_window=True, 
+    #         stdout_callback=self.handle_stdout_output, 
+    #         stderr_callback=self.handle_stderr_output, 
+    #         on_exit=self.handle_done
+    #     )
+    #     self.print(f"Started command {command} with pid {pid}")
+
     def stop_server(self):
         self.print(f"Stopping game server {self.get_long_name()} with executable \"{self.get_server_binary_path()}\" ...")
         if not self.process_handler:
