@@ -79,7 +79,6 @@ class CS2Game(Game):
     def install_or_update(self, result_callback: Callable[[OperationResult], None]) -> None:
         steamcmd_dir = self.directory / "steamcmd"
         steamcmd_zip = steamcmd_dir / "steamcmd.zip"
-        steamcmd_command= steamcmd_dir / "steamcmd"
 
         steamcmd_dir.mkdir(parents=True, exist_ok=True)
 
@@ -95,11 +94,11 @@ class CS2Game(Game):
         # misreads a bare drive-letter path like "C:\..." as a
         # host:path remote-tape spec ("Cannot connect to C:").
         bat_runner.run([
-#            f"%SystemRoot%\\System32\\curl.exe https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip -o {steamcmd_zip}",
-#            f"%SystemRoot%\\System32\\tar.exe -xf {steamcmd_zip} -C {steamcmd_dir}",
-            f"C:\\Windows\\System32\\curl.exe https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip -o {steamcmd_zip}",
-            f"C:\\Windows\\System32\\tar.exe -xf {steamcmd_zip} -C {steamcmd_dir}",
-            f"{steamcmd_command} +force_install_dir {self.server_root} +login anonymous +app_update 730 validate +quit",
+            f"curl.exe https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip -o {steamcmd_zip}",
+            f"tar.exe -xf {steamcmd_zip} -C {steamcmd_dir}",
+            f"cd {steamcmd_dir}",
+            f"echo steamcmd +force_install_dir {self.server_root} +login anonymous +app_update 730 validate +quit > update_install.bat",
+            f"update_install.bat",
             ],
             self.directory, 
             on_output,
