@@ -41,7 +41,7 @@ class UiBuilder:
         built: dict[IndexT, object] = {}
         for shortcut in shortcuts:
             config_item = config[shortcut]
-            widget = self._build_widget(master, config_item, config, config_changed_callback, compact=True)
+            widget = self._build_widget(master, shortcut, config_item, config, config_changed_callback, compact=True)
             widget.pack()
             self._register(shortcut, widget)
             built[shortcut] = widget
@@ -69,7 +69,7 @@ class UiBuilder:
             window.add_tab(tab)
             for index in tab_spec.items:
                 config_item = config[index]
-                widget = self._build_widget(tab, config_item, config, config_changed_callback, compact=False)
+                widget = self._build_widget(tab, index, config_item, config, config_changed_callback, compact=False)
                 widget.pack(side=ui.TOP)
                 self._register(index, widget)
         return window
@@ -88,6 +88,7 @@ class UiBuilder:
     def _build_widget(
         self,
         master,
+        index: IndexT,
         item: ConfigItem,
         config: Config[IndexT],
         config_changed_callback: Optional[Callable[[ConfigItem, Config[IndexT]], None]],
@@ -104,6 +105,10 @@ class UiBuilder:
                 # valid value rather than leaving item/widget out of sync.
                 widget.update(previous)
                 return
+            # Other widgets built for this same index (e.g. a shortcut
+            # and its counterpart in the config tabs) need to pick up
+            # the new value too.
+            self.config_changed([index], config)
             if config_changed_callback is not None:
                 config_changed_callback(item, config)
 
