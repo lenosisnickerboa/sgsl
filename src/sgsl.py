@@ -161,8 +161,11 @@ def setup_detected_game_server(game: Game):
         on_config_item_changed,
     )
     # Keep an already-open terminal window snapped to the config
-    # window whenever the config window (re)opens.
+    # window whenever the config window (re)opens, moves, or resizes.
     g_configure_window.add_snap_follower(g_terminal_window)
+    # Keep the config window (and, transitively, the terminal window
+    # via the registration above) snapped when the main window moves.
+    root.add_snap_follower(g_configure_window)
 
     spacer_at_end = ui.Spacer(master=g_main_frame)
     spacer_at_end.pack()
@@ -188,6 +191,10 @@ g_terminal_window = terminal.TerminalWindow(
     # Snap onto the config window if it's open, else the main window.
     snap_anchor=lambda: g_configure_window if g_configure_window is not None and g_configure_window.is_visible() else root,
 )
+# Also a direct follower of the main window: when the config window
+# isn't open (so the terminal is snapped straight to the main window),
+# moving the main window still needs to drag the terminal along.
+root.add_snap_follower(g_terminal_window)
 
 g_main_frame = ui.MainFrame(master=root)
 g_main_frame.pack()

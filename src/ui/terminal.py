@@ -4,13 +4,16 @@ import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
 from datetime import datetime
+from ui.widgets import SnapWindow
 
-class TerminalWindow(tb.Toplevel):
+class TerminalWindow(SnapWindow, tb.Toplevel):
     """A terminal-style output window. No process attached — just a text
     display you can append lines to on demand via add_line().
 
     Stays alive for the lifetime of the app; use show()/hide() to toggle
     visibility instead of creating/destroying it.
+
+    See SnapWindow (ui.widgets) for snap_anchor/add_snap_follower().
     """
 
     def __init__(self, master, on_close: Callable[[], None], title="Terminal", snap_anchor=None):
@@ -19,8 +22,7 @@ class TerminalWindow(tb.Toplevel):
         self.geometry("1024x768")
 
         self.on_close = on_close
-        self._snap_anchor = snap_anchor
-        self._snap_followers = []
+        self._init_snap(snap_anchor)
         self.output = ScrolledText(self, padding=5, autohide=False, height=20, vbar=True)
         self.output.pack(fill=BOTH, expand=YES, padx=1, pady=1)
         self.output.text.configure(
@@ -55,34 +57,15 @@ class TerminalWindow(tb.Toplevel):
     def clear(self):
         self.after(0, lambda: self.output.text.delete("1.0", "end"))
 
-    def add_snap_follower(self, window) -> None:
-        """Register `window` to be repositioned (via its reposition())
-        whenever this window is shown, if `window` is visible at the
-        time."""
-        self._snap_followers.append(window)
-
     def show(self):
         """Reveal the window, snapped to the right edge of its anchor
-        (see snap_anchor), bring it to the front, and reposition any
-        visible snap followers to keep them snapped to it."""
+        (see snap_anchor), and bring it to the front. Reposition of
+        any visible snap followers happens via the <Configure> binding
+        from _init_snap()."""
         self._snap_to_anchor()
         self.deiconify()
         self.lift()
         self.focus_force()
-        for follower in self._snap_followers:
-            if follower.is_visible():
-                follower.reposition()
-
-    def reposition(self):
-        """Re-snap position without changing visibility or stealing focus."""
-        self._snap_to_anchor()
-
-    def _snap_to_anchor(self):
-        anchor = self._snap_anchor() if self._snap_anchor is not None else self.master
-        anchor.update_idletasks()
-        x = anchor.winfo_x() + anchor.winfo_width()
-        y = anchor.winfo_y()
-        self.geometry(f"+{x}+{y}")
 
     def hide(self):
         """Hide the window without destroying it or losing its contents."""

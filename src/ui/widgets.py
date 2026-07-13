@@ -8,11 +8,84 @@ import ui.helpers as helpers
 def Nop():
     pass
 
-class Window(ttk.Window):
+
+class SnapWindow:
+    """Mixin giving a Tk Toplevel/Window "snapping": _snap_to_anchor()
+    positions this window to the right of an anchor widget, and any
+    window registered via add_snap_follower() is kept snapped to this
+    one automatically — not just when this window is shown, but any
+    time it (or, transitively, its own anchor) is moved or resized, via
+    the <Configure> binding set up in _init_snap().
+
+    Windows only move together while actually snapped: dragging a
+    follower away breaks it loose (detected by comparing its live
+    position against where its anchor would put it), and an anchor
+    moving after that no longer drags the detached window back. It
+    re-snaps the next time it's explicitly shown/repositioned.
+
+    Call _init_snap() from __init__, after the underlying Tk widget is
+    constructed.
+
+    `snap_anchor`, if given, is a zero-arg callable returning the
+    widget this window should snap its left edge to the right of
+    (defaults to its master). It's re-evaluated on every reposition, so
+    it can return different widgets over time — e.g. "the config
+    window if it's open, else the main window"."""
+
+    def _init_snap(self, snap_anchor=None):
+        self._snap_anchor = snap_anchor
+        self._snap_followers = []
+        self._is_snapped = False
+        self.bind("<Configure>", self._on_snap_configure, add="+")
+
+    def add_snap_follower(self, window) -> None:
+        """Register `window` to be kept snapped to this one: repositioned
+        whenever this window is shown, moved, or resized, as long as
+        `window` is visible AND still actually snapped at the time."""
+        self._snap_followers.append(window)
+
+    def reposition(self) -> None:
+        """Re-snap position without changing visibility or stealing focus."""
+        self._snap_to_anchor()
+
+    def _snap_to_anchor(self) -> None:
+        anchor = self._snap_anchor() if self._snap_anchor is not None else self.master
+        if anchor is None:
+            return
+        anchor.update_idletasks()
+        x = anchor.winfo_x() + anchor.winfo_width()
+        y = anchor.winfo_y()
+        self.geometry(f"+{x}+{y}")
+        # Set synchronously rather than waiting for the resulting
+        # <Configure> event (which Tk may deliver later, or not fire
+        # at all if we were already exactly at this position).
+        self._is_snapped = True
+
+    def _is_at_anchor_position(self) -> bool:
+        anchor = self._snap_anchor() if self._snap_anchor is not None else self.master
+        if anchor is None:
+            return False
+        return (
+            self.winfo_x() == anchor.winfo_x() + anchor.winfo_width()
+            and self.winfo_y() == anchor.winfo_y()
+        )
+
+    def _on_snap_configure(self, event=None) -> None:
+        # Recomputed from live geometry (not a "did I cause this"
+        # flag) so a direct user drag away from the anchor is detected
+        # reliably regardless of event timing/ordering.
+        self._is_snapped = self._is_at_anchor_position()
+        for follower in self._snap_followers:
+            if follower.is_visible() and follower._is_snapped:
+                follower.reposition()
+
+
+class Window(SnapWindow, ttk.Window):
     def __init__(self, title: str):
         super().__init__(themename="superhero", title=title)
         # Horizontal resize only — vertical layout is fixed.
         self.resizable(True, False)
+        self._init_snap()
 
 
 class TopLevelWindow(ttk.Toplevel):
@@ -20,25 +93,17 @@ class TopLevelWindow(ttk.Toplevel):
         super().__init__(title=title)
 
 
-class TabbedWindow(ttk.Toplevel):
+class TabbedWindow(SnapWindow, ttk.Toplevel):
     """A tabbed window that stays alive for the lifetime of the app;
     use show()/hide()/toggle() instead of creating/destroying it.
 
-    `snap_anchor`, if given, is a zero-arg callable returning the
-    widget this window should snap its left edge to the right of
-    (defaults to its master). It's called fresh on every show(), so it
-    can return different widgets over time — e.g. "the config window
-    if it's open, else the main window". Other windows can register
-    via add_snap_follower() to be repositioned whenever this window is
-    shown, so e.g. an already-open terminal window can stay snapped to
-    a config window that just opened."""
+    See SnapWindow for snap_anchor/add_snap_follower()."""
 
     def __init__(self, master, on_close, title: str, snap_anchor=None, **kwargs):
         super().__init__(title=title, master=master, **kwargs)
 
         self.on_close = on_close
-        self._snap_anchor = snap_anchor
-        self._snap_followers = []
+        self._init_snap(snap_anchor)
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill=BOTH, expand=YES, padx=5, pady=5)
 
@@ -55,34 +120,15 @@ class TabbedWindow(ttk.Toplevel):
     def add_tab(self, tab: "Tab"):
         self.notebook.add(tab.notebook_widget, text=tab.title)
 
-    def add_snap_follower(self, window) -> None:
-        """Register `window` to be repositioned (via its reposition())
-        whenever this window is shown, if `window` is visible at the
-        time."""
-        self._snap_followers.append(window)
-
     def show(self):
         """Reveal the window, snapped to the right edge of its anchor
-        (see snap_anchor), bring it to the front, and reposition any
-        visible snap followers to keep them snapped to it."""
+        (see snap_anchor), and bring it to the front. Reposition of
+        any visible snap followers happens via the <Configure> binding
+        from _init_snap()."""
         self._snap_to_anchor()
         self.deiconify()
         self.lift()
         self.focus_force()
-        for follower in self._snap_followers:
-            if follower.is_visible():
-                follower.reposition()
-
-    def reposition(self):
-        """Re-snap position without changing visibility or stealing focus."""
-        self._snap_to_anchor()
-
-    def _snap_to_anchor(self):
-        anchor = self._snap_anchor() if self._snap_anchor is not None else self.master
-        anchor.update_idletasks()
-        x = anchor.winfo_x() + anchor.winfo_width()
-        y = anchor.winfo_y()
-        self.geometry(f"+{x}+{y}")
 
     def hide(self):
         """Hide the window without destroying it or losing its contents."""
