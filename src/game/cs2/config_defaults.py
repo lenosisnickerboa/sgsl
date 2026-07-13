@@ -149,11 +149,11 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ConfigIndex.MP_ROUNDTIME: ConfigItem(
             name="mp_roundtime",
             visible_name="Round time",
-            type=ConfigType.FLOAT,
+            type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Round length in minutes",
-            value=1.92,
-            range=Range(min_value=0.1, max_value=60.0),
+            value=2,
+            range=Range(min_value=1, max_value=60),
         ),
         ConfigIndex.MP_FREEZETIME: ConfigItem(
             name="mp_freezetime",
@@ -161,7 +161,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Freeze time at round start, in seconds",
-            value=15,
+            value=5,
         ),
         ConfigIndex.MP_BUYTIME: ConfigItem(
             name="mp_buytime",
@@ -177,7 +177,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Rounds per map; 0 = unlimited (good for casual LAN nights)",
-            value=24,
+            value=0,
+            range=Range(min_value=0, max_value=24),
         ),
         ConfigIndex.MP_HALFTIME: ConfigItem(
             name="mp_halftime",
@@ -202,6 +203,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Number of overtime rounds",
             value=6,
+            range=Range(min_value=0, max_value=24),
         ),
         ConfigIndex.MP_STARTMONEY: ConfigItem(
             name="mp_startmoney",
@@ -234,7 +236,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Auto-balance teams between rounds",
-            value=True,
+            value=False,
         ),
         ConfigIndex.MP_LIMITTEAMS: ConfigItem(
             name="mp_limitteams",
@@ -242,7 +244,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Max player-count difference allowed between teams",
-            value=1,
+            value=20,
             range=Range(min_value=0, max_value=20),
         ),
         ConfigIndex.MP_WARMUPTIME: ConfigItem(
@@ -251,7 +253,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Warmup length, in seconds",
-            value=60,
+            value=1,
+            range=Range(min_value=1, max_value=900),
         ),
         ConfigIndex.MP_WARMUP_PAUSETIMER: ConfigItem(
             name="mp_warmup_pausetimer",
@@ -266,12 +269,12 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="CT respawn on death",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="CTs respawn on death (fun/casual mode)",
+            tooltip="Counter terrorists respawn on death (fun/casual mode)",
             value=False,
         ),
         ConfigIndex.MP_RESPAWN_ON_DEATH_T: ConfigItem(
             name="mp_respawn_on_death_t",
-            visible_name="T respawn on death",
+            visible_name="Terrorists respawn on death",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Ts respawn on death (fun/casual mode)",
