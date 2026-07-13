@@ -4,6 +4,11 @@ Simple Game Server Launcher
 
 # Preconditions
 
+## Network
+
+Only works on LAN. If you want to have remote friends playing on your server, use some VPN solution. I use the free [tailscale](https://tailscale.com/)
+for sharing my game server, simply add your game server to the tailnet and invite all other friends to your server.
+
 ## OS
 Only works on Windows 11 for now. It could work on previous Windows versions but I haven't tested it.
 

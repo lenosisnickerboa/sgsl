@@ -95,6 +95,7 @@ class UiBuilder:
             else:
                 tab = ui.Tab(master=window.notebook, title=tab_spec.title)
             window.add_tab(tab)
+            tab_widgets = []
             for index in tab_spec.items:
                 config_item = config[index]
                 widget = self._build_widget(
@@ -107,9 +108,24 @@ class UiBuilder:
                 )
                 widget.pack(side=ui.TOP)
                 self._register(index, widget)
+                tab_widgets.append(widget)
+            self._align_hint_widths(tab_widgets)
             if overflowing:
                 self._clip_tab_to_visible_items(tab, len(tab_spec.items))
         return window
+
+    def _align_hint_widths(self, widgets: list) -> None:
+        """Give every widget's hint label in this tab the same fixed
+        character width (the widest one), so their core controls
+        (entry/spinbox/combobox/checkbutton) all start at the same x
+        position — a straight vertical line down the tab. Only
+        non-compact widgets (see HintedWidget) have a hint label."""
+        hints = [widget.hint for widget in widgets if hasattr(widget, "hint")]
+        if not hints:
+            return
+        max_width = max(len(hint.cget("text")) for hint in hints)
+        for hint in hints:
+            hint.configure(width=max_width)
 
     def _clip_tab_to_visible_items(
         self, tab: "ui.ScrollableTab", item_count: int
