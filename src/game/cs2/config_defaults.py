@@ -75,15 +75,6 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value=-1,
             range=Range(min_value=-1, max_value=64),
         ),
-        ConfigIndex.SV_REGION: ConfigItem(
-            name="sv_region",
-            visible_name="Server region",
-            type=ConfigType.INTEGER,
-            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="255 = world/unspecified, irrelevant for LAN",
-            value=255,
-        ),
-
         # -- Bots --
         ConfigIndex.BOT_DIFFICULTY: ConfigItem(
             name="bot_difficulty",

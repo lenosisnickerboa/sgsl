@@ -20,7 +20,7 @@ class ConfigIndex(IntEnum):
     SV_LAN = 6
     SV_PASSWORD = 7
     SV_VISIBLEMAXPLAYERS = 8
-    SV_REGION = 9
+    # SV_REGION = 9   <- removed, don't reuse 9
 
     # -- Bots --
     BOT_DIFFICULTY = 10

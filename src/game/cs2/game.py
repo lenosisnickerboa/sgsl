@@ -278,7 +278,7 @@ class CS2Game(Game):
             ]),
             TabSpec(title="Network", items=[
                 ConfigIndex.HOSTNAME, ConfigIndex.SV_LAN, ConfigIndex.SV_PASSWORD,
-                ConfigIndex.SV_VISIBLEMAXPLAYERS, ConfigIndex.SV_REGION,
+                ConfigIndex.SV_VISIBLEMAXPLAYERS,
             ]),
             TabSpec(title="Bots", items=[
                 ConfigIndex.BOT_DIFFICULTY, ConfigIndex.BOT_QUOTA, ConfigIndex.BOT_QUOTA_MODE,
