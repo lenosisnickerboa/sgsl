@@ -54,12 +54,12 @@ class NullGame(Game):
     def get_server_binary_path(self) -> Path:
         return self.server_binary
 
-    def maps(self) -> list[str]:
+    def _maps(self) -> list[str]:
         return ["NullGameMap1", "NullGameMap2", "NullGameMap3"]
 
     def config_defaults(self) -> Config[IndexT]:
         defaults = build_game_defaults()
-        maps = self.maps()
+        maps = self._maps()
         defaults[ConfigIndex.SELECTED_MAP].allowed_values = maps
         defaults[ConfigIndex.SELECTED_MAP].value = maps[0]
         defaults[ConfigIndex.AVAILABLE_MAPS].value = list(maps)
@@ -105,3 +105,6 @@ class NullGame(Game):
                 config[ConfigIndex.SELECTED_MAP].set(maps[0])
             return [ConfigIndex.SELECTED_MAP]
         return []
+
+    def config_loaded(self, config: Config[IndexT]) -> None:
+        pass

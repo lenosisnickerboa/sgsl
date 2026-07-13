@@ -4,7 +4,7 @@ from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType, Range
 from config.toml_config import Config
 from game.cs2.config_index import ConfigIndex
 
-_WorkshopMapIdPattern = re.compile(r"\d+")
+WorkshopMapIdPattern = re.compile(r"\d+")
 
 
 def _normalize_workshop_map(value: str) -> str:
@@ -12,7 +12,7 @@ def _normalize_workshop_map(value: str) -> str:
     and rebuild it as "workshop\\<id>\\unknown" — the form the map
     name is stored in whether the user typed just the id (123),
     "workshop\\123", or the full "workshop\\123\\unknown"."""
-    match = _WorkshopMapIdPattern.search(value)
+    match = WorkshopMapIdPattern.search(value)
     if match is None:
         raise ValueError(
             f"workshop map entry must contain a numeric workshop id, got {value!r}"

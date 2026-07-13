@@ -63,18 +63,6 @@ class Game(ABC):
         )
         self.print(f"Started game server {self.get_long_name()} with pid {pid}")
 
-    # def start_command(self, command: Path, args) -> None:
-    #     command_handler = process_handler.ProcessHandler(command)
-    #     self.print(f"Starting command: \"{command}\" with arguments \"{args}\"...")
-    #     pid = command_handler.start(
-    #         args,
-    #         no_window=True,
-    #         stdout_callback=self.handle_stdout_output,
-    #         stderr_callback=self.handle_stderr_output,
-    #         on_exit=self.handle_done
-    #     )
-    #     self.print(f"Started command {command} with pid {pid}")
-
     def stop_server(self):
         self.print(
             f'Stopping game server {self.get_long_name()} with executable "{self.get_server_binary_path()}" ...'
@@ -147,11 +135,6 @@ class Game(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def maps(self) -> list[str]:
-        """Return a list of available maps for the game."""
-        raise NotImplementedError
-
-    @abstractmethod
     def config_defaults(self) -> Config[IndexT]:
         """Return default config for the game."""
         raise NotImplementedError
@@ -182,6 +165,11 @@ class Game(ABC):
         addition to config_item's own index (already handled by the
         caller). Empty by default."""
         return []
+
+    @abstractmethod
+    def config_loaded(self, config: Config[IndexT]) -> None:
+        """Return default config for the game."""
+        raise NotImplementedError
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(directory={self.directory!r})"

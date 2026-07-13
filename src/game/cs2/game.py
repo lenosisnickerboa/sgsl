@@ -6,7 +6,7 @@ from typing import Callable, Optional, Union
 from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
-from game.cs2.config_defaults import build_game_defaults
+from game.cs2.config_defaults import WorkshopMapIdPattern, build_game_defaults
 from game.cs2.config_index import ConfigIndex
 from game.game import Game, OperationResult
 from support import bat_runner
@@ -292,19 +292,58 @@ class CS2Game(Game):
     def get_server_binary_path(self) -> Path:
         return self.server_binary
 
-    def maps(self) -> list[str]:
-        return [
-            p.stem
-            for p in (Path(self.server_root) / "game" / "csgo" / "maps").glob("*.vpk")
+    def _ordinary_maps(self) -> list[str]:
+        maps_dir = Path(self.server_root) / "game" / "csgo" / "maps"
+        return [p.stem for p in maps_dir.glob("*.vpk")] + [
+            p.stem for p in maps_dir.glob("*.bsp")
+        ]
+
+    def _workshop_maps(self) -> list[str]:
+        maps_dir = Path(self.server_root) / "steamapps" / "workshop" / "content" / "730"
+        return [p.stem for p in maps_dir.glob("**/*.vpk")] + [
+            p.stem for p in maps_dir.glob("**/*.bsp")
         ]
 
     def config_defaults(self) -> Config[IndexT]:
         defaults = build_game_defaults()
-        maps = self.maps()
+        maps = self._ordinary_maps()
+        defaults[ConfigIndex.ORDINARY_MAPS].value = maps
         defaults[ConfigIndex.SELECTED_MAP].allowed_values = maps
-        defaults[ConfigIndex.SELECTED_MAP].value = maps[0]
-        defaults[ConfigIndex.ORDINARY_MAPS].value = list(maps)
+        defaults[ConfigIndex.SELECTED_MAP].value = maps[0] if len(maps) else ""
+        maps = self._workshop_maps()
+        defaults[ConfigIndex.WORKSHOP_MAPS].value = maps
+        defaults[ConfigIndex.WORKSHOP_MAPS].value = maps[0] if len(maps) else ""
         return defaults
+
+    def _get_workshop_ids(self, maps: list[str]) -> list[int]:
+        installed_ids = []
+        for wm in maps:
+            if not wm.startswith("workshop/"):
+                continue
+            match = re.search(r"workshop\\(\d+)\\", wm)
+            if match:
+                id = int(match.group(1))
+                installed_ids.append(id)
+        return installed_ids
+
+    def config_loaded(self, config: Config[IndexT]) -> None:
+        installed_ws_maps = self._workshop_maps()
+        installed_ws_maps_ids = self._get_workshop_ids(installed_ws_maps)
+        not_installed_ws_maps = []
+        for map in config[ConfigIndex.WORKSHOP_MAPS].value:
+            if not map.startswith("workshop\\"):
+                continue
+            match = re.search(r"workshop\\(\d+)\\", map)
+            if match:
+                id = int(match.group(1))
+                if not id in installed_ws_maps_ids:
+                    not_installed_ws_maps.append(map)
+        config[ConfigIndex.WORKSHOP_MAPS].value = (
+            installed_ws_maps + not_installed_ws_maps
+        )
+        config[ConfigIndex.SELECTED_MAP].allowed_values += (
+            installed_ws_maps + not_installed_ws_maps
+        )
 
     def config_shortcuts(self) -> list[IndexT]:
         return [
@@ -409,11 +448,11 @@ class CS2Game(Game):
         ]
 
     def config_item_changed(self, config_item, config: Config[IndexT]) -> list[IndexT]:
-        if config_item is config[ConfigIndex.ORDINARY_MAPS]:
+        if config_item is config[ConfigIndex.WORKSHOP_MAPS]:
             # Keep the selected-map dropdown's choices in sync with
             # the editable map list; if the currently selected map was
             # removed, fall back to the first of what's left.
-            maps = list(config_item.value)
+            maps = config[ConfigIndex.WORKSHOP_MAPS].value + list(config_item.value)
             config[ConfigIndex.SELECTED_MAP].allowed_values = maps
             if maps and config[ConfigIndex.SELECTED_MAP].value not in maps:
                 config[ConfigIndex.SELECTED_MAP].set(maps[0])

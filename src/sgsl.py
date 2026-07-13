@@ -288,6 +288,7 @@ def setup_detected_game_server(game: Game):
     global g_game_config_file
     g_game_config_file = game.get_directory() / "game.toml"
     g_game_config = TomlConfigParser.read(g_game_config_file, game.config_defaults())
+    game.config_loaded(g_game_config)
 
     # A saved value (e.g. a previously edited AVAILABLE_MAPS list) may
     # have just overridden a default independently of any item derived
