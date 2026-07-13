@@ -22,12 +22,23 @@ class TopLevelWindow(ttk.Toplevel):
 
 class TabbedWindow(ttk.Toplevel):
     """A tabbed window that stays alive for the lifetime of the app;
-    use show()/hide()/toggle() instead of creating/destroying it."""
+    use show()/hide()/toggle() instead of creating/destroying it.
 
-    def __init__(self, master, on_close, title: str, **kwargs):
+    `snap_anchor`, if given, is a zero-arg callable returning the
+    widget this window should snap its left edge to the right of
+    (defaults to its master). It's called fresh on every show(), so it
+    can return different widgets over time — e.g. "the config window
+    if it's open, else the main window". Other windows can register
+    via add_snap_follower() to be repositioned whenever this window is
+    shown, so e.g. an already-open terminal window can stay snapped to
+    a config window that just opened."""
+
+    def __init__(self, master, on_close, title: str, snap_anchor=None, **kwargs):
         super().__init__(title=title, master=master, **kwargs)
 
         self.on_close = on_close
+        self._snap_anchor = snap_anchor
+        self._snap_followers = []
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill=BOTH, expand=YES, padx=5, pady=5)
 
@@ -44,19 +55,33 @@ class TabbedWindow(ttk.Toplevel):
     def add_tab(self, tab: "Tab"):
         self.notebook.add(tab.notebook_widget, text=tab.title)
 
+    def add_snap_follower(self, window) -> None:
+        """Register `window` to be repositioned (via its reposition())
+        whenever this window is shown, if `window` is visible at the
+        time."""
+        self._snap_followers.append(window)
+
     def show(self):
-        """Reveal the window, snapped to the right edge of its master
-        window, and bring it to the front."""
-        self._snap_to_master()
+        """Reveal the window, snapped to the right edge of its anchor
+        (see snap_anchor), bring it to the front, and reposition any
+        visible snap followers to keep them snapped to it."""
+        self._snap_to_anchor()
         self.deiconify()
         self.lift()
         self.focus_force()
+        for follower in self._snap_followers:
+            if follower.is_visible():
+                follower.reposition()
 
-    def _snap_to_master(self):
-        master = self.master
-        master.update_idletasks()
-        x = master.winfo_x() + master.winfo_width()
-        y = master.winfo_y()
+    def reposition(self):
+        """Re-snap position without changing visibility or stealing focus."""
+        self._snap_to_anchor()
+
+    def _snap_to_anchor(self):
+        anchor = self._snap_anchor() if self._snap_anchor is not None else self.master
+        anchor.update_idletasks()
+        x = anchor.winfo_x() + anchor.winfo_width()
+        y = anchor.winfo_y()
         self.geometry(f"+{x}+{y}")
 
     def hide(self):

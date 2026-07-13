@@ -160,6 +160,9 @@ def setup_detected_game_server(game: Game):
         g_game_config,
         on_config_item_changed,
     )
+    # Keep an already-open terminal window snapped to the config
+    # window whenever the config window (re)opens.
+    g_configure_window.add_snap_follower(g_terminal_window)
 
     spacer_at_end = ui.Spacer(master=g_main_frame)
     spacer_at_end.pack()
@@ -178,7 +181,13 @@ def on_close_configure_window():
 
 root = ui.Window(title="Simple Game Server Launcher" + " " + VERSION)
 
-g_terminal_window = terminal.TerminalWindow(root, on_close_terminal_window, title="Log Output")
+g_terminal_window = terminal.TerminalWindow(
+    root,
+    on_close_terminal_window,
+    title="Log Output",
+    # Snap onto the config window if it's open, else the main window.
+    snap_anchor=lambda: g_configure_window if g_configure_window is not None and g_configure_window.is_visible() else root,
+)
 
 g_main_frame = ui.MainFrame(master=root)
 g_main_frame.pack()
