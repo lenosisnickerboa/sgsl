@@ -289,6 +289,14 @@ def setup_detected_game_server(game: Game):
     g_game_config_file = game.get_directory() / "game.toml"
     g_game_config = TomlConfigParser.read(g_game_config_file, game.config_defaults())
 
+    # A saved value (e.g. a previously edited AVAILABLE_MAPS list) may
+    # have just overridden a default independently of any item derived
+    # from it (e.g. SELECTED_MAP's allowed_values) — give the game a
+    # chance to re-derive those before any widget is built from this
+    # config, the same way it would react to a live UI edit.
+    for config_item in list(g_game_config.values()):
+        game.config_item_changed(config_item, g_game_config)
+
     def on_config_item_changed(config_item, config):
         return game.config_item_changed(config_item, config)
 

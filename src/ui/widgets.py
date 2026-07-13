@@ -604,10 +604,19 @@ class ArrayEditor(HintedWidget):
         self.command = command
         self.item_type = item_type
 
-        self.listbox = tk.Listbox(self.container, height=5, exportselection=False)
-        self.listbox.pack(side=TOP, fill=BOTH, expand=YES, padx=5, pady=(2, 0))
+        listbox_row = ttk.Frame(self.container)
+        listbox_row.pack(side=TOP, fill=BOTH, expand=YES, padx=5, pady=(2, 0))
+
+        self.listbox = tk.Listbox(listbox_row, height=5, exportselection=False)
+        self.listbox.pack(side=LEFT, fill=BOTH, expand=YES)
         for value in initial_value:
             self.listbox.insert(END, str(value))
+
+        self.scrollbar = ttk.Scrollbar(
+            listbox_row, orient=VERTICAL, command=self.listbox.yview
+        )
+        self.scrollbar.pack(side=LEFT, fill=Y)
+        self.listbox.configure(yscrollcommand=self.scrollbar.set)
 
         entry_row = ttk.Frame(self.container)
         entry_row.pack(side=TOP, fill=X, padx=5, pady=2)

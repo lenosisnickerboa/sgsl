@@ -405,4 +405,23 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value=64,
             range=Range(min_value=10, max_value=128),
         ),
+        # -- Maps --
+        ConfigIndex.ORDINARY_MAPS: ConfigItem(
+            name="ordinary_maps",
+            visible_name="Ordinary maps",
+            type=ConfigType.ARRAY,
+            item_type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Maps that can be picked as the selected map",
+            value=[],  # filled in from maps() in CS2Game.config_defaults()
+        ),
+        ConfigIndex.WORKSHOP_MAPS: ConfigItem(
+            name="workshop_maps",
+            visible_name="Workshop maps",
+            type=ConfigType.ARRAY,
+            item_type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Workshop map IDs that can be downloaded and used on this server",
+            value=[],
+        ),
     }

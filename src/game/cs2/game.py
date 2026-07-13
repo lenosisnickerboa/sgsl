@@ -303,6 +303,7 @@ class CS2Game(Game):
         maps = self.maps()
         defaults[ConfigIndex.SELECTED_MAP].allowed_values = maps
         defaults[ConfigIndex.SELECTED_MAP].value = maps[0]
+        defaults[ConfigIndex.ORDINARY_MAPS].value = list(maps)
         return defaults
 
     def config_shortcuts(self) -> list[IndexT]:
@@ -401,7 +402,20 @@ class CS2Game(Game):
                     ConfigIndex.SV_MINCMDRATE,
                 ],
             ),
+            TabSpec(
+                title="Maps",
+                items=[ConfigIndex.ORDINARY_MAPS, ConfigIndex.WORKSHOP_MAPS],
+            ),
         ]
 
-    # def config_item_changed(self, config_item: IndexT, config: Config[IndexT]) -> None:
-    #     self.print(f"config_item_changed({config_item}, {config})")
+    def config_item_changed(self, config_item, config: Config[IndexT]) -> list[IndexT]:
+        if config_item is config[ConfigIndex.ORDINARY_MAPS]:
+            # Keep the selected-map dropdown's choices in sync with
+            # the editable map list; if the currently selected map was
+            # removed, fall back to the first of what's left.
+            maps = list(config_item.value)
+            config[ConfigIndex.SELECTED_MAP].allowed_values = maps
+            if maps and config[ConfigIndex.SELECTED_MAP].value not in maps:
+                config[ConfigIndex.SELECTED_MAP].set(maps[0])
+            return [ConfigIndex.SELECTED_MAP]
+        return []
