@@ -1,3 +1,4 @@
+import tkinter.ttk as tkttk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.tooltip import ToolTip
@@ -7,6 +8,33 @@ import ui.helpers as helpers
 
 def Nop():
     pass
+
+
+class EnableDisableMixin:
+    """Adds enable()/disable() to a widget, applied recursively to
+    itself and all descendants — so a composite widget (e.g. a
+    Labelframe wrapping a Spinbox/Entry/Combobox/Button, or a whole
+    window full of them) is fully disabled/enabled regardless of its
+    internal structure.
+
+    Only actual ttk controls have a "disabled" state; plain Tk
+    Toplevel/Window objects (which have their own unrelated state()
+    method, for window-manager state like "withdrawn"/"zoomed") are
+    left alone but still recursed into, so e.g. disabling a window
+    disables the controls inside it."""
+
+    def disable(self) -> None:
+        self._apply_state(self, "disabled")
+
+    def enable(self) -> None:
+        self._apply_state(self, "!disabled")
+
+    @staticmethod
+    def _apply_state(widget, flag: str) -> None:
+        if isinstance(widget, tkttk.Widget):
+            widget.state([flag])
+        for child in widget.winfo_children():
+            EnableDisableMixin._apply_state(child, flag)
 
 
 class SnapWindow:
@@ -80,7 +108,7 @@ class SnapWindow:
                 follower.reposition()
 
 
-class Window(SnapWindow, ttk.Window):
+class Window(SnapWindow, EnableDisableMixin, ttk.Window):
     def __init__(self, title: str):
         super().__init__(themename="superhero", title=title)
         # Horizontal resize only — vertical layout is fixed.
@@ -88,12 +116,12 @@ class Window(SnapWindow, ttk.Window):
         self._init_snap()
 
 
-class TopLevelWindow(ttk.Toplevel):
+class TopLevelWindow(EnableDisableMixin, ttk.Toplevel):
     def __init__(self, title: str):
         super().__init__(title=title)
 
 
-class Dialog(ttk.Toplevel):
+class Dialog(EnableDisableMixin, ttk.Toplevel):
     """A modal message dialog: shows `message` with a single OK
     button. Appears immediately on construction; call show() to block
     the caller until it's dismissed (OK pressed, or closed via the
@@ -146,7 +174,7 @@ class Dialog(ttk.Toplevel):
         self.wait_window(self)
 
 
-class TabbedWindow(SnapWindow, ttk.Toplevel):
+class TabbedWindow(SnapWindow, EnableDisableMixin, ttk.Toplevel):
     """A tabbed window that stays alive for the lifetime of the app;
     use show()/hide()/toggle() instead of creating/destroying it.
 
@@ -198,7 +226,7 @@ class TabbedWindow(SnapWindow, ttk.Toplevel):
         return self.state() != "withdrawn"
 
 
-class Tab(ttk.Frame):
+class Tab(EnableDisableMixin, ttk.Frame):
     def __init__(self, master, title: str, **kwargs):
         super().__init__(master, padding=5, **kwargs)
         self.title = title
@@ -207,7 +235,7 @@ class Tab(ttk.Frame):
         self.notebook_widget = self
 
 
-class ScrollableTab(ttk.scrolled.ScrolledFrame):
+class ScrollableTab(EnableDisableMixin, ttk.scrolled.ScrolledFrame):
     """A notebook tab whose content scrolls vertically once it grows
     past its viewport height (see set_visible_height)."""
 
@@ -224,7 +252,7 @@ class ScrollableTab(ttk.scrolled.ScrolledFrame):
         self.container.configure(height=height)
 
 
-class MainFrame(ttk.Frame):
+class MainFrame(EnableDisableMixin, ttk.Frame):
     def __init__(self, master, **kwargs):
         super().__init__(master, padding=5, **kwargs)
 
@@ -232,7 +260,7 @@ class MainFrame(ttk.Frame):
         super().pack(side=LEFT, fill=BOTH, expand=YES)
 
 
-class StatusLine(ttk.Frame):
+class StatusLine(EnableDisableMixin, ttk.Frame):
     """A single-line status bar. Pack it before any expand=YES content
     (see MainFrame) so it claims the bottom strip first and stays
     pinned there. Update its text via set_text()."""
@@ -252,14 +280,14 @@ class StatusLine(ttk.Frame):
         self.value.set(text)
 
 
-class ScrolledFrame(ttk.scrolled.ScrolledFrame):
+class ScrolledFrame(EnableDisableMixin, ttk.scrolled.ScrolledFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, padding=5, autohide=True, scrollheight=20, **kwargs)
 
     def pack(self):
         super().pack(side=LEFT, fill=BOTH, expand=YES)
 
-class TableView(ttk.tableview.Tableview):
+class TableView(EnableDisableMixin, ttk.tableview.Tableview):
     def __init__(self, master, columns: list, rows: list, **kwargs):
         super().__init__(master, coldata=columns, rowdata=rows, **kwargs)
 
@@ -267,7 +295,7 @@ class TableView(ttk.tableview.Tableview):
         super().pack(side=LEFT, fill=BOTH, expand=YES)
 
 
-class EditGroupFrame(ttk.Labelframe):
+class EditGroupFrame(EnableDisableMixin, ttk.Labelframe):
     def __init__(self, master, name : str, **kwargs):
         super().__init__(master, text=name, padding=5, **kwargs)
 
@@ -275,7 +303,7 @@ class EditGroupFrame(ttk.Labelframe):
         super().pack(fill=X, side=TOP)
 
 
-class Spacer(ttk.Frame):
+class Spacer(EnableDisableMixin, ttk.Frame):
     def __init__(self, master, **kwargs):
         super().__init__(master, padding=10, **kwargs)
 
@@ -286,7 +314,7 @@ class Spacer(ttk.Frame):
         super().pack(fill=X, side=TOP)
 
 
-class HintedWidget(ttk.Frame):
+class HintedWidget(EnableDisableMixin, ttk.Frame):
     """Base for widgets that show a hint (name) for their core widget.
 
     If compact is True, the core widget is wrapped in a Labelframe
@@ -447,7 +475,7 @@ class StringCombobox(HintedWidget):
     def update(self, value):
         self.combobox.set(value)
 
-class Button(ttk.Frame):
+class Button(EnableDisableMixin, ttk.Frame):
     def __init__(self, master, name : str, tooltip : str, command = Nop(), compact: bool = True, **kwargs):
         super().__init__(master, padding=2, **kwargs)
 
@@ -468,7 +496,7 @@ class Button(ttk.Frame):
     def pack(self):
         super().pack(side=LEFT, padx=5, fill=X)
 
-class ExpandingButton(ttk.Frame):
+class ExpandingButton(EnableDisableMixin, ttk.Frame):
     def __init__(self, master, name : str, tooltip : str, command = Nop(), compact: bool = True, **kwargs):
         super().__init__(master, padding=2, **kwargs)
 

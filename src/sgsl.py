@@ -71,12 +71,14 @@ def on_install_game_server(name: str):
 def on_update_game_server(game: Game):
     print_to_terminal(f"Updating game server for {game.get_long_name()} in directory {game.get_directory()}...")
     set_status_line(f"Updating {game.get_long_name()}...")
+    g_start_stop_server.disable()
 
     def on_update_result(result):
         print_to_terminal(f"Update for {game.get_long_name()} finished: {result}")
 
         def finish():
             g_update_open_close.off()
+            g_start_stop_server.enable()
             message = f"Update of {game.get_long_name()} finished: {result}"
             set_status_line(message)
             ok_dialog(message, title="Update")
@@ -101,6 +103,7 @@ def on_start_stop_game_server(game: Game):
         game.run(g_game_config)
         g_start_stop_server.set_name(name="Stop")
         g_start_stop_server.set_tooltip(tooltip="Stop server")
+        g_update_open_close.disable()
         print_to_terminal(f"Started game server for {game.get_long_name()} in directory {game.get_directory()}...")
         set_status_line(f"{game.get_long_name()} is running...")
     else:
@@ -109,6 +112,7 @@ def on_start_stop_game_server(game: Game):
         game.stop()
         g_start_stop_server.set_name(name="Start")
         g_start_stop_server.set_tooltip(tooltip="Start server")
+        g_update_open_close.enable()
         print_to_terminal(f"Stoped game server for {game.get_long_name()} in directory {game.get_directory()}...")
         restore_status_line()
 
@@ -152,6 +156,8 @@ def setup_detected_game_server(game: Game):
     global g_update_open_close
     g_update_open_close = ui.CheckButton(master=game_frame, name="Update", tooltip="Update game server", command=lambda value: on_update_game_server(game) if value else None)
     g_update_open_close.pack()
+    if game.is_running():
+        g_update_open_close.disable()
 
     global g_configure_open_close
     g_configure_open_close = ui.CheckButton(master=game_frame, name="Configure", tooltip="Edit game server configuration", command=lambda _value: on_toggle_configure_window())
