@@ -37,7 +37,7 @@ class UiBuilder:
         shortcuts: list[IndexT],
         config: Config[IndexT],
         config_changed_callback: Optional[
-            Callable[[ConfigItem, Config[IndexT]], None]
+            Callable[[ConfigItem, Config[IndexT]], list[IndexT]]
         ] = None,
     ) -> dict[IndexT, object]:
         """Build one widget per index in `shortcuts` into `master`, each
@@ -70,7 +70,7 @@ class UiBuilder:
         tabs: list[TabSpec],
         config: Config[IndexT],
         config_changed_callback: Optional[
-            Callable[[ConfigItem, Config[IndexT]], None]
+            Callable[[ConfigItem, Config[IndexT]], list[IndexT]]
         ] = None,
     ) -> ui.TabbedWindow:
         """Build a tabbed window titled `title` with one tab per TabSpec
@@ -153,11 +153,17 @@ class UiBuilder:
 
     def config_changed(self, changed: list[IndexT], config: Config[IndexT]) -> None:
         """Refresh the widget(s) for `changed` indexes to reflect their
-        current value in `config`. Indexes with no built widget are
-        skipped."""
+        current value in `config` — and, for widgets that support it
+        (e.g. StringCombobox.set_values()), their current
+        allowed_values too, e.g. when one item's edit narrows or
+        widens another item's choices (see Game.config_item_changed).
+        Indexes with no built widget are skipped."""
         for index in changed:
+            item = config[index]
             for widget in self._widgets.get(index, []):
-                widget.update(config[index].value)
+                if item.allowed_values is not None and hasattr(widget, "set_values"):
+                    widget.set_values(item.allowed_values)
+                widget.update(item.value)
 
     def _register(self, index: IndexT, widget: object) -> None:
         self._widgets.setdefault(index, []).append(widget)
@@ -168,7 +174,7 @@ class UiBuilder:
         index: IndexT,
         item: ConfigItem,
         config: Config[IndexT],
-        config_changed_callback: Optional[Callable[[ConfigItem, Config[IndexT]], None]],
+        config_changed_callback: Optional[Callable[[ConfigItem, Config[IndexT]], list[IndexT]]],
         compact: bool,
     ):
         tooltip = item.tooltip if item.tooltip else item.visible_name
@@ -187,7 +193,12 @@ class UiBuilder:
             # the new value too.
             self.config_changed([index], config)
             if config_changed_callback is not None:
-                config_changed_callback(item, config)
+                # The game may have reacted by mutating other config
+                # items (e.g. narrowing another item's allowed_values)
+                # — refresh their widgets too.
+                affected = config_changed_callback(item, config)
+                if affected:
+                    self.config_changed(affected, config)
 
         if item.type is ConfigType.BOOLEAN:
             widget = ui.CheckButton(
@@ -251,12 +262,31 @@ class UiBuilder:
                 command=on_widget_changed,
                 compact=compact,
             )
+        elif item.type is ConfigType.ARRAY:
+            widget = ui.ArrayEditor(
+                master=master,
+                name=item.visible_name,
+                initial_value=item.value,
+                tooltip=tooltip,
+                item_type=self._python_type(item.item_type),
+                command=on_widget_changed,
+                compact=compact,
+            )
         else:
             raise ValueError(
                 f"{item.name}: builder does not support ConfigType.{item.type.name} yet"
             )
 
         return widget
+
+    def _python_type(self, config_type: ConfigType):
+        # STRING_LIST/MASKED_STRING are distinct ConfigType members
+        # from STRING (see config_item.py) purely so they don't alias
+        # it as an Enum member — their actual Python value type is str
+        # either way.
+        if config_type in (ConfigType.STRING_LIST, ConfigType.MASKED_STRING):
+            return str
+        return config_type.value
 
     def _integer_range(self, item: ConfigItem) -> list[int]:
         lo, hi = _INT_MIN, _INT_MAX

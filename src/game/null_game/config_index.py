@@ -26,6 +26,7 @@ class ConfigIndex(IntEnum):
     DUMMY_9 = 14
     PASSWORD = 15
     BOT_DIFFICULTY = 16
+    AVAILABLE_MAPS = 17
 
 
 _values = [item.value for item in ConfigIndex]

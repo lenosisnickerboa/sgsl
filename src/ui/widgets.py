@@ -1,3 +1,4 @@
+import tkinter as tk
 import tkinter.ttk as tkttk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
@@ -569,6 +570,95 @@ class StringCombobox(HintedWidget):
 
     def update(self, value):
         self.combobox.set(value)
+
+    def set_values(self, values: list) -> None:
+        """Refresh the dropdown's choices — e.g. when another config
+        item defines this one's allowed set, like a list of available
+        maps. If the current selection is no longer among `values`,
+        falls back to the first of the new values."""
+        self.combobox.configure(values=values)
+        if values and self.combobox.get() not in values:
+            self.combobox.set(values[0])
+
+
+class ArrayEditor(HintedWidget):
+    """Edits a list of scalar values (a TOML array config item): the
+    current items sit in a listbox, with an entry + Add button to
+    append new ones and a Remove button to delete the selected one.
+    `item_type` (a plain Python type, e.g. str/int/float) is used to
+    parse text typed into the Add entry — see ConfigItem.item_type."""
+
+    def __init__(
+        self,
+        master,
+        name: str,
+        initial_value: list,
+        tooltip: str,
+        command=Nop(),
+        item_type=str,
+        compact: bool = True,
+        **kwargs,
+    ):
+        super().__init__(master, name=name, compact=compact, **kwargs)
+
+        self.command = command
+        self.item_type = item_type
+
+        self.listbox = tk.Listbox(self.container, height=5, exportselection=False)
+        self.listbox.pack(side=TOP, fill=BOTH, expand=YES, padx=5, pady=(2, 0))
+        for value in initial_value:
+            self.listbox.insert(END, str(value))
+
+        entry_row = ttk.Frame(self.container)
+        entry_row.pack(side=TOP, fill=X, padx=5, pady=2)
+
+        self.new_value = ttk.StringVar()
+        self.entry = ttk.Entry(entry_row, textvariable=self.new_value)
+        self.entry.pack(side=LEFT, fill=X, expand=YES)
+        self.entry.bind("<Return>", self._on_add)
+
+        self.add_button = ttk.Button(entry_row, text="Add", command=self._on_add)
+        self.add_button.pack(side=LEFT, padx=(5, 0))
+
+        self.remove_button = ttk.Button(
+            entry_row, text="Remove", command=self._on_remove
+        )
+        self.remove_button.pack(side=LEFT, padx=(5, 0))
+
+        ToolTip(self.listbox, text=tooltip)
+        if not compact:
+            ToolTip(self.hint, text=tooltip)
+
+    def _on_add(self, event=None):
+        text = self.new_value.get().strip()
+        if not text:
+            return
+        try:
+            value = self.item_type(text)
+        except (TypeError, ValueError):
+            return
+        self.listbox.insert(END, str(value))
+        self.new_value.set("")
+        self._notify()
+
+    def _on_remove(self):
+        selection = self.listbox.curselection()
+        if not selection:
+            return
+        self.listbox.delete(selection[0])
+        self._notify()
+
+    def _notify(self):
+        if self.command is not None:
+            self.command(self.values())
+
+    def values(self) -> list:
+        return [self.item_type(v) for v in self.listbox.get(0, END)]
+
+    def update(self, value: list):
+        self.listbox.delete(0, END)
+        for v in value:
+            self.listbox.insert(END, str(v))
 
 
 class Button(EnableDisableMixin, ttk.Frame):

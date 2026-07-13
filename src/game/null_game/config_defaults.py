@@ -157,4 +157,13 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value="Normal",
             allowed_values=["Harmless", "Easy", "Normal", "Hard", "Harder", "Expert"],
         ),
+        ConfigIndex.AVAILABLE_MAPS: ConfigItem(
+            name="available_maps",
+            visible_name="Available maps",
+            type=ConfigType.ARRAY,
+            item_type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Maps that can be picked as the selected map",
+            value=[],  # filled in from maps() in NullGame.config_defaults()
+        ),
     }

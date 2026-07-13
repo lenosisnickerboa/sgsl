@@ -169,11 +169,19 @@ class Game(ABC):
         multiple tabs."""
         raise NotImplementedError
 
-    def config_item_changed(self, config_item: IndexT, config: Config[IndexT]) -> None:
+    def config_item_changed(
+        self, config_item: ConfigItem, config: Config[IndexT]
+    ) -> list[IndexT]:
         """Called after a UI edit has already updated config_item's
         value in `config`. The default is a no-op; override to react
-        to specific changes, e.g. keeping other config items in sync."""
-        pass
+        to specific changes, e.g. keeping other config items in sync.
+
+        Return a list of indexes (may include ones this method itself
+        mutated, e.g. another item's allowed_values/value) whose
+        widgets should be refreshed to reflect changes made here, in
+        addition to config_item's own index (already handled by the
+        caller). Empty by default."""
+        return []
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(directory={self.directory!r})"

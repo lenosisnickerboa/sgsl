@@ -290,7 +290,7 @@ def setup_detected_game_server(game: Game):
     g_game_config = TomlConfigParser.read(g_game_config_file, game.config_defaults())
 
     def on_config_item_changed(config_item, config):
-        game.config_item_changed(config_item, config)
+        return game.config_item_changed(config_item, config)
 
     global g_ui_builder
     g_ui_builder = UiBuilder()
