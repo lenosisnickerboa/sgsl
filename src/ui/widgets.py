@@ -93,6 +93,47 @@ class TopLevelWindow(ttk.Toplevel):
         super().__init__(title=title)
 
 
+class Dialog(ttk.Toplevel):
+    """A modal message dialog: shows `message` with a single OK
+    button. Appears immediately on construction; call show() to block
+    the caller until it's dismissed (OK pressed, or closed via the
+    window's own close button — treated the same way), then `on_ok`
+    (if given) is invoked."""
+
+    def __init__(self, title: str, message: str, on_ok=Nop(), **kwargs):
+        super().__init__(title=title, **kwargs)
+
+        self.on_ok = on_ok
+
+        # Fixed size — a message dialog doesn't need to be resized.
+        self.resizable(False, False)
+        self.protocol("WM_DELETE_WINDOW", self._handle_ok)
+
+        frame = ttk.Frame(self, padding=20)
+        frame.pack(fill=BOTH, expand=YES)
+
+        label = ttk.Label(frame, text=message, wraplength=360, justify=LEFT)
+        label.pack(fill=X, pady=(0, 15))
+
+        button = ttk.Button(frame, text="OK", command=self._handle_ok, bootstyle="primary")
+        button.pack()
+        button.focus_set()
+
+        # Modal: block interaction with other windows until closed.
+        self.transient(self.master)
+        self.grab_set()
+
+    def _handle_ok(self):
+        self.grab_release()
+        self.destroy()
+        if self.on_ok is not None:
+            self.on_ok()
+
+    def show(self):
+        """Block the calling code until the dialog is dismissed."""
+        self.wait_window(self)
+
+
 class TabbedWindow(SnapWindow, ttk.Toplevel):
     """A tabbed window that stays alive for the lifetime of the app;
     use show()/hide()/toggle() instead of creating/destroying it.
