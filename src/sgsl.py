@@ -95,14 +95,20 @@ def on_start_stop_game_server(game: Game):
     global g_start_stop_server
 
     if not game.is_running():
+        print_to_terminal(f"Starting game server for {game.get_long_name()} in directory {game.get_directory()}...")
+        set_status_line(f"Starting {game.get_long_name()}...")
         global g_game_config
         game.run(g_game_config)
         g_start_stop_server.set_name(name="Stop")
         g_start_stop_server.set_tooltip(tooltip="Stop server")
     else:
+        print_to_terminal(f"Stopping game server for {game.get_long_name()} in directory {game.get_directory()}...")
+        set_status_line(f"Stopping {game.get_long_name()}...")
         game.stop()
         g_start_stop_server.set_name(name="Start")
         g_start_stop_server.set_tooltip(tooltip="Start server")
+        
+    restore_status_line()
 
 def on_toggle_terminal_window():
     global g_terminal_is_open
