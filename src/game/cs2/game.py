@@ -308,11 +308,13 @@ class CS2Game(Game):
         defaults = build_game_defaults()
         maps = self._ordinary_maps()
         defaults[ConfigIndex.ORDINARY_MAPS].value = maps
-        defaults[ConfigIndex.SELECTED_MAP].allowed_values = maps
+        # A separate list, not the same object as ORDINARY_MAPS.value —
+        # SELECTED_MAP.allowed_values gets extended in place elsewhere
+        # (config_loaded()), which would otherwise silently mutate
+        # ORDINARY_MAPS.value too since lists are shared by reference.
+        defaults[ConfigIndex.SELECTED_MAP].allowed_values = list(maps)
         defaults[ConfigIndex.SELECTED_MAP].value = maps[0] if len(maps) else ""
-        maps = self._workshop_maps()
-        defaults[ConfigIndex.WORKSHOP_MAPS].value = maps
-        defaults[ConfigIndex.WORKSHOP_MAPS].value = maps[0] if len(maps) else ""
+        defaults[ConfigIndex.WORKSHOP_MAPS].value = self._workshop_maps()
         return defaults
 
     def _get_workshop_ids(self, maps: list[str]) -> list[int]:
@@ -452,7 +454,9 @@ class CS2Game(Game):
             # Keep the selected-map dropdown's choices in sync with
             # the editable map list; if the currently selected map was
             # removed, fall back to the first of what's left.
-            maps = config[ConfigIndex.WORKSHOP_MAPS].value + list(config_item.value)
+            maps = list(config[ConfigIndex.ORDINARY_MAPS].value) + list(
+                config_item.value
+            )
             config[ConfigIndex.SELECTED_MAP].allowed_values = maps
             if maps and config[ConfigIndex.SELECTED_MAP].value not in maps:
                 config[ConfigIndex.SELECTED_MAP].set(maps[0])
