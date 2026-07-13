@@ -31,6 +31,16 @@ class EnableDisableMixin:
     def enable(self) -> None:
         self._apply_state(self, "!disabled")
 
+    def set_read_only(self, read_only: bool) -> None:
+        """Make this widget display-only, with no way to edit its
+        value. The default is the same as disable()/enable(); widgets
+        that need to stay partially interactive while read-only (e.g.
+        ArrayEditor, whose list should stay scrollable) override this."""
+        if read_only:
+            self.disable()
+        else:
+            self.enable()
+
     @staticmethod
     def _apply_state(widget, flag: str) -> None:
         if isinstance(widget, tkttk.Widget):
@@ -668,6 +678,15 @@ class ArrayEditor(HintedWidget):
         self.listbox.delete(0, END)
         for v in value:
             self.listbox.insert(END, str(v))
+
+    def set_read_only(self, read_only: bool) -> None:
+        # The listbox/scrollbar stay enabled so the list is still
+        # scrollable — only the controls that add/remove items are
+        # disabled.
+        flag = "disabled" if read_only else "!disabled"
+        self._apply_state(self.entry, flag)
+        self._apply_state(self.add_button, flag)
+        self._apply_state(self.remove_button, flag)
 
 
 class Button(EnableDisableMixin, ttk.Frame):

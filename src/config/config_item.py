@@ -125,6 +125,10 @@ class ConfigItem:
     item's value to the server process — as a COMMAND_LINE argument or
     written into a SERVER_CFG_FILE. Left unset for config items that
     aren't fed to a game server at all (e.g. app-level settings).
+
+    `read_only`, if True, tells a UI to build this item's widget so it
+    only displays the current value, with no way to edit it (e.g. a
+    list that's derived from another item and shouldn't be hand-edited).
     """
 
     name: str
@@ -139,6 +143,7 @@ class ConfigItem:
     range: Optional[Range] = None
     max_length: Optional[int] = None
     tooltip: Optional[str] = None
+    read_only: bool = False
 
     def __post_init__(self) -> None:
         if self.type is ConfigType.ARRAY and self.item_type is None:

@@ -277,6 +277,9 @@ class UiBuilder:
                 f"{item.name}: builder does not support ConfigType.{item.type.name} yet"
             )
 
+        if item.read_only:
+            widget.set_read_only(True)
+
         return widget
 
     def _python_type(self, config_type: ConfigType):

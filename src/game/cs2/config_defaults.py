@@ -414,6 +414,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Maps that can be picked as the selected map",
             value=[],  # filled in from maps() in CS2Game.config_defaults()
+            read_only=True,
         ),
         ConfigIndex.WORKSHOP_MAPS: ConfigItem(
             name="workshop_maps",
