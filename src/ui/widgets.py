@@ -119,9 +119,21 @@ class Dialog(ttk.Toplevel):
         button.pack()
         button.focus_set()
 
+        self._center_on_master()
+
         # Modal: block interaction with other windows until closed.
         self.transient(self.master)
         self.grab_set()
+
+    def _center_on_master(self):
+        master = self.master
+        if master is None:
+            return
+        master.update_idletasks()
+        self.update_idletasks()
+        x = master.winfo_x() + (master.winfo_width() - self.winfo_width()) // 2
+        y = master.winfo_y() + (master.winfo_height() - self.winfo_height()) // 2
+        self.geometry(f"+{x}+{y}")
 
     def _handle_ok(self):
         self.grab_release()

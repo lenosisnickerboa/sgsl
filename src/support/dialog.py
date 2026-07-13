@@ -19,7 +19,8 @@ def ok_dialog(message: str, title: str = "Message") -> None:
 
 
 def ok_dialog_exit(message: str, title: str = "Message") -> None:
-    """Show `message` in a modal dialog with an OK button, block until
-    the user dismisses it, then close the application."""
-    ok_dialog(message, title)
+    """Show `message` in a modal dialog with an OK button, noting that
+    the application will close, block until the user dismisses it,
+    then close the application."""
+    ok_dialog(f"{message}\n\nThe application will now exit.", title)
     sys.exit(0)

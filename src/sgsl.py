@@ -5,10 +5,11 @@ from config.toml_config import Config, TomlConfigParser
 from app.version import VERSION
 import ui.widgets as ui
 import ui.terminal as terminal
-from game.game import Game
+from game.game import Game, OperationResult
 from game.game_factory import GameFactory
 from app.config_index import ConfigIndex
 from ui_builder.ui_builder import UiBuilder
+from support.dialog import ok_dialog, ok_dialog_exit
 
 g_main_frame = None
 g_terminal_window = None
@@ -49,7 +50,16 @@ def on_install_game_server(name: str):
 
     def on_install_result(result):
         print_to_terminal(f"Install for {game.get_long_name()} finished: {result}")
-        root.after(0, g_install_open_close.off)
+
+        def finish():
+            g_install_open_close.off()
+            message = f"Installation of {game.get_long_name()} finished: {result}"
+            if result == OperationResult.FAIL:
+                ok_dialog_exit(message, title="Install")
+            else:
+                ok_dialog(message, title="Install")
+
+        root.after(0, finish)
 
     game.install(on_install_result)
 
@@ -58,7 +68,12 @@ def on_update_game_server(game: Game):
 
     def on_update_result(result):
         print_to_terminal(f"Update for {game.get_long_name()} finished: {result}")
-        root.after(0, g_update_open_close.off)
+
+        def finish():
+            g_update_open_close.off()
+            ok_dialog(f"Update of {game.get_long_name()} finished: {result}", title="Update")
+
+        root.after(0, finish)
 
     game.update(on_update_result)
 
