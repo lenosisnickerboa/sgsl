@@ -15,6 +15,11 @@ class ConfigType(Enum):
     # given a distinct sentinel value (rather than `str`) purely so it
     # doesn't alias STRING as an Enum member — see _check_scalar().
     STRING_LIST = "string_list"
+    # A string whose value a UI should mask (e.g. show as asterisks)
+    # rather than display in the clear, such as a password. Serialized
+    # the same as STRING; given a distinct sentinel value for the same
+    # reason as STRING_LIST — see _check_scalar().
+    MASKED_STRING = "masked_string"
     INTEGER = int
     FLOAT = float
     BOOLEAN = bool
@@ -53,7 +58,7 @@ def _check_scalar(name: str, value: Any, expected_type: ConfigType) -> None:
     """Validate a single scalar value against a ConfigType, with the
     bool/int special case handled explicitly."""
 
-    py_type = str if expected_type is ConfigType.STRING_LIST else expected_type.value
+    py_type = str if expected_type in (ConfigType.STRING_LIST, ConfigType.MASKED_STRING) else expected_type.value
 
     if expected_type is ConfigType.INTEGER and isinstance(value, bool):
         raise TypeError(f"{name}: expected int, got bool")

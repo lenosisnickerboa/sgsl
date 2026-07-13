@@ -182,6 +182,15 @@ class UiBuilder:
                 command=on_widget_changed,
                 compact=compact,
             )
+        elif item.type is ConfigType.MASKED_STRING:
+            widget = ui.MaskedStringEntry(
+                master=master,
+                name=item.visible_name,
+                initial_value=item.value,
+                tooltip=tooltip,
+                command=on_widget_changed,
+                compact=compact,
+            )
         elif item.type is ConfigType.STRING_LIST:
             # A closed set of allowed_values becomes a read-only dropdown;
             # an unconstrained STRING_LIST falls back to a free-typing

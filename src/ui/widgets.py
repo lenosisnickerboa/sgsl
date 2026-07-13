@@ -235,6 +235,32 @@ class StringEntry(HintedWidget):
         self.value.set(value)
 
 
+class MaskedStringEntry(HintedWidget):
+    """Like StringEntry, but the entered text is shown as asterisks —
+    for values like passwords that shouldn't be displayed in the
+    clear."""
+
+    def __init__(self, master, name : str, initial_value : str, tooltip : str, command = Nop(), compact: bool = True, **kwargs):
+        super().__init__(master, name=name, compact=compact, **kwargs)
+
+        self.command = command
+        self.value = ttk.StringVar(value=initial_value)
+        self.entry = ttk.Entry(master=self.container, textvariable=self.value, show="*")
+        self.entry.pack(side=LEFT, expand=YES, padx=5, fill=X)
+        self.entry.bind("<Return>", self.on_event)
+        self.entry.bind("<FocusOut>", self.on_event)
+        ToolTip(self.entry, text=tooltip)
+        if not compact:
+            ToolTip(self.hint, text=tooltip)
+
+    def on_event(self, event=None):
+        if self.command is not None:
+            self.command(self.value.get())
+
+    def update(self, value: str):
+        self.value.set(value)
+
+
 class StringCombobox(HintedWidget):
     def __init__(self, master, name : str, values : list, selected, tooltip : str, command = Nop(), readonly=True, compact: bool = True, **kwargs):
         super().__init__(master, name=name, compact=compact, **kwargs)

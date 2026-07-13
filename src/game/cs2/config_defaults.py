@@ -61,7 +61,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ConfigIndex.SV_PASSWORD: ConfigItem(
             name="sv_password",
             visible_name="Server password",
-            type=ConfigType.STRING,
+            type=ConfigType.MASKED_STRING,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Password required to join; empty means no password",
             value="",

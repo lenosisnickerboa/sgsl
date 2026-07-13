@@ -242,7 +242,7 @@ class CS2Game(Game):
         (cfg_dir / self._ServerCfgName).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     def _format_cvar_line(self, item: ConfigItem) -> str:
-        if item.type in (ConfigType.STRING, ConfigType.STRING_LIST):
+        if item.type in (ConfigType.STRING, ConfigType.STRING_LIST, ConfigType.MASKED_STRING):
             return f'{item.name} "{item.value}"'
         if item.type is ConfigType.BOOLEAN:
             return f"{item.name} {1 if item.value else 0}"

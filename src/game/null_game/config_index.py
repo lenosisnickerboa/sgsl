@@ -24,6 +24,7 @@ class ConfigIndex(IntEnum):
     DUMMY_7 = 12
     DUMMY_8 = 13
     DUMMY_9 = 14
+    PASSWORD = 15
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"

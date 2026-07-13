@@ -128,4 +128,12 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value=46,
             range=Range(min_value=40, max_value=49),
         ),
+        ConfigIndex.PASSWORD: ConfigItem(
+            name="password",
+            visible_name="Password",
+            type=ConfigType.MASKED_STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Password required to join; empty means no password",
+            value="",
+        ),
     }

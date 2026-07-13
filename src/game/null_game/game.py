@@ -68,7 +68,7 @@ class NullGame(Game):
         return [ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT, ConfigIndex.FRIENDLY_FIRE_ENABLED]
 
     def config_tabs(self) -> list[TabSpec]:
-        return [TabSpec(title="1st tab title", items=[ConfigIndex.DUMMY_0, ConfigIndex.DUMMY_1]), 
+        return [TabSpec(title="1st tab title", items=[ConfigIndex.DUMMY_0, ConfigIndex.DUMMY_1, ConfigIndex.PASSWORD]),
                 TabSpec(title="2nd tab title", items=[ConfigIndex.DUMMY_2, ConfigIndex.DUMMY_3]), 
                 TabSpec(title="3rd tab title", items=[ConfigIndex.DUMMY_4, ConfigIndex.DUMMY_5, ConfigIndex.DUMMY_6])]
 
