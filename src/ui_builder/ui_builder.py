@@ -36,7 +36,9 @@ class UiBuilder:
         master,
         shortcuts: list[IndexT],
         config: Config[IndexT],
-        config_changed_callback: Optional[Callable[[ConfigItem, Config[IndexT]], None]] = None,
+        config_changed_callback: Optional[
+            Callable[[ConfigItem, Config[IndexT]], None]
+        ] = None,
     ) -> dict[IndexT, object]:
         """Build one widget per index in `shortcuts` into `master`, each
         reflecting the current value of the matching ConfigItem in
@@ -47,7 +49,14 @@ class UiBuilder:
         built: dict[IndexT, object] = {}
         for shortcut in shortcuts:
             config_item = config[shortcut]
-            widget = self._build_widget(master, shortcut, config_item, config, config_changed_callback, compact=True)
+            widget = self._build_widget(
+                master,
+                shortcut,
+                config_item,
+                config,
+                config_changed_callback,
+                compact=True,
+            )
             widget.pack()
             self._register(shortcut, widget)
             built[shortcut] = widget
@@ -60,7 +69,9 @@ class UiBuilder:
         title: str,
         tabs: list[TabSpec],
         config: Config[IndexT],
-        config_changed_callback: Optional[Callable[[ConfigItem, Config[IndexT]], None]] = None,
+        config_changed_callback: Optional[
+            Callable[[ConfigItem, Config[IndexT]], None]
+        ] = None,
     ) -> ui.TabbedWindow:
         """Build a tabbed window titled `title` with one tab per TabSpec
         in `tabs`, each populated with a widget per index in that
@@ -73,7 +84,9 @@ class UiBuilder:
         called when the window is closed via its own close button (see
         TabbedWindow)."""
         window = ui.TabbedWindow(master=master, on_close=on_close, title=title)
-        alphabetical_items = sorted(config.keys(), key=lambda index: config[index].visible_name.lower())
+        alphabetical_items = sorted(
+            config.keys(), key=lambda index: config[index].visible_name.lower()
+        )
         all_tabs = [*tabs, TabSpec(title="All", items=alphabetical_items)]
         for tab_spec in all_tabs:
             overflowing = len(tab_spec.items) > MAX_VISIBLE_CONFIG_ITEMS_PER_TAB
@@ -84,14 +97,23 @@ class UiBuilder:
             window.add_tab(tab)
             for index in tab_spec.items:
                 config_item = config[index]
-                widget = self._build_widget(tab, index, config_item, config, config_changed_callback, compact=False)
+                widget = self._build_widget(
+                    tab,
+                    index,
+                    config_item,
+                    config,
+                    config_changed_callback,
+                    compact=False,
+                )
                 widget.pack(side=ui.TOP)
                 self._register(index, widget)
             if overflowing:
                 self._clip_tab_to_visible_items(tab, len(tab_spec.items))
         return window
 
-    def _clip_tab_to_visible_items(self, tab: "ui.ScrollableTab", item_count: int) -> None:
+    def _clip_tab_to_visible_items(
+        self, tab: "ui.ScrollableTab", item_count: int
+    ) -> None:
         """Size a ScrollableTab's viewport so only
         MAX_VISIBLE_CONFIG_ITEMS_PER_TAB of its widgets are visible at
         once, based on the height they actually took (widgets differ
@@ -207,7 +229,9 @@ class UiBuilder:
                 compact=compact,
             )
         else:
-            raise ValueError(f"{item.name}: builder does not support ConfigType.{item.type.name} yet")
+            raise ValueError(
+                f"{item.name}: builder does not support ConfigType.{item.type.name} yet"
+            )
 
         return widget
 

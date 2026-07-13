@@ -72,5 +72,6 @@ class ConfigIndex(IntEnum):
     SV_MAXCMDRATE = 46
     SV_MINCMDRATE = 47
 
+
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"

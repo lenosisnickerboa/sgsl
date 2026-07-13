@@ -6,6 +6,7 @@ from ttkbootstrap.scrolled import ScrolledFrame
 from ttkbootstrap.tableview import Tableview
 import ui.helpers as helpers
 
+
 def Nop():
     pass
 
@@ -143,7 +144,9 @@ class Dialog(EnableDisableMixin, ttk.Toplevel):
         label = ttk.Label(frame, text=message, wraplength=360, justify=LEFT)
         label.pack(fill=X, pady=(0, 15))
 
-        button = ttk.Button(frame, text="OK", command=self._handle_ok, bootstyle="primary")
+        button = ttk.Button(
+            frame, text="OK", command=self._handle_ok, bootstyle="primary"
+        )
         button.pack()
         button.focus_set()
 
@@ -287,6 +290,7 @@ class ScrolledFrame(EnableDisableMixin, ttk.scrolled.ScrolledFrame):
     def pack(self):
         super().pack(side=LEFT, fill=BOTH, expand=YES)
 
+
 class TableView(EnableDisableMixin, ttk.tableview.Tableview):
     def __init__(self, master, columns: list, rows: list, **kwargs):
         super().__init__(master, coldata=columns, rowdata=rows, **kwargs)
@@ -296,7 +300,7 @@ class TableView(EnableDisableMixin, ttk.tableview.Tableview):
 
 
 class EditGroupFrame(EnableDisableMixin, ttk.Labelframe):
-    def __init__(self, master, name : str, **kwargs):
+    def __init__(self, master, name: str, **kwargs):
         super().__init__(master, text=name, padding=5, **kwargs)
 
     def pack(self):
@@ -341,11 +345,26 @@ class HintedWidget(EnableDisableMixin, ttk.Frame):
 
 
 class IntegerSpinbox(HintedWidget):
-    def __init__(self, master, name : str, range : list, initial_value : int, tooltip : str, command = Nop(), compact: bool = True, **kwargs):
+    def __init__(
+        self,
+        master,
+        name: str,
+        range: list,
+        initial_value: int,
+        tooltip: str,
+        command=Nop(),
+        compact: bool = True,
+        **kwargs,
+    ):
         super().__init__(master, name=name, compact=compact, **kwargs)
 
         self.command = command
-        self.spinbox = ttk.Spinbox(master=self.container, from_=[range[0]], to=[range[-1]], command=self.on_event)
+        self.spinbox = ttk.Spinbox(
+            master=self.container,
+            from_=[range[0]],
+            to=[range[-1]],
+            command=self.on_event,
+        )
         self.spinbox.set(initial_value)
         self.spinbox.pack(side=LEFT, expand=YES, padx=5, fill=X)
         self.spinbox.bind("<Return>", self.on_event)
@@ -368,11 +387,28 @@ class IntegerSpinbox(HintedWidget):
 
 
 class FloatSpinbox(HintedWidget):
-    def __init__(self, master, name : str, range : list, initial_value : float, tooltip : str, command = Nop(), compact: bool = True, increment: float = 0.01, **kwargs):
+    def __init__(
+        self,
+        master,
+        name: str,
+        range: list,
+        initial_value: float,
+        tooltip: str,
+        command=Nop(),
+        compact: bool = True,
+        increment: float = 0.01,
+        **kwargs,
+    ):
         super().__init__(master, name=name, compact=compact, **kwargs)
 
         self.command = command
-        self.spinbox = ttk.Spinbox(master=self.container, from_=range[0], to=range[-1], increment=increment, command=self.on_event)
+        self.spinbox = ttk.Spinbox(
+            master=self.container,
+            from_=range[0],
+            to=range[-1],
+            increment=increment,
+            command=self.on_event,
+        )
         self.spinbox.set(initial_value)
         self.spinbox.pack(side=LEFT, expand=YES, padx=5, fill=X)
         self.spinbox.bind("<Return>", self.on_event)
@@ -395,7 +431,16 @@ class FloatSpinbox(HintedWidget):
 
 
 class StringEntry(HintedWidget):
-    def __init__(self, master, name : str, initial_value : str, tooltip : str, command = Nop(), compact: bool = True, **kwargs):
+    def __init__(
+        self,
+        master,
+        name: str,
+        initial_value: str,
+        tooltip: str,
+        command=Nop(),
+        compact: bool = True,
+        **kwargs,
+    ):
         super().__init__(master, name=name, compact=compact, **kwargs)
 
         self.command = command
@@ -421,7 +466,16 @@ class MaskedStringEntry(HintedWidget):
     for values like passwords that shouldn't be displayed in the
     clear."""
 
-    def __init__(self, master, name : str, initial_value : str, tooltip : str, command = Nop(), compact: bool = True, **kwargs):
+    def __init__(
+        self,
+        master,
+        name: str,
+        initial_value: str,
+        tooltip: str,
+        command=Nop(),
+        compact: bool = True,
+        **kwargs,
+    ):
         super().__init__(master, name=name, compact=compact, **kwargs)
 
         self.command = command
@@ -443,7 +497,18 @@ class MaskedStringEntry(HintedWidget):
 
 
 class StringCombobox(HintedWidget):
-    def __init__(self, master, name : str, values : list, selected, tooltip : str, command = Nop(), readonly=True, compact: bool = True, **kwargs):
+    def __init__(
+        self,
+        master,
+        name: str,
+        values: list,
+        selected,
+        tooltip: str,
+        command=Nop(),
+        readonly=True,
+        compact: bool = True,
+        **kwargs,
+    ):
         super().__init__(master, name=name, compact=compact, **kwargs)
 
         self.command = command
@@ -454,7 +519,7 @@ class StringCombobox(HintedWidget):
         )
         self.combobox.set(values[0])
         max_width = max(len(value) for value in values)
-        self.combobox.configure(width=max_width+10)
+        self.combobox.configure(width=max_width + 10)
         self.combobox.pack(side=LEFT, expand=YES, padx=5, fill=X)
         self.combobox.bind("<<ComboboxSelected>>", self.on_event)
 
@@ -475,8 +540,17 @@ class StringCombobox(HintedWidget):
     def update(self, value):
         self.combobox.set(value)
 
+
 class Button(EnableDisableMixin, ttk.Frame):
-    def __init__(self, master, name : str, tooltip : str, command = Nop(), compact: bool = True, **kwargs):
+    def __init__(
+        self,
+        master,
+        name: str,
+        tooltip: str,
+        command=Nop(),
+        compact: bool = True,
+        **kwargs,
+    ):
         super().__init__(master, padding=2, **kwargs)
 
         # A button's name is shown on the button itself, so there is no
@@ -496,8 +570,17 @@ class Button(EnableDisableMixin, ttk.Frame):
     def pack(self):
         super().pack(side=LEFT, padx=5, fill=X)
 
+
 class ExpandingButton(EnableDisableMixin, ttk.Frame):
-    def __init__(self, master, name : str, tooltip : str, command = Nop(), compact: bool = True, **kwargs):
+    def __init__(
+        self,
+        master,
+        name: str,
+        tooltip: str,
+        command=Nop(),
+        compact: bool = True,
+        **kwargs,
+    ):
         super().__init__(master, padding=2, **kwargs)
 
         self.compact = compact
@@ -514,13 +597,28 @@ class ExpandingButton(EnableDisableMixin, ttk.Frame):
     def pack(self):
         super().pack(side=LEFT, padx=5, fill=X, expand=True)
 
+
 class CheckButton(HintedWidget):
-    def __init__(self, master, name : str, tooltip : str, initial_value: bool = False, command = Nop(), compact: bool = True, **kwargs):
+    def __init__(
+        self,
+        master,
+        name: str,
+        tooltip: str,
+        initial_value: bool = False,
+        command=Nop(),
+        compact: bool = True,
+        **kwargs,
+    ):
         super().__init__(master, name=name, compact=compact, **kwargs)
 
         self.command = command
         self.value = ttk.BooleanVar(value=initial_value)
-        self.button = ttk.Checkbutton(master=self.container, bootstyle="round-toggle", command=self.on_event, variable=self.value)
+        self.button = ttk.Checkbutton(
+            master=self.container,
+            bootstyle="round-toggle",
+            command=self.on_event,
+            variable=self.value,
+        )
         self.button.pack(side=LEFT, padx=5)
         ToolTip(self.button, text=tooltip)
         if not compact:

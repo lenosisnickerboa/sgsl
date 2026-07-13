@@ -9,6 +9,7 @@ Developed on windows 11
 1. vscode (https://code.visualstudio.com/download?_exp_download=fb315fc982)
 1. vscode extensions: "Python"
 1. vscode extensions: "GitLens"
+1. vscode extensions: "Black Formatter"
 
 # Configure git
 In a terminal:

@@ -7,6 +7,7 @@ executor = ThreadPoolExecutor(max_workers=4)
 
 class CancelToken:
     """Passed into the task so it can check whether it should stop."""
+
     def __init__(self):
         self._event = threading.Event()
 
@@ -27,6 +28,7 @@ class TaskCancelled(Exception):
 
 class TaskHandle:
     """Returned to the caller so they can cancel the task manually."""
+
     def __init__(self, future, token, timer):
         self.future = future
         self._token = token
@@ -42,8 +44,9 @@ class TaskHandle:
         return self.future.done()
 
 
-def run_async(func, *args, on_result=None, on_error=None, on_progress=None,
-              timeout=None, **kwargs):
+def run_async(
+    func, *args, on_result=None, on_error=None, on_progress=None, timeout=None, **kwargs
+):
     """
     Spawn func(*args, **kwargs) on a background thread.
 

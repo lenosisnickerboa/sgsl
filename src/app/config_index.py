@@ -12,5 +12,6 @@ class ConfigIndex(IntEnum):
 
     TERMINAL_ENABLED = 1
 
+
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"

@@ -53,6 +53,7 @@ def run(
         batch file has finished. Called after output has been fully
         drained, on a background thread.
     """
+
     def _emit(line: str) -> None:
         if output_callback is not None:
             output_callback(line)

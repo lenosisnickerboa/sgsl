@@ -56,9 +56,17 @@ class ProcessHandler:
                 # Match either the resolved executable path, or the first
                 # element of the process's cmdline (in case exe() fails,
                 # e.g. due to permissions).
-                if exe_path and os.path.normcase(os.path.normpath(exe_path)) == self.command_line:
+                if (
+                    exe_path
+                    and os.path.normcase(os.path.normpath(exe_path))
+                    == self.command_line
+                ):
                     matching_pids.append(proc.info["pid"])
-                elif cmdline and os.path.normcase(os.path.normpath(cmdline[0])) == self.command_line:
+                elif (
+                    cmdline
+                    and os.path.normcase(os.path.normpath(cmdline[0]))
+                    == self.command_line
+                ):
                     matching_pids.append(proc.info["pid"])
 
             except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
@@ -67,7 +75,9 @@ class ProcessHandler:
 
         return matching_pids
 
-    def kill_pids(self, pids: List[int], timeout: float = 3.0, force: bool = True) -> List[int]:
+    def kill_pids(
+        self, pids: List[int], timeout: float = 3.0, force: bool = True
+    ) -> List[int]:
         """
         Kill all processes in the given list of PIDs.
 
@@ -170,7 +180,11 @@ class ProcessHandler:
         if no_window:
             creationflags |= CREATE_NO_WINDOW
 
-        use_streaming = stdout_callback is not None or stderr_callback is not None or on_exit is not None
+        use_streaming = (
+            stdout_callback is not None
+            or stderr_callback is not None
+            or on_exit is not None
+        )
 
         if use_streaming:
             if stdout_callback:
@@ -215,7 +229,9 @@ class ProcessHandler:
                 watcher.start()
 
         else:
-            process = subprocess.Popen(full_command, creationflags=creationflags, **popen_kwargs)
+            process = subprocess.Popen(
+                full_command, creationflags=creationflags, **popen_kwargs
+            )
 
         return process.pid
 

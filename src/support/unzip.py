@@ -9,7 +9,9 @@ from pathlib import Path
 from typing import Optional, Union
 
 
-def unzip(archive_path: Union[str, Path], target_path: Optional[Union[str, Path]] = None) -> Path:
+def unzip(
+    archive_path: Union[str, Path], target_path: Optional[Union[str, Path]] = None
+) -> Path:
     """
     Extract all files in the zip archive at `archive_path` into
     `target_path`.
@@ -48,7 +50,9 @@ def unzip(archive_path: Union[str, Path], target_path: Optional[Union[str, Path]
     return target_path
 
 
-def unzip_with_return(archive_path: Union[str, Path], target_path: Optional[Union[str, Path]] = None) -> bool:
+def unzip_with_return(
+    archive_path: Union[str, Path], target_path: Optional[Union[str, Path]] = None
+) -> bool:
     """
     Same as unzip(), but never raises: returns True on success and
     False if anything went wrong (missing archive, invalid zip file,

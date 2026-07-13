@@ -18,9 +18,9 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Selected map group",
             type=ConfigType.STRING_LIST,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="The currently selected map group, if \"ALL\" all maps are included",
+            tooltip='The currently selected map group, if "ALL" all maps are included',
             value="ALL",
-            #allowed_values=... will be filled in later
+            # allowed_values=... will be filled in later
         ),
         ConfigIndex.GAME_MODE: ConfigItem(
             name="game_mode",
@@ -29,7 +29,13 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Currently selected game mode",
             value="Casual",
-            allowed_values=["Casual", "Competitive", "ArmsRace", "DeathMatch", "Demolition"]
+            allowed_values=[
+                "Casual",
+                "Competitive",
+                "ArmsRace",
+                "DeathMatch",
+                "Demolition",
+            ],
         ),
         ConfigIndex.PLAYER_COUNT: ConfigItem(
             name="maxplayers",
@@ -40,7 +46,6 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value=10,
             range=Range(min_value=1, max_value=64),
         ),
-
         # -- Network --
         ConfigIndex.HOSTNAME: ConfigItem(
             name="hostname",
@@ -144,7 +149,6 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Auto-scale bot difficulty to player skill",
             value=False,
         ),
-
         # -- Match / round rules --
         ConfigIndex.MP_ROUNDTIME: ConfigItem(
             name="mp_roundtime",
@@ -280,7 +284,6 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Ts respawn on death (fun/casual mode)",
             value=False,
         ),
-
         # -- Economy / weapons --
         ConfigIndex.MP_FREE_ARMOR: ConfigItem(
             name="mp_free_armor",
@@ -314,7 +317,6 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Drop grenades on death",
             value=True,
         ),
-
         # -- Voice / comms --
         ConfigIndex.SV_VOICEENABLE: ConfigItem(
             name="sv_voiceenable",
@@ -340,7 +342,6 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Dead players can be heard by the living",
             value=True,
         ),
-
         # -- Cheats / security --
         ConfigIndex.SV_CHEATS: ConfigItem(
             name="sv_cheats",
@@ -366,7 +367,6 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Disable the wait-command spam exploit",
             value=False,
         ),
-
         # -- Performance / tickrate --
         ConfigIndex.SV_MAXUPDATERATE: ConfigItem(
             name="sv_maxupdaterate",

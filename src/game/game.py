@@ -48,14 +48,18 @@ class Game(ABC):
 
     def start_server(self, args) -> None:
         if not self.process_handler:
-            self.process_handler = process_handler.ProcessHandler(self.get_server_binary_path())
-        self.print(f"Starting game server {self.get_long_name()} with executable \"{self.get_server_binary_path()}\" and arguments \"{args}\"...")
+            self.process_handler = process_handler.ProcessHandler(
+                self.get_server_binary_path()
+            )
+        self.print(
+            f'Starting game server {self.get_long_name()} with executable "{self.get_server_binary_path()}" and arguments "{args}"...'
+        )
         pid = self.process_handler.start(
             args,
-            no_window=True, 
-            stdout_callback=self.handle_stdout_output, 
-            stderr_callback=self.handle_stderr_output, 
-            on_exit=self.handle_done
+            no_window=True,
+            stdout_callback=self.handle_stdout_output,
+            stderr_callback=self.handle_stderr_output,
+            on_exit=self.handle_done,
         )
         self.print(f"Started game server {self.get_long_name()} with pid {pid}")
 
@@ -64,28 +68,34 @@ class Game(ABC):
     #     self.print(f"Starting command: \"{command}\" with arguments \"{args}\"...")
     #     pid = command_handler.start(
     #         args,
-    #         no_window=True, 
-    #         stdout_callback=self.handle_stdout_output, 
-    #         stderr_callback=self.handle_stderr_output, 
+    #         no_window=True,
+    #         stdout_callback=self.handle_stdout_output,
+    #         stderr_callback=self.handle_stderr_output,
     #         on_exit=self.handle_done
     #     )
     #     self.print(f"Started command {command} with pid {pid}")
 
     def stop_server(self):
-        self.print(f"Stopping game server {self.get_long_name()} with executable \"{self.get_server_binary_path()}\" ...")
+        self.print(
+            f'Stopping game server {self.get_long_name()} with executable "{self.get_server_binary_path()}" ...'
+        )
         if not self.process_handler:
             return
         server_pids = self.process_handler.list_pids()
         if len(server_pids) > 0:
             self.process_handler.kill_pids(server_pids, timeout=10.0, force=True)
-        self.print(f"Stopped game server {self.get_long_name()} with pids {server_pids}")
+        self.print(
+            f"Stopped game server {self.get_long_name()} with pids {server_pids}"
+        )
 
     def is_server_running(self) -> bool:
         """Check if the game is running."""
         if not self.process_handler:
             return False
         pids = self.process_handler.list_pids()
-        self.print(f"Found {len(pids)} running server(s) {pids} for {self.get_long_name()} with executable {self.get_server_binary_path()}")
+        self.print(
+            f"Found {len(pids)} running server(s) {pids} for {self.get_long_name()} with executable {self.get_server_binary_path()}"
+        )
         return len(pids) > 0
 
     @abstractmethod

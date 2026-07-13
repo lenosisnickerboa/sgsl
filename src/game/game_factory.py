@@ -22,7 +22,7 @@ class GameFactory:
         if game.detect():
             return game
         game = CS2Game(directory, terminal)
-        if game .detect():
+        if game.detect():
             return game
         return None
 
@@ -35,10 +35,11 @@ class GameFactory:
                 f"Unknown game: {name!r}. Available: {sorted(cls._registry.keys())}"
             )
         return game_cls(directory, terminal)
-    
+
     @classmethod
     def games(cls) -> list[str]:
         return list(cls._registry.keys())
+
 
 # Register games
 GameFactory.register("Null Game", NullGame)

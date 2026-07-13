@@ -50,15 +50,25 @@ class Range:
     max_value: Optional[Union[int, float]] = None
 
     def __post_init__(self) -> None:
-        if self.min_value is not None and self.max_value is not None and self.min_value > self.max_value:
-            raise ValueError(f"min_value ({self.min_value}) > max_value ({self.max_value})")
+        if (
+            self.min_value is not None
+            and self.max_value is not None
+            and self.min_value > self.max_value
+        ):
+            raise ValueError(
+                f"min_value ({self.min_value}) > max_value ({self.max_value})"
+            )
 
 
 def _check_scalar(name: str, value: Any, expected_type: ConfigType) -> None:
     """Validate a single scalar value against a ConfigType, with the
     bool/int special case handled explicitly."""
 
-    py_type = str if expected_type in (ConfigType.STRING_LIST, ConfigType.MASKED_STRING) else expected_type.value
+    py_type = (
+        str
+        if expected_type in (ConfigType.STRING_LIST, ConfigType.MASKED_STRING)
+        else expected_type.value
+    )
 
     if expected_type is ConfigType.INTEGER and isinstance(value, bool):
         raise TypeError(f"{name}: expected int, got bool")
@@ -139,7 +149,9 @@ class ConfigItem:
             ConfigType.INTEGER,
             ConfigType.FLOAT,
         ):
-            raise ValueError(f"{self.name}: range only applies to INTEGER or FLOAT items")
+            raise ValueError(
+                f"{self.name}: range only applies to INTEGER or FLOAT items"
+            )
         if self.max_length is not None and self.type is not ConfigType.STRING:
             raise ValueError(f"{self.name}: max_length only applies to STRING items")
         self._validate()
@@ -152,7 +164,10 @@ class ConfigItem:
         else:
             _check_scalar(self.name, self.value, self.type)
 
-        if self.type in (ConfigType.INTEGER, ConfigType.FLOAT) and self.range is not None:
+        if (
+            self.type in (ConfigType.INTEGER, ConfigType.FLOAT)
+            and self.range is not None
+        ):
             if self.range.min_value is not None and self.value < self.range.min_value:
                 raise ValueError(
                     f"{self.name}: value {self.value!r} is below min_value {self.range.min_value!r}"
@@ -162,7 +177,11 @@ class ConfigItem:
                     f"{self.name}: value {self.value!r} is above max_value {self.range.max_value!r}"
                 )
 
-        if self.type is ConfigType.STRING and self.max_length is not None and len(self.value) > self.max_length:
+        if (
+            self.type is ConfigType.STRING
+            and self.max_length is not None
+            and len(self.value) > self.max_length
+        ):
             raise ValueError(
                 f"{self.name}: value {self.value!r} exceeds max_length {self.max_length}"
             )

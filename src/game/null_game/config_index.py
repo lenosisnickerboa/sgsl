@@ -10,7 +10,7 @@ class ConfigIndex(IntEnum):
     data, etc.) valid across versions.
     """
 
-    GAME_MODE = 1,
+    GAME_MODE = (1,)
     SELECTED_MAP = 2
     PLAYER_COUNT = 3
     FRIENDLY_FIRE_ENABLED = 4
@@ -26,6 +26,7 @@ class ConfigIndex(IntEnum):
     DUMMY_9 = 14
     PASSWORD = 15
     BOT_DIFFICULTY = 16
+
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"

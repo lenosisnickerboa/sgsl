@@ -6,6 +6,7 @@ from ttkbootstrap.scrolled import ScrolledText
 from datetime import datetime
 from ui.widgets import SnapWindow
 
+
 class TerminalWindow(SnapWindow, tb.Toplevel):
     """A terminal-style output window. No process attached — just a text
     display you can append lines to on demand via add_line().
@@ -16,14 +17,18 @@ class TerminalWindow(SnapWindow, tb.Toplevel):
     See SnapWindow (ui.widgets) for snap_anchor/add_snap_follower().
     """
 
-    def __init__(self, master, on_close: Callable[[], None], title="Terminal", snap_anchor=None):
+    def __init__(
+        self, master, on_close: Callable[[], None], title="Terminal", snap_anchor=None
+    ):
         super().__init__(master)
         self.title(title)
         self.geometry("1024x768")
 
         self.on_close = on_close
         self._init_snap(snap_anchor)
-        self.output = ScrolledText(self, padding=5, autohide=False, height=20, vbar=True)
+        self.output = ScrolledText(
+            self, padding=5, autohide=False, height=20, vbar=True
+        )
         self.output.pack(fill=BOTH, expand=YES, padx=1, pady=1)
         self.output.text.configure(
             state="normal",

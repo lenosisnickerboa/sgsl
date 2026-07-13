@@ -14,11 +14,11 @@ from support.unzip import unzip_with_return
 from support.wget import download_with_return
 from thread.run_task import TaskRunner
 
-
 GameExe = "cs2.exe"
 
 # All relative to server root directory
 GameExeWithPath = Path("game") / "bin" / "win64" / GameExe
+
 
 class CS2Game(Game):
     def __init__(self, directory: Union[str, Path], terminal):
@@ -53,7 +53,9 @@ class CS2Game(Game):
     # possibly succeed.
     InstallAttempts = 3
 
-    _DiskSpaceLogPattern = re.compile(r'Failed to preallocate \(Not enough disk space\) "([^"]+)"')
+    _DiskSpaceLogPattern = re.compile(
+        r'Failed to preallocate \(Not enough disk space\) "([^"]+)"'
+    )
 
     _ServerCfgName = "sgsl_server.cfg"
 
@@ -68,7 +70,11 @@ class CS2Game(Game):
         """Find a local Steam client install via the registry."""
         candidates = [
             (winreg.HKEY_CURRENT_USER, r"Software\Valve\Steam", "SteamPath"),
-            (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\WOW6432Node\Valve\Steam", "InstallPath"),
+            (
+                winreg.HKEY_LOCAL_MACHINE,
+                r"SOFTWARE\WOW6432Node\Valve\Steam",
+                "InstallPath",
+            ),
             (winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Valve\Steam", "InstallPath"),
         ]
         for hive, subkey, value_name in candidates:
@@ -106,7 +112,7 @@ class CS2Game(Game):
             self.print(
                 "Could not find a local Steam client install to copy Steamworks DLLs "
                 f"({', '.join(self._SteamworksDllNames)}) from; if the server fails to start "
-                "with \"Failed to initialize Steamworks SDK for gameserver\", install Steam on "
+                'with "Failed to initialize Steamworks SDK for gameserver", install Steam on '
                 "this machine and update/install the server again."
             )
             return
@@ -134,13 +140,15 @@ class CS2Game(Game):
             return None
 
         required = matches[-1]
-        free_gb = shutil.disk_usage(self.server_root).free / (1024 ** 3)
+        free_gb = shutil.disk_usage(self.server_root).free / (1024**3)
         return (
             f"Not enough disk space to install {self.get_long_name()}: needs {required} free, "
             f"but only {free_gb:.2f} GB free on {self.server_root.drive or self.server_root.anchor}"
         )
 
-    def install_or_update(self, result_callback: Callable[[OperationResult], None]) -> None:
+    def install_or_update(
+        self, result_callback: Callable[[OperationResult], None]
+    ) -> None:
         steamcmd_dir = self.directory / "steamcmd"
         steamcmd_zip = steamcmd_dir / "steamcmd.zip"
 
@@ -169,7 +177,9 @@ class CS2Game(Game):
                     )
                     run_update_install(attempt + 1)
                 else:
-                    self.print(f"Failed to install {self.get_long_name()} after {self.InstallAttempts} attempts")
+                    self.print(
+                        f"Failed to install {self.get_long_name()} after {self.InstallAttempts} attempts"
+                    )
                     result_callback(OperationResult.FAIL)
 
             bat_runner.run(
@@ -187,11 +197,12 @@ class CS2Game(Game):
         # (e.g. C:\Program Files\Git\usr\bin\tar.exe), whose GNU tar
         # misreads a bare drive-letter path like "C:\..." as a
         # host:path remote-tape spec ("Cannot connect to C:").
-        bat_runner.run([
-            f"curl.exe https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip -o {steamcmd_zip}",
-            f"tar.exe -xf {steamcmd_zip} -C {steamcmd_dir}",
-            f"cd {steamcmd_dir}",
-            f"echo steamcmd +force_install_dir {self.server_root} +login anonymous +app_update 730 validate +quit > update_install.bat",
+        bat_runner.run(
+            [
+                f"curl.exe https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip -o {steamcmd_zip}",
+                f"tar.exe -xf {steamcmd_zip} -C {steamcmd_dir}",
+                f"cd {steamcmd_dir}",
+                f"echo steamcmd +force_install_dir {self.server_root} +login anonymous +app_update 730 validate +quit > update_install.bat",
             ],
             self.directory,
             on_output,
@@ -207,27 +218,40 @@ class CS2Game(Game):
         self.install_or_update(result_callback)
 
     def run(self, config: Config[IndexT]) -> None:
-        args=["-dedicated", "-usercon", "+game_type", "TYPE", "+game_mode", "MODE", "+map", "MAP", "-maxplayers", "<number>", "-exec", f"{self._ServerCfgName}"]
+        args = [
+            "-dedicated",
+            "-usercon",
+            "+game_type",
+            "TYPE",
+            "+game_mode",
+            "MODE",
+            "+map",
+            "MAP",
+            "-maxplayers",
+            "<number>",
+            "-exec",
+            f"{self._ServerCfgName}",
+        ]
         game_mode = config[ConfigIndex.GAME_MODE].value
         if game_mode == "Casual":
-            args[3]="0" # game_type
-            args[5]="0" # gamne_mode
+            args[3] = "0"  # game_type
+            args[5] = "0"  # gamne_mode
         elif game_mode == "Competitive":
-            args[3]="0" # game_type
-            args[5]="1" # gamne_mode
+            args[3] = "0"  # game_type
+            args[5] = "1"  # gamne_mode
         elif game_mode == "ArmsRace":
-            args[3]="1" # game_type
-            args[5]="0" # gamne_mode
+            args[3] = "1"  # game_type
+            args[5] = "0"  # gamne_mode
         elif game_mode == "DeathMatch":
-            args[3]="1" # game_type
-            args[5]="2" # gamne_mode
+            args[3] = "1"  # game_type
+            args[5] = "2"  # gamne_mode
         elif game_mode == "Demolition":
-            args[3]="1" # game_type
-            args[5]="1" # gamne_mode
+            args[3] = "1"  # game_type
+            args[5] = "1"  # gamne_mode
         else:
             exit(1)
-        args[7]=config[ConfigIndex.SELECTED_MAP].value
-        args[9]=str(config[ConfigIndex.PLAYER_COUNT].value)
+        args[7] = config[ConfigIndex.SELECTED_MAP].value
+        args[9] = str(config[ConfigIndex.PLAYER_COUNT].value)
         self._write_server_cfg(config)
         super().start_server(args)
 
@@ -239,7 +263,9 @@ class CS2Game(Game):
             for item in config.values()
             if item.config_type is ConfigDeliveryType.SERVER_CFG_FILE
         ]
-        (cfg_dir / self._ServerCfgName).write_text("\n".join(lines) + "\n", encoding="utf-8")
+        (cfg_dir / self._ServerCfgName).write_text(
+            "\n".join(lines) + "\n", encoding="utf-8"
+        )
 
     def _format_cvar_line(self, item: ConfigItem) -> str:
         if item.name == "bot_difficulty":
@@ -247,7 +273,11 @@ class CS2Game(Game):
             # allowed_values), but the game cvar takes its list position
             # as an integer.
             return f"{item.name} {item.allowed_values.index(item.value)}"
-        if item.type in (ConfigType.STRING, ConfigType.STRING_LIST, ConfigType.MASKED_STRING):
+        if item.type in (
+            ConfigType.STRING,
+            ConfigType.STRING_LIST,
+            ConfigType.MASKED_STRING,
+        ):
             return f'{item.name} "{item.value}"'
         if item.type is ConfigType.BOOLEAN:
             return f"{item.name} {1 if item.value else 0}"
@@ -263,8 +293,11 @@ class CS2Game(Game):
         return self.server_binary
 
     def maps(self) -> list[str]:
-        return [p.stem for p in (Path(self.server_root) / "game" / "csgo" / "maps").glob("*.vpk")]
-    
+        return [
+            p.stem
+            for p in (Path(self.server_root) / "game" / "csgo" / "maps").glob("*.vpk")
+        ]
+
     def config_defaults(self) -> Config[IndexT]:
         defaults = build_game_defaults()
         maps = self.maps()
@@ -273,45 +306,101 @@ class CS2Game(Game):
         return defaults
 
     def config_shortcuts(self) -> list[IndexT]:
-        return [ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP_GROUP, ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT]
+        return [
+            ConfigIndex.GAME_MODE,
+            ConfigIndex.SELECTED_MAP_GROUP,
+            ConfigIndex.SELECTED_MAP,
+            ConfigIndex.PLAYER_COUNT,
+        ]
 
     def config_tabs(self) -> list[TabSpec]:
         return [
-            TabSpec(title="General", items=[
-                ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP_GROUP, ConfigIndex.SELECTED_MAP,
-                ConfigIndex.PLAYER_COUNT,
-            ]),
-            TabSpec(title="Network", items=[
-                ConfigIndex.HOSTNAME, ConfigIndex.SV_LAN, ConfigIndex.SV_PASSWORD,
-                ConfigIndex.SV_VISIBLEMAXPLAYERS,
-            ]),
-            TabSpec(title="Bots", items=[
-                ConfigIndex.BOT_DIFFICULTY, ConfigIndex.BOT_QUOTA, ConfigIndex.BOT_QUOTA_MODE,
-                ConfigIndex.BOT_CHATTER, ConfigIndex.BOT_WALK, ConfigIndex.BOT_JOIN_AFTER_PLAYER,
-                ConfigIndex.BOT_ALL_WEAPONS, ConfigIndex.BOT_AUTO_DIFFICULTY,
-            ]),
-            TabSpec(title="Match Rules", items=[
-                ConfigIndex.MP_ROUNDTIME, ConfigIndex.MP_FREEZETIME, ConfigIndex.MP_BUYTIME,
-                ConfigIndex.MP_MAXROUNDS, ConfigIndex.MP_HALFTIME, ConfigIndex.MP_OVERTIME_ENABLE,
-                ConfigIndex.MP_OVERTIME_MAXROUNDS, ConfigIndex.MP_STARTMONEY, ConfigIndex.MP_MAXMONEY,
-                ConfigIndex.MP_FRIENDLYFIRE, ConfigIndex.MP_AUTOTEAMBALANCE, ConfigIndex.MP_LIMITTEAMS,
-                ConfigIndex.MP_WARMUPTIME, ConfigIndex.MP_WARMUP_PAUSETIMER,
-                ConfigIndex.MP_RESPAWN_ON_DEATH_CT, ConfigIndex.MP_RESPAWN_ON_DEATH_T,
-            ]),
-            TabSpec(title="Economy", items=[
-                ConfigIndex.MP_FREE_ARMOR, ConfigIndex.MP_AFTERROUNDMONEY,
-                ConfigIndex.MP_DEATH_DROP_GUN, ConfigIndex.MP_DEATH_DROP_GRENADE,
-            ]),
-            TabSpec(title="Voice", items=[
-                ConfigIndex.SV_VOICEENABLE, ConfigIndex.SV_ALLTALK, ConfigIndex.SV_DEADTALK,
-            ]),
-            TabSpec(title="Security", items=[
-                ConfigIndex.SV_CHEATS, ConfigIndex.SV_PURE, ConfigIndex.SV_ALLOW_WAIT_COMMAND,
-            ]),
-            TabSpec(title="Performance", items=[
-                ConfigIndex.SV_MAXUPDATERATE, ConfigIndex.SV_MINUPDATERATE,
-                ConfigIndex.SV_MAXCMDRATE, ConfigIndex.SV_MINCMDRATE,
-            ]),
+            TabSpec(
+                title="General",
+                items=[
+                    ConfigIndex.GAME_MODE,
+                    ConfigIndex.SELECTED_MAP_GROUP,
+                    ConfigIndex.SELECTED_MAP,
+                    ConfigIndex.PLAYER_COUNT,
+                ],
+            ),
+            TabSpec(
+                title="Network",
+                items=[
+                    ConfigIndex.HOSTNAME,
+                    ConfigIndex.SV_LAN,
+                    ConfigIndex.SV_PASSWORD,
+                    ConfigIndex.SV_VISIBLEMAXPLAYERS,
+                ],
+            ),
+            TabSpec(
+                title="Bots",
+                items=[
+                    ConfigIndex.BOT_DIFFICULTY,
+                    ConfigIndex.BOT_QUOTA,
+                    ConfigIndex.BOT_QUOTA_MODE,
+                    ConfigIndex.BOT_CHATTER,
+                    ConfigIndex.BOT_WALK,
+                    ConfigIndex.BOT_JOIN_AFTER_PLAYER,
+                    ConfigIndex.BOT_ALL_WEAPONS,
+                    ConfigIndex.BOT_AUTO_DIFFICULTY,
+                ],
+            ),
+            TabSpec(
+                title="Match Rules",
+                items=[
+                    ConfigIndex.MP_ROUNDTIME,
+                    ConfigIndex.MP_FREEZETIME,
+                    ConfigIndex.MP_BUYTIME,
+                    ConfigIndex.MP_MAXROUNDS,
+                    ConfigIndex.MP_HALFTIME,
+                    ConfigIndex.MP_OVERTIME_ENABLE,
+                    ConfigIndex.MP_OVERTIME_MAXROUNDS,
+                    ConfigIndex.MP_STARTMONEY,
+                    ConfigIndex.MP_MAXMONEY,
+                    ConfigIndex.MP_FRIENDLYFIRE,
+                    ConfigIndex.MP_AUTOTEAMBALANCE,
+                    ConfigIndex.MP_LIMITTEAMS,
+                    ConfigIndex.MP_WARMUPTIME,
+                    ConfigIndex.MP_WARMUP_PAUSETIMER,
+                    ConfigIndex.MP_RESPAWN_ON_DEATH_CT,
+                    ConfigIndex.MP_RESPAWN_ON_DEATH_T,
+                ],
+            ),
+            TabSpec(
+                title="Economy",
+                items=[
+                    ConfigIndex.MP_FREE_ARMOR,
+                    ConfigIndex.MP_AFTERROUNDMONEY,
+                    ConfigIndex.MP_DEATH_DROP_GUN,
+                    ConfigIndex.MP_DEATH_DROP_GRENADE,
+                ],
+            ),
+            TabSpec(
+                title="Voice",
+                items=[
+                    ConfigIndex.SV_VOICEENABLE,
+                    ConfigIndex.SV_ALLTALK,
+                    ConfigIndex.SV_DEADTALK,
+                ],
+            ),
+            TabSpec(
+                title="Security",
+                items=[
+                    ConfigIndex.SV_CHEATS,
+                    ConfigIndex.SV_PURE,
+                    ConfigIndex.SV_ALLOW_WAIT_COMMAND,
+                ],
+            ),
+            TabSpec(
+                title="Performance",
+                items=[
+                    ConfigIndex.SV_MAXUPDATERATE,
+                    ConfigIndex.SV_MINUPDATERATE,
+                    ConfigIndex.SV_MAXCMDRATE,
+                    ConfigIndex.SV_MINCMDRATE,
+                ],
+            ),
         ]
 
     # def config_item_changed(self, config_item: IndexT, config: Config[IndexT]) -> None:

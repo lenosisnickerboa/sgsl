@@ -1,9 +1,17 @@
-
 from thread.run_async import TaskCancelled, run_async
 
 
 class TaskRunner:
-    def __init__(self, name: str, task, *args, done_cb, progress_cb = None, terminal = None, timeout = None):
+    def __init__(
+        self,
+        name: str,
+        task,
+        *args,
+        done_cb,
+        progress_cb=None,
+        terminal=None,
+        timeout=None,
+    ):
         self.name = name
         self.task = task
         self.args = args
@@ -36,9 +44,10 @@ class TaskRunner:
 
     def run_async(self):
         self.handle = run_async(
-            self.task, *self.args,
+            self.task,
+            *self.args,
             on_result=self.on_result,
             on_error=self.on_error,
             on_progress=self.on_progress,
-            timeout=self.timeout
+            timeout=self.timeout,
         )

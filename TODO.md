@@ -5,8 +5,6 @@ Should show a dialog box stating what happened and then exit the application
 
 # Add "Create an error report" functionality
 
-# Source code formatting
-
 # Forced save config (otherwise done on exit only)
 
 # Restart program after install done. 

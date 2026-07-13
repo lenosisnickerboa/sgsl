@@ -6,11 +6,11 @@ from game.game import Game, OperationResult
 from game.null_game.config_defaults import build_game_defaults
 from game.null_game.config_index import ConfigIndex
 
-
 GameExe = "null_game.exe"
 
 # All relative to server root directory
 GameExeWithPath = GameExe
+
 
 class NullGame(Game):
     def __init__(self, directory: Union[str, Path], terminal):
@@ -40,7 +40,7 @@ class NullGame(Game):
 
     def run(self, config: Config[IndexT]) -> None:
         self.print(f"Running {self.get_long_name()} from {self.server_root}")
-        args=f"game_mode={config[ConfigIndex.GAME_MODE].value} map={config[ConfigIndex.SELECTED_MAP].value} player_count={config[ConfigIndex.PLAYER_COUNT].value} friendly_fire={config[ConfigIndex.FRIENDLY_FIRE_ENABLED].value}"
+        args = f"game_mode={config[ConfigIndex.GAME_MODE].value} map={config[ConfigIndex.SELECTED_MAP].value} player_count={config[ConfigIndex.PLAYER_COUNT].value} friendly_fire={config[ConfigIndex.FRIENDLY_FIRE_ENABLED].value}"
         self.print(f"Starting with args: {args}")
         self.running = True
 
@@ -56,7 +56,7 @@ class NullGame(Game):
 
     def maps(self) -> list[str]:
         return ["NullGameMap1", "NullGameMap2", "NullGameMap3"]
-    
+
     def config_defaults(self) -> Config[IndexT]:
         defaults = build_game_defaults()
         maps = self.maps()
@@ -65,12 +65,32 @@ class NullGame(Game):
         return defaults
 
     def config_shortcuts(self) -> list[IndexT]:
-        return [ConfigIndex.GAME_MODE, ConfigIndex.SELECTED_MAP, ConfigIndex.PLAYER_COUNT, ConfigIndex.FRIENDLY_FIRE_ENABLED]
+        return [
+            ConfigIndex.GAME_MODE,
+            ConfigIndex.SELECTED_MAP,
+            ConfigIndex.PLAYER_COUNT,
+            ConfigIndex.FRIENDLY_FIRE_ENABLED,
+        ]
 
     def config_tabs(self) -> list[TabSpec]:
-        return [TabSpec(title="1st tab title", items=[ConfigIndex.DUMMY_0, ConfigIndex.DUMMY_1, ConfigIndex.PASSWORD]),
-                TabSpec(title="2nd tab title", items=[ConfigIndex.DUMMY_2, ConfigIndex.DUMMY_3, ConfigIndex.BOT_DIFFICULTY]),
-                TabSpec(title="3rd tab title", items=[ConfigIndex.DUMMY_4, ConfigIndex.DUMMY_5, ConfigIndex.DUMMY_6])]
+        return [
+            TabSpec(
+                title="1st tab title",
+                items=[ConfigIndex.DUMMY_0, ConfigIndex.DUMMY_1, ConfigIndex.PASSWORD],
+            ),
+            TabSpec(
+                title="2nd tab title",
+                items=[
+                    ConfigIndex.DUMMY_2,
+                    ConfigIndex.DUMMY_3,
+                    ConfigIndex.BOT_DIFFICULTY,
+                ],
+            ),
+            TabSpec(
+                title="3rd tab title",
+                items=[ConfigIndex.DUMMY_4, ConfigIndex.DUMMY_5, ConfigIndex.DUMMY_6],
+            ),
+        ]
 
     # def config_item_changed(self, config_item: IndexT, config: Config[IndexT]) -> None:
     #     self.print(f"config_item_changed({config_item}, {config})")

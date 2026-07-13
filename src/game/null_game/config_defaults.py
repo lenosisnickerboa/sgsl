@@ -12,7 +12,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.COMMAND_LINE,
             value="GunGame",
             allowed_values=["GunGame", "DeathMatch", "Classic"],
-#            validator=lambda v: v in ["GunGame", "DeathMatch", "Classic"],
+            #            validator=lambda v: v in ["GunGame", "DeathMatch", "Classic"],
         ),
         ConfigIndex.SELECTED_MAP: ConfigItem(
             name="selected_map",
@@ -20,8 +20,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.STRING_LIST,
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="The currently selected map",
-            value="", #will be filled in later
-            #allowed_values=... will be filled in later
+            value="",  # will be filled in later
+            # allowed_values=... will be filled in later
         ),
         ConfigIndex.PLAYER_COUNT: ConfigItem(
             name="player_count",
@@ -31,7 +31,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Number of players",
             value=4,
             range=Range(min_value=1, max_value=32),
-#            validator=lambda v: 1 <= v <= 32,
+            #            validator=lambda v: 1 <= v <= 32,
         ),
         ConfigIndex.FRIENDLY_FIRE_ENABLED: ConfigItem(
             name="friendly_fire_enabled",
@@ -62,9 +62,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Dummy 2",
             type=ConfigType.STRING_LIST,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="This is tooltip for dummy 2 with default value \"dummy_2_value_3\"",
+            tooltip='This is tooltip for dummy 2 with default value "dummy_2_value_3"',
             value="dummy_2_value_3",
-            allowed_values=["dummy_2_value_0", "dummy_2_value_1", "dummy_2_value_2", "dummy_2_value_3", "dummy_2_value_4"]
+            allowed_values=[
+                "dummy_2_value_0",
+                "dummy_2_value_1",
+                "dummy_2_value_2",
+                "dummy_2_value_3",
+                "dummy_2_value_4",
+            ],
         ),
         ConfigIndex.DUMMY_3: ConfigItem(
             name="dummy_3",
@@ -88,16 +94,22 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Dummy 5",
             type=ConfigType.STRING_LIST,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="This is tooltip for dummy 5 with default value \"dummy_5_value_0\"",
+            tooltip='This is tooltip for dummy 5 with default value "dummy_5_value_0"',
             value="dummy_5_value_0",
-            allowed_values=["dummy_5_value_0", "dummy_5_value_1", "dummy_5_value_2", "dummy_5_value_3", "dummy_5_value_4"]
+            allowed_values=[
+                "dummy_5_value_0",
+                "dummy_5_value_1",
+                "dummy_5_value_2",
+                "dummy_5_value_3",
+                "dummy_5_value_4",
+            ],
         ),
         ConfigIndex.DUMMY_6: ConfigItem(
             name="dummy_6",
             visible_name="Dummy 6",
             type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="This is tooltip for dummy 6 with default value \"nisse\"",
+            tooltip='This is tooltip for dummy 6 with default value "nisse"',
             value="nisse",
             max_length=12,
         ),

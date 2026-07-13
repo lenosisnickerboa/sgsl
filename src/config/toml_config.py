@@ -89,10 +89,7 @@ class TomlConfigParser:
         # plain int, without relying on a .value attribute.
         ordered_items = sorted(config.items(), key=lambda pair: int(pair[0]))
 
-        blocks = [
-            TomlConfigParser._format_entry(item)
-            for _, item in ordered_items
-        ]
+        blocks = [TomlConfigParser._format_entry(item) for _, item in ordered_items]
 
         path.write_text("\n".join(blocks), encoding="utf-8")
 
