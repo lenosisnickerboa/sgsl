@@ -102,6 +102,13 @@ class ConfigItem:
     own exception (e.g. ValueError) instead of returning False, if it
     wants to report a more specific reason.
 
+    `transform`, if provided, is called with a candidate value before
+    validation and its return value is used as the actual value to
+    store — e.g. to normalize user input into a canonical form. For an
+    ARRAY item it's applied to each element individually rather than
+    the list as a whole. It may raise (e.g. ValueError) to reject a
+    value outright, the same as `validator`.
+
     `possible_values`, if provided, is the closed set of values this
     item is allowed to hold (e.g. ["low", "medium", "high"] for a
     STRING item, or [0, 1, 2] for an INTEGER item). If set, the current
@@ -139,6 +146,7 @@ class ConfigItem:
     item_type: Optional[ConfigType] = None
     schema: Optional[dict[str, ConfigType]] = None
     validator: Optional[Callable[[Any], bool]] = None
+    transform: Optional[Callable[[Any], Any]] = None
     allowed_values: Optional[list[Any]] = None
     range: Optional[Range] = None
     max_length: Optional[int] = None
@@ -159,6 +167,8 @@ class ConfigItem:
             )
         if self.max_length is not None and self.type is not ConfigType.STRING:
             raise ValueError(f"{self.name}: max_length only applies to STRING items")
+        if self.transform is not None:
+            self.value = self._apply_transform(self.value)
         self._validate()
 
     def _validate(self) -> None:
@@ -246,16 +256,24 @@ class ConfigItem:
 
     def set(self, value: Any) -> None:
         """Update the value, re-validating against the declared type,
-        item_type/schema, and validator. If validation fails, the item
-        is left unchanged (the old value is restored) rather than
+        item_type/schema, and validator (after first running it through
+        `transform`, if set). If transforming or validation fails, the
+        item is left unchanged (the old value is restored) rather than
         being left holding an invalid value."""
         previous = self.value
-        self.value = value
         try:
+            if self.transform is not None:
+                value = self._apply_transform(value)
+            self.value = value
             self._validate()
         except Exception:
             self.value = previous
             raise
+
+    def _apply_transform(self, value: Any) -> Any:
+        if self.type is ConfigType.ARRAY:
+            return [self.transform(element) for element in value]
+        return self.transform(value)
 
     def values(self) -> Optional[list[Any]]:
         """Return the possible values for this item, or None if it's
