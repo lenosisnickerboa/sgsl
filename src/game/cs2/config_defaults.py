@@ -11,7 +11,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.STRING_LIST,
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="The currently selected map, one of the maps in the selected map group",
-            value="",
+            value="",  #  will be filled in later
+            # allowed_values=... will be filled in later
         ),
         ConfigIndex.SELECTED_MAP_GROUP: ConfigItem(
             name="selected_map_group",

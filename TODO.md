@@ -10,3 +10,4 @@
 
 # Add map group images
 
+# Map vote
