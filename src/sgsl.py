@@ -10,8 +10,10 @@ from game.game_factory import GameFactory
 from app.config_index import ConfigIndex
 from ui_builder.ui_builder import UiBuilder
 from support.dialog import ok_dialog, ok_dialog_exit
+from support.set_status_line import init_status_line, set_status_line, restore_status_line
 
 g_main_frame = None
+g_status_line = None
 g_terminal_window = None
 g_terminal_is_open = False
 g_terminal_open_close = None
@@ -42,7 +44,8 @@ def print_to_terminal(line: str):
     g_terminal_window.add_line(f"{line}")
 
 def on_install_game_server(name: str):
-    print_to_terminal(f"Installing game server for {name}...")
+    print_to_terminal(f"Installing game server for {name} in directory {current_dir}...")
+    set_status_line(f"Installing {name}...")
     game = GameFactory.create_from_name(name, current_dir, terminal_printer)
     if not game:
         root.after(0, g_install_open_close.off)
@@ -54,10 +57,12 @@ def on_install_game_server(name: str):
         def finish():
             g_install_open_close.off()
             message = f"Installation of {game.get_long_name()} finished: {result}"
+            set_status_line(message)
             if result == OperationResult.FAIL:
                 ok_dialog_exit(message, title="Install")
             else:
                 ok_dialog(message, title="Install")
+            restore_status_line()
 
         root.after(0, finish)
 
@@ -65,13 +70,17 @@ def on_install_game_server(name: str):
 
 def on_update_game_server(game: Game):
     print_to_terminal(f"Updating game server for {game.get_long_name()} in directory {game.get_directory()}...")
+    set_status_line(f"Updating {game.get_long_name()}...")
 
     def on_update_result(result):
         print_to_terminal(f"Update for {game.get_long_name()} finished: {result}")
 
         def finish():
             g_update_open_close.off()
-            ok_dialog(f"Update of {game.get_long_name()} finished: {result}", title="Update")
+            message = f"Update of {game.get_long_name()} finished: {result}"
+            set_status_line(message)
+            ok_dialog(message, title="Update")
+            restore_status_line()
 
         root.after(0, finish)
 
@@ -210,6 +219,10 @@ g_terminal_window = terminal.TerminalWindow(
 # isn't open (so the terminal is snapped straight to the main window),
 # moving the main window still needs to drag the terminal along.
 root.add_snap_follower(g_terminal_window)
+
+g_status_line = ui.StatusLine(master=root, initial_text="Ready")
+g_status_line.pack()
+init_status_line(g_status_line)
 
 g_main_frame = ui.MainFrame(master=root)
 g_main_frame.pack()

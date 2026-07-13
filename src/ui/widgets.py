@@ -232,6 +232,26 @@ class MainFrame(ttk.Frame):
         super().pack(side=LEFT, fill=BOTH, expand=YES)
 
 
+class StatusLine(ttk.Frame):
+    """A single-line status bar. Pack it before any expand=YES content
+    (see MainFrame) so it claims the bottom strip first and stays
+    pinned there. Update its text via set_text()."""
+
+    def __init__(self, master, initial_text: str = "", **kwargs):
+        super().__init__(master, padding=(5, 2), **kwargs)
+        self.separator = ttk.Separator(self, orient=HORIZONTAL)
+        self.separator.pack(fill=X, side=TOP, pady=(0, 2))
+        self.value = ttk.StringVar(value=initial_text)
+        self.label = ttk.Label(self, textvariable=self.value, anchor=W)
+        self.label.pack(fill=X, side=LEFT, expand=YES)
+
+    def pack(self):
+        super().pack(side=BOTTOM, fill=X)
+
+    def set_text(self, text: str):
+        self.value.set(text)
+
+
 class ScrolledFrame(ttk.scrolled.ScrolledFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, padding=5, autohide=True, scrollheight=20, **kwargs)
