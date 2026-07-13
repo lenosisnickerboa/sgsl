@@ -45,10 +45,19 @@ class TabbedWindow(ttk.Toplevel):
         self.notebook.add(tab.notebook_widget, text=tab.title)
 
     def show(self):
-        """Reveal the window and bring it to the front."""
+        """Reveal the window, snapped to the right edge of its master
+        window, and bring it to the front."""
+        self._snap_to_master()
         self.deiconify()
         self.lift()
         self.focus_force()
+
+    def _snap_to_master(self):
+        master = self.master
+        master.update_idletasks()
+        x = master.winfo_x() + master.winfo_width()
+        y = master.winfo_y()
+        self.geometry(f"+{x}+{y}")
 
     def hide(self):
         """Hide the window without destroying it or losing its contents."""
