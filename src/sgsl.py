@@ -15,7 +15,9 @@ from support.set_status_line import (
     set_status_line,
     restore_status_line,
 )
+from support.restart_application import restart_application
 
+g_restart_requested = False
 g_main_frame = None
 g_status_line = None
 g_terminal_window = None
@@ -65,13 +67,38 @@ def on_install_game_server(name: str):
 
         def finish():
             g_install_open_close.off()
-            message = f"Installation of {game.get_long_name()} finished: {result}"
-            set_status_line(message)
             if result == OperationResult.FAIL:
-                ok_dialog_exit(message, title="Install")
+                message = (
+                    f"Installation of game {game.get_long_name()} failed, have a look "
+                    "in the terminal output. If a cause can't be determined consider "
+                    "creating an error report and create a github issue attaching the "
+                    "report"
+                )
+                set_status_line(f"Installation of game {game.get_long_name()} failed")
+                ok_dialog_exit(message, title="Install failed")
+            elif result == OperationResult.NOT_SUPPORTED:
+                message = (
+                    f"Installation of game {game.get_long_name()} is not supported, instead "
+                    "install the game using the standard installation method and then drop "
+                    "the sgsl.exe file into the installation as described in the games "
+                    "installation instructions on sgsls github."
+                )
+                set_status_line(
+                    f"Installation of game {game.get_long_name()} not supported"
+                )
+                ok_dialog_exit(message, title="Install failed")
             else:
-                ok_dialog(message, title="Install")
-            restore_status_line()
+                message = "Installation succeeded, press OK and the application will be restarted"
+                set_status_line(
+                    f"Installation of game {game.get_long_name()} succeeded"
+                )
+                ok_dialog(message, title="Install succeeded")
+                # Let mainloop() return so the config-write code after it
+                # runs before we replace the process — see the bottom of
+                # this file.
+                global g_restart_requested
+                g_restart_requested = True
+                root.destroy()
 
         root.after(0, finish)
 
@@ -86,15 +113,27 @@ def on_update_game_server(game: Game):
     g_start_stop_server.disable()
 
     def on_update_result(result):
-        print_to_terminal(f"Update for {game.get_long_name()} finished: {result}")
 
         def finish():
+            if result == OperationResult.OK:
+                message = f"Update of {game.get_long_name()} finished successfully"
+                print_to_terminal(message)
+                set_status_line(message)
+                ok_dialog(message, title="Update succeeded")
+            elif result == OperationResult.FAIL:
+                message = f"Update of {game.get_long_name()} failed"
+                print_to_terminal(message)
+                set_status_line(message)
+                ok_dialog(message, title="Update failed")
+            elif result == OperationResult.NOT_SUPPORTED:
+                message = f"Update of {game.get_long_name()} not supported"
+                print_to_terminal(f"Update for {game.get_long_name()} not supported")
+                set_status_line(f"Update of {game.get_long_name()} not supported")
+                ok_dialog(message, title="Update failed")
+
+            restore_status_line()
             g_update_open_close.off()
             g_start_stop_server.enable()
-            message = f"Update of {game.get_long_name()} finished: {result}"
-            set_status_line(message)
-            ok_dialog(message, title="Update")
-            restore_status_line()
 
         root.after(0, finish)
 
@@ -336,3 +375,6 @@ root.mainloop()
 TomlConfigParser.write(g_app_config_file, g_app_config)
 if g_game_config != None:
     TomlConfigParser.write(g_game_config_file, g_game_config)
+
+if g_restart_requested:
+    restart_application()
