@@ -89,7 +89,39 @@ class TomlConfigParser:
         # plain int, without relying on a .value attribute.
         ordered_items = sorted(config.items(), key=lambda pair: int(pair[0]))
 
-        data = {item.name: item.value for _, item in ordered_items}
+        blocks = [
+            TomlConfigParser._format_entry(item)
+            for _, item in ordered_items
+        ]
 
-        with path.open("wb") as f:
-            tomli_w.dump(data, f)
+        path.write_text("\n".join(blocks), encoding="utf-8")
+
+    @staticmethod
+    def _format_entry(item: ConfigItem) -> str:
+        """Render one ConfigItem as a `key = value` line preceded by
+        comment lines describing it (visible name, type, tooltip, and
+        any constraints), so the TOML file is self-documenting enough
+        to hand-edit without cross-referencing the source."""
+        comment_lines = [f"# {item.visible_name} ({item.type.name})"]
+        if item.tooltip:
+            comment_lines.append(f"# {item.tooltip}")
+        if item.allowed_values is not None:
+            values = ", ".join(str(v) for v in item.allowed_values)
+            comment_lines.append(f"# Allowed values: {values}")
+        if item.range is not None:
+            bounds = []
+            if item.range.min_value is not None:
+                bounds.append(f"min {item.range.min_value}")
+            if item.range.max_value is not None:
+                bounds.append(f"max {item.range.max_value}")
+            comment_lines.append(f"# Range: {', '.join(bounds)}")
+        if item.max_length is not None:
+            comment_lines.append(f"# Max length: {item.max_length}")
+
+        # Let tomli_w handle the actual TOML value formatting/escaping
+        # (quoting, floats, nested arrays/tables, ...) rather than
+        # reimplementing it here — only the surrounding comments are
+        # hand-rolled.
+        value_line = tomli_w.dumps({item.name: item.value}).rstrip("\n")
+
+        return "\n".join(comment_lines) + "\n" + value_line + "\n\n"
