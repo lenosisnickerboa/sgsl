@@ -69,7 +69,7 @@ class NullGame(Game):
 
     def config_tabs(self) -> list[TabSpec]:
         return [TabSpec(title="1st tab title", items=[ConfigIndex.DUMMY_0, ConfigIndex.DUMMY_1, ConfigIndex.PASSWORD]),
-                TabSpec(title="2nd tab title", items=[ConfigIndex.DUMMY_2, ConfigIndex.DUMMY_3]), 
+                TabSpec(title="2nd tab title", items=[ConfigIndex.DUMMY_2, ConfigIndex.DUMMY_3, ConfigIndex.BOT_DIFFICULTY]),
                 TabSpec(title="3rd tab title", items=[ConfigIndex.DUMMY_4, ConfigIndex.DUMMY_5, ConfigIndex.DUMMY_6])]
 
     # def config_item_changed(self, config_item: IndexT, config: Config[IndexT]) -> None:

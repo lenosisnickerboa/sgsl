@@ -79,11 +79,11 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ConfigIndex.BOT_DIFFICULTY: ConfigItem(
             name="bot_difficulty",
             visible_name="Bot difficulty",
-            type=ConfigType.INTEGER,
+            type=ConfigType.STRING_LIST,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="0 = easy, 1 = normal, 2 = hard, 3 = expert",
-            value=3,
-            range=Range(min_value=0, max_value=3),
+            tooltip="Bot skill level",
+            value="Normal",
+            allowed_values=["Harmless", "Easy", "Normal", "Hard", "Harder", "Expert"],
         ),
         ConfigIndex.BOT_QUOTA: ConfigItem(
             name="bot_quota",

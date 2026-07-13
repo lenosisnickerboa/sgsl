@@ -242,6 +242,11 @@ class CS2Game(Game):
         (cfg_dir / self._ServerCfgName).write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     def _format_cvar_line(self, item: ConfigItem) -> str:
+        if item.name == "bot_difficulty":
+            # Stored/edited as a friendly label (see config_defaults.py's
+            # allowed_values), but the game cvar takes its list position
+            # as an integer.
+            return f"{item.name} {item.allowed_values.index(item.value)}"
         if item.type in (ConfigType.STRING, ConfigType.STRING_LIST, ConfigType.MASKED_STRING):
             return f'{item.name} "{item.value}"'
         if item.type is ConfigType.BOOLEAN:

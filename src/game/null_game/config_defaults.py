@@ -136,4 +136,13 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Password required to join; empty means no password",
             value="",
         ),
+        ConfigIndex.BOT_DIFFICULTY: ConfigItem(
+            name="bot_difficulty",
+            visible_name="Bot difficulty",
+            type=ConfigType.STRING_LIST,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Bot skill level",
+            value="Normal",
+            allowed_values=["Harmless", "Easy", "Normal", "Hard", "Harder", "Expert"],
+        ),
     }
