@@ -333,9 +333,39 @@ class HintedWidget(EnableDisableMixin, ttk.Frame):
             self.container = ttk.Labelframe(self, text=name, padding=2)
             self.container.pack(side=LEFT, fill=BOTH, expand=YES)
         else:
-            self.hint = ttk.Label(self, text=name)
-            self.hint.pack(side=LEFT, padx=5)
+            # The hint label sits in its own fixed-size wrapper frame
+            # rather than relying on ttk.Label's own `width` option:
+            # that's measured in units of the "0" glyph's pixel width,
+            # not the actual text's, and can badly underestimate the
+            # space real text needs (clipping it) — see
+            # set_hint_width(), which sizes this frame in real pixels
+            # instead, measured the same way winfo_width() is.
+            self.hint_frame = ttk.Frame(self)
+            self.hint = ttk.Label(self.hint_frame, text=name, anchor=W)
+            self.hint.pack(fill=BOTH, expand=YES)
+            # Force Tk to actually compute the label's natural size
+            # before freezing hint_frame at it — pack_propagate(False)
+            # freezes whatever the *currently computed* request is,
+            # which without this is still an unset placeholder (Tk
+            # only computes it lazily), collapsing the frame to ~0.
+            self.hint_frame.update_idletasks()
+            self._hint_natural_height = self.hint_frame.winfo_reqheight()
+            self.hint_frame.pack_propagate(False)
+            self.hint_frame.pack(side=LEFT, padx=5)
             self.container = self
+
+    def set_hint_width(self, pixel_width: int) -> None:
+        """Fix the hint label's column to `pixel_width` screen units,
+        e.g. so a UI builder can align several widgets' hints to the
+        same width without clipping any of their text. No-op for
+        compact widgets, which have no separate hint label.
+
+        Also re-asserts height explicitly: once pack_propagate(False)
+        is set, configuring only `width` makes Tk stop treating the
+        untouched `height` as "auto" too, collapsing it toward zero —
+        so it has to be pinned every time width is."""
+        if hasattr(self, "hint_frame"):
+            self.hint_frame.configure(width=pixel_width, height=self._hint_natural_height)
 
     def pack(self, side=LEFT):
         if side == TOP:

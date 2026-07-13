@@ -116,16 +116,23 @@ class UiBuilder:
 
     def _align_hint_widths(self, widgets: list) -> None:
         """Give every widget's hint label in this tab the same fixed
-        character width (the widest one), so their core controls
-        (entry/spinbox/combobox/checkbutton) all start at the same x
-        position — a straight vertical line down the tab. Only
-        non-compact widgets (see HintedWidget) have a hint label."""
-        hints = [widget.hint for widget in widgets if hasattr(widget, "hint")]
-        if not hints:
+        pixel width (the widest one's natural width), so their core
+        controls (entry/spinbox/combobox/checkbutton) all start at the
+        same x position — a straight vertical line down the tab. Only
+        non-compact widgets (see HintedWidget) have a hint label.
+
+        Sized in real pixels (winfo_reqwidth()), not characters:
+        ttk.Label's own `width` option counts in units of the "0"
+        glyph's pixel width, which can badly underestimate the space
+        real text needs and clip it."""
+        alignable = [widget for widget in widgets if hasattr(widget, "set_hint_width")]
+        if not alignable:
             return
-        max_width = max(len(hint.cget("text")) for hint in hints)
-        for hint in hints:
-            hint.configure(width=max_width)
+        for widget in alignable:
+            widget.hint_frame.update_idletasks()
+        max_width = max(widget.hint_frame.winfo_reqwidth() for widget in alignable)
+        for widget in alignable:
+            widget.set_hint_width(max_width)
 
     def _clip_tab_to_visible_items(
         self, tab: "ui.ScrollableTab", item_count: int
