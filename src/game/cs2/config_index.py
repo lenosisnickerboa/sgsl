@@ -76,6 +76,9 @@ class ConfigIndex(IntEnum):
     ORDINARY_MAPS = 48
     WORKSHOP_MAPS = 49
 
+    # -- Misc --
+    STEAM_API_AUTH_KEY = 50
+
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"

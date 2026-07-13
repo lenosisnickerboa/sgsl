@@ -443,4 +443,12 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value=[],
             transform=_normalize_workshop_map,
         ),
+        ConfigIndex.STEAM_API_AUTH_KEY: ConfigItem(
+            name="api_auth_key",
+            visible_name="API auth key",
+            type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="The Steam API authorization key used e.g. when hosting workshop maps",
+            value="",
+        ),
     }

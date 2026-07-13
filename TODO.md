@@ -11,3 +11,5 @@
 # Add map group images
 
 # Map vote
+
+# Make static functions instead of methods where possible

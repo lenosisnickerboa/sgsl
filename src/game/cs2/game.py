@@ -146,7 +146,17 @@ class CS2Game(Game):
             f"but only {free_gb:.2f} GB free on {self.server_root.drive or self.server_root.anchor}"
         )
 
-    def install_or_update(
+    def _is_workshop_map(self, map: str) -> bool:
+        return map.startswith("workshop\\")
+
+    def _get_workshop_id(self, map: str) -> int:
+        match = re.search(r"workshop\\(\d+)\\", map)
+        if match:
+            return int(match.group(1))
+        else:
+            return -1
+
+    def _install_or_update(
         self, result_callback: Callable[[OperationResult], None]
     ) -> None:
         steamcmd_dir = self.directory / "steamcmd"
@@ -211,11 +221,11 @@ class CS2Game(Game):
 
     def install(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Installing {self.get_long_name()} into {self.server_root}")
-        self.install_or_update(result_callback)
+        self._install_or_update(result_callback)
 
     def update(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
-        self.install_or_update(result_callback)
+        self._install_or_update(result_callback)
 
     def run(self, config: Config[IndexT]) -> None:
         args = [
@@ -225,8 +235,6 @@ class CS2Game(Game):
             "TYPE",
             "+game_mode",
             "MODE",
-            "+map",
-            "MAP",
             "-maxplayers",
             "<number>",
             "-exec",
@@ -250,8 +258,16 @@ class CS2Game(Game):
             args[5] = "1"  # gamne_mode
         else:
             exit(1)
-        args[7] = config[ConfigIndex.SELECTED_MAP].value
-        args[9] = str(config[ConfigIndex.PLAYER_COUNT].value)
+        args[7] = str(config[ConfigIndex.PLAYER_COUNT].value)
+        if self._is_workshop_map(config[ConfigIndex.SELECTED_MAP].value):
+            args.append("-authkey")
+            args.append(config[ConfigIndex.STEAM_API_AUTH_KEY].value)
+            args.append("+host_workshop_map")
+            id = self._get_workshop_id(config[ConfigIndex.SELECTED_MAP].value)
+            args.append(str(id))
+        else:
+            args.append("+map")
+            args.append(config[ConfigIndex.SELECTED_MAP].value)
         self._write_server_cfg(config)
         super().start_server(args)
 
@@ -320,12 +336,9 @@ class CS2Game(Game):
     def _get_workshop_ids(self, maps: list[str]) -> list[int]:
         installed_ids = []
         for wm in maps:
-            if not wm.startswith("workshop/"):
+            if not self._is_workshop_map(wm):
                 continue
-            match = re.search(r"workshop\\(\d+)\\", wm)
-            if match:
-                id = int(match.group(1))
-                installed_ids.append(id)
+            installed_ids.append(self._get_workshop_id(wm))
         return installed_ids
 
     def config_loaded(self, config: Config[IndexT]) -> None:
@@ -333,13 +346,11 @@ class CS2Game(Game):
         installed_ws_maps_ids = self._get_workshop_ids(installed_ws_maps)
         not_installed_ws_maps = []
         for map in config[ConfigIndex.WORKSHOP_MAPS].value:
-            if not map.startswith("workshop\\"):
+            if not self._is_workshop_map(map):
                 continue
-            match = re.search(r"workshop\\(\d+)\\", map)
-            if match:
-                id = int(match.group(1))
-                if not id in installed_ws_maps_ids:
-                    not_installed_ws_maps.append(map)
+            id = self._get_workshop_id(map)
+            if not id in installed_ws_maps_ids:
+                not_installed_ws_maps.append(map)
         config[ConfigIndex.WORKSHOP_MAPS].value = (
             installed_ws_maps + not_installed_ws_maps
         )
@@ -364,6 +375,12 @@ class CS2Game(Game):
                     ConfigIndex.SELECTED_MAP_GROUP,
                     ConfigIndex.SELECTED_MAP,
                     ConfigIndex.PLAYER_COUNT,
+                ],
+            ),
+            TabSpec(
+                title="Steam",
+                items=[
+                    ConfigIndex.STEAM_API_AUTH_KEY,
                 ],
             ),
             TabSpec(
