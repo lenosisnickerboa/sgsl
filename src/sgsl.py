@@ -140,12 +140,18 @@ def on_update_game_server(game: Game):
     game.update(on_update_result)
 
 
-def on_save_config():
+def save_config():
+    set_status_line("Saving Configuration...")
     TomlConfigParser.write(g_app_config_file, g_app_config)
     if g_game_config is not None:
         TomlConfigParser.write(g_game_config_file, g_game_config)
     print_to_terminal("Configuration saved")
     set_status_line("Configuration saved")
+    root.after(5000, restore_status_line)
+
+
+def on_save_config():
+    save_config()
 
 
 def on_toggle_configure_window():
@@ -402,9 +408,7 @@ else:
 
 root.mainloop()
 
-TomlConfigParser.write(g_app_config_file, g_app_config)
-if g_game_config != None:
-    TomlConfigParser.write(g_game_config_file, g_game_config)
+save_config()
 
 if g_restart_requested:
     restart_application()
