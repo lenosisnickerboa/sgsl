@@ -140,6 +140,14 @@ def on_update_game_server(game: Game):
     game.update(on_update_result)
 
 
+def on_save_config():
+    TomlConfigParser.write(g_app_config_file, g_app_config)
+    if g_game_config is not None:
+        TomlConfigParser.write(g_game_config_file, g_game_config)
+    print_to_terminal("Configuration saved")
+    set_status_line("Configuration saved")
+
+
 def on_toggle_configure_window():
     global g_configure_is_open
     g_configure_is_open = not g_configure_is_open
@@ -244,6 +252,14 @@ def setup_detected_game_server(game: Game):
             command=lambda: on_start_stop_game_server(game),
         )
     g_start_stop_server.pack()
+
+    save_config_button = ui.Button(
+        master=game_frame,
+        name="Save config",
+        tooltip="Save the current application and game configuration to file",
+        command=on_save_config,
+    )
+    save_config_button.pack()
 
     global g_update_open_close
     g_update_open_close = ui.CheckButton(
