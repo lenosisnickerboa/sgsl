@@ -1,6 +1,12 @@
-# Host workshop maps and collections
+# Minimize all command windows with title "Counter-Strike 2"
 
 # Add "Create an error report" functionality
+
+# Make static functions instead of methods where possible
+
+General review
+
+# Host workshop collections
 
 # Map groups
 
@@ -10,17 +16,9 @@
 
 # Map vote
 
-# Make static functions instead of methods where possible
-
-# Minimize all command windows with title "Counter-Strike 2"
-
 # Detect when workshop map has been loaded / load failed
 
 By looking into the stdout passed to terminal.
-
-# Handle cancel in the "edit command before run" dialog. 
-
-If cancel -> don't start server
 
 # Custom widgets
 

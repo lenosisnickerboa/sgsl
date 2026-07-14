@@ -115,8 +115,11 @@ class Game(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def run(self, config: Config[IndexT]) -> None:
-        """Launch the game."""
+    def run(self, config: Config[IndexT]) -> bool:
+        """Launch the game. Returns True if the server was actually
+        started, or False if the launch was aborted (e.g. the user
+        cancelled an "edit run command" dialog) — callers must not
+        treat the server as running in that case."""
         raise NotImplementedError
 
     @abstractmethod

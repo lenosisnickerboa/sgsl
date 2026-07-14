@@ -39,15 +39,17 @@ class NullGame(Game):
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
         result_callback(OperationResult.OK)
 
-    def run(self, config: Config[IndexT]) -> None:
+    def run(self, config: Config[IndexT]) -> bool:
         self.print(f"Running {self.get_long_name()} from {self.server_root}")
         args = f"game_mode={config[ConfigIndex.GAME_MODE].value} map={config[ConfigIndex.SELECTED_MAP].value} player_count={config[ConfigIndex.PLAYER_COUNT].value} friendly_fire={config[ConfigIndex.FRIENDLY_FIRE_ENABLED].value}"
         if config[ConfigIndex.RUN_COMMAND_EDIT].value:
             edited = edit_string_dialog_box("Edit run command", args)
-            if edited is not None:
-                args = edited
+            if edited is None:
+                return False
+            args = edited
         self.print(f"Starting with args: {args}")
         self.running = True
+        return True
 
     def stop(self) -> None:
         self.print(f"Stopping {self.get_long_name()} from {self.server_root}")

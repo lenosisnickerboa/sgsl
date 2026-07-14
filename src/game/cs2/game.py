@@ -230,7 +230,7 @@ class CS2Game(Game):
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
         self._install_or_update(result_callback)
 
-    def run(self, config: Config[IndexT]) -> None:
+    def run(self, config: Config[IndexT]) -> bool:
         args = [
             "-dedicated",
             "+game_type",
@@ -282,9 +282,11 @@ class CS2Game(Game):
         self._write_server_cfg(config)
         if config[ConfigIndex.RUN_COMMAND_EDIT].value:
             edited = edit_string_dialog_box("Edit run command", " ".join(args))
-            if edited is not None:
-                args = shlex.split(edited)
+            if edited is None:
+                return False
+            args = shlex.split(edited)
         super().start_server(args)
+        return True
 
     def _write_server_cfg(self, config: Config[IndexT]) -> None:
         cfg_dir = self.server_root / "game" / "csgo" / "cfg"

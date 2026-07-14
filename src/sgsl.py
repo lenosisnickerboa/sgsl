@@ -169,7 +169,12 @@ def on_start_stop_game_server(game: Game):
         )
         set_status_line(f"Starting {game.get_long_name()}...")
         global g_game_config
-        game.run(g_game_config)
+        if not game.run(g_game_config):
+            print_to_terminal(
+                f"Starting game server for {game.get_long_name()} in directory {game.get_directory()} was cancelled."
+            )
+            restore_status_line()
+            return
         g_start_stop_server.set_name(name="Stop")
         g_start_stop_server.set_tooltip(tooltip="Stop server")
         g_update_open_close.disable()
