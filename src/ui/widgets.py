@@ -348,6 +348,19 @@ class MainFrame(EnableDisableMixin, ttk.Frame):
         super().pack(side=LEFT, fill=BOTH, expand=YES)
 
 
+class Frame(EnableDisableMixin, ttk.Frame):
+    """A plain, unstyled container frame with no layout opinion of its
+    own — useful for grouping a handful of widgets so they can be
+    packed/anchored together as a single unit (e.g. right-aligning a
+    row of buttons within a wider frame)."""
+
+    def __init__(self, master, **kwargs):
+        super().__init__(master, **kwargs)
+
+    def pack(self, side=LEFT):
+        super().pack(side=side)
+
+
 class StatusLine(EnableDisableMixin, ttk.Frame):
     """A single-line status bar. Pack it before any expand=YES content
     (see MainFrame) so it claims the bottom strip first and stays

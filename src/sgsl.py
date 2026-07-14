@@ -253,8 +253,13 @@ def setup_detected_game_server(game: Game):
         )
     g_start_stop_server.pack()
 
+    # Anchored to the right of game_frame, as a group, so Start stays
+    # pinned to the left while these sit flush against the right edge.
+    right_button_frame = ui.Frame(master=game_frame)
+    right_button_frame.pack(side=ui.RIGHT)
+
     save_config_button = ui.Button(
-        master=game_frame,
+        master=right_button_frame,
         name="Save config",
         tooltip="Save the current application and game configuration to file",
         command=on_save_config,
@@ -263,7 +268,7 @@ def setup_detected_game_server(game: Game):
 
     global g_update_open_close
     g_update_open_close = ui.CheckButton(
-        master=game_frame,
+        master=right_button_frame,
         name="Update",
         tooltip="Update game server",
         command=lambda value: on_update_game_server(game) if value else None,
@@ -274,7 +279,7 @@ def setup_detected_game_server(game: Game):
 
     global g_configure_open_close
     g_configure_open_close = ui.CheckButton(
-        master=game_frame,
+        master=right_button_frame,
         name="Configure",
         tooltip="Edit game server configuration",
         command=lambda _value: on_toggle_configure_window(),
@@ -283,7 +288,7 @@ def setup_detected_game_server(game: Game):
 
     global g_terminal_open_close
     g_terminal_open_close = ui.CheckButton(
-        master=game_frame,
+        master=right_button_frame,
         name="Terminal",
         tooltip="Toggle terminal window",
         command=lambda _value: on_toggle_terminal_window(),
