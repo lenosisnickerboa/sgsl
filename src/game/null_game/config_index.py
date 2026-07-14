@@ -27,6 +27,7 @@ class ConfigIndex(IntEnum):
     PASSWORD = 15
     BOT_DIFFICULTY = 16
     AVAILABLE_MAPS = 17
+    RUN_COMMAND_EDIT = 18
 
 
 _values = [item.value for item in ConfigIndex]

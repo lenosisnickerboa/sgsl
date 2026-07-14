@@ -1,4 +1,5 @@
 import re
+import shlex
 import shutil
 import winreg
 from pathlib import Path
@@ -10,6 +11,7 @@ from game.cs2.config_defaults import WorkshopMapIdPattern, build_game_defaults
 from game.cs2.config_index import ConfigIndex
 from game.game import Game, OperationResult
 from support import bat_runner
+from support.dialog import edit_string_dialog_box
 from support.unzip import unzip_with_return
 from support.wget import download_with_return
 from thread.run_task import TaskRunner
@@ -277,6 +279,10 @@ class CS2Game(Game):
             args.append(config[ConfigIndex.SELECTED_MAP].value)
         # TODO: add "-usercon",
         self._write_server_cfg(config)
+        if config[ConfigIndex.RUN_COMMAND_EDIT].value:
+            edited = edit_string_dialog_box("Edit run command", " ".join(args))
+            if edited is not None:
+                args = shlex.split(edited)
         super().start_server(args)
 
     def _write_server_cfg(self, config: Config[IndexT]) -> None:
@@ -383,6 +389,7 @@ class CS2Game(Game):
                     ConfigIndex.SELECTED_MAP_GROUP,
                     ConfigIndex.SELECTED_MAP,
                     ConfigIndex.PLAYER_COUNT,
+                    ConfigIndex.RUN_COMMAND_EDIT,
                 ],
             ),
             TabSpec(

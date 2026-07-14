@@ -1,3 +1,5 @@
+from typing import Optional
+
 import tkinter as tk
 import tkinter.ttk as tkttk
 import ttkbootstrap as ttk
@@ -186,6 +188,78 @@ class Dialog(EnableDisableMixin, ttk.Toplevel):
     def show(self):
         """Block the calling code until the dialog is dismissed."""
         self.wait_window(self)
+
+
+class EditStringDialog(EnableDisableMixin, ttk.Toplevel):
+    """A modal dialog for editing a single string: shows `title`, an
+    Entry pre-filled with `value`, and OK/Cancel buttons. Appears
+    immediately on construction; call show() to block the caller until
+    it's dismissed, returning the edited string if OK was pressed, or
+    None if Cancel was pressed (or the window closed via its own close
+    button, treated the same as Cancel)."""
+
+    def __init__(self, title: str, value: str, **kwargs):
+        super().__init__(title=title, **kwargs)
+
+        self._result: Optional[str] = None
+
+        self.resizable(False, False)
+        self.protocol("WM_DELETE_WINDOW", self._handle_cancel)
+
+        frame = ttk.Frame(self, padding=20)
+        frame.pack(fill=BOTH, expand=YES)
+
+        self.value_var = ttk.StringVar(value=value)
+        entry = ttk.Entry(frame, textvariable=self.value_var, width=60)
+        entry.pack(fill=X, pady=(0, 15))
+        entry.bind("<Return>", lambda _event: self._handle_ok())
+        entry.icursor(END)
+        entry.focus_set()
+
+        button_row = ttk.Frame(frame)
+        button_row.pack()
+
+        ok_button = ttk.Button(
+            button_row, text="OK", command=self._handle_ok, bootstyle="primary"
+        )
+        ok_button.pack(side=LEFT, padx=(0, 5))
+
+        cancel_button = ttk.Button(
+            button_row, text="Cancel", command=self._handle_cancel
+        )
+        cancel_button.pack(side=LEFT)
+
+        self._center_on_master()
+
+        # Modal: block interaction with other windows until closed.
+        self.transient(self.master)
+        self.grab_set()
+
+    def _center_on_master(self):
+        master = self.master
+        if master is None:
+            return
+        master.update_idletasks()
+        self.update_idletasks()
+        x = master.winfo_x() + (master.winfo_width() - self.winfo_width()) // 2
+        y = master.winfo_y() + (master.winfo_height() - self.winfo_height()) // 2
+        self.geometry(f"+{x}+{y}")
+
+    def _handle_ok(self):
+        self._result = self.value_var.get()
+        self.grab_release()
+        self.destroy()
+
+    def _handle_cancel(self):
+        self._result = None
+        self.grab_release()
+        self.destroy()
+
+    def show(self) -> Optional[str]:
+        """Block the calling code until the dialog is dismissed, then
+        return the edited string (OK) or None (Cancel/closed)."""
+        self.wait_window(self)
+        return self._result
 
 
 class TabbedWindow(SnapWindow, EnableDisableMixin, ttk.Toplevel):

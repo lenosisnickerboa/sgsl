@@ -459,4 +459,12 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="The Game Server Login Token, identifying your game server with Valve",
             value="",
         ),
+        ConfigIndex.RUN_COMMAND_EDIT: ConfigItem(
+            name="run_command_edit",
+            visible_name="Edit run command",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Show an editable copy of the launch command before starting the server",
+            value=False,
+        ),
     }

@@ -166,4 +166,12 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Maps that can be picked as the selected map",
             value=[],  # filled in from maps() in NullGame.config_defaults()
         ),
+        ConfigIndex.RUN_COMMAND_EDIT: ConfigItem(
+            name="run_command_edit",
+            visible_name="Edit run command",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Show an editable copy of the launch command before starting the server",
+            value=False,
+        ),
     }

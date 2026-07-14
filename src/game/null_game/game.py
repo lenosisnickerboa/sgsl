@@ -5,6 +5,7 @@ from config.toml_config import Config, IndexT
 from game.game import Game, OperationResult
 from game.null_game.config_defaults import build_game_defaults
 from game.null_game.config_index import ConfigIndex
+from support.dialog import edit_string_dialog_box
 
 GameExe = "null_game.exe"
 
@@ -41,6 +42,10 @@ class NullGame(Game):
     def run(self, config: Config[IndexT]) -> None:
         self.print(f"Running {self.get_long_name()} from {self.server_root}")
         args = f"game_mode={config[ConfigIndex.GAME_MODE].value} map={config[ConfigIndex.SELECTED_MAP].value} player_count={config[ConfigIndex.PLAYER_COUNT].value} friendly_fire={config[ConfigIndex.FRIENDLY_FIRE_ENABLED].value}"
+        if config[ConfigIndex.RUN_COMMAND_EDIT].value:
+            edited = edit_string_dialog_box("Edit run command", args)
+            if edited is not None:
+                args = edited
         self.print(f"Starting with args: {args}")
         self.running = True
 
@@ -77,7 +82,12 @@ class NullGame(Game):
         return [
             TabSpec(
                 title="1st tab title",
-                items=[ConfigIndex.DUMMY_0, ConfigIndex.DUMMY_1, ConfigIndex.PASSWORD],
+                items=[
+                    ConfigIndex.DUMMY_0,
+                    ConfigIndex.DUMMY_1,
+                    ConfigIndex.PASSWORD,
+                    ConfigIndex.RUN_COMMAND_EDIT,
+                ],
             ),
             TabSpec(
                 title="2nd tab title",

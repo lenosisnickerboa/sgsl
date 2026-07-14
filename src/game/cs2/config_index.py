@@ -80,6 +80,8 @@ class ConfigIndex(IntEnum):
     STEAM_API_AUTH_KEY = 50
     STEAM_GSLT = 51
 
+    RUN_COMMAND_EDIT = 52
+
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"
