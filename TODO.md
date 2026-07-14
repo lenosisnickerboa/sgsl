@@ -13,3 +13,5 @@
 # Map vote
 
 # Make static functions instead of methods where possible
+
+# Minimize all command windows with title "Counter-Strike 2"

@@ -230,44 +230,52 @@ class CS2Game(Game):
     def run(self, config: Config[IndexT]) -> None:
         args = [
             "-dedicated",
-            "-usercon",
             "+game_type",
             "TYPE",
             "+game_mode",
             "MODE",
-            "-maxplayers",
+            "+maxplayers",
             "<number>",
-            "-exec",
-            f"{self._ServerCfgName}",
+            #            "-exec",
+            #            f"{self._ServerCfgName}",
         ]
         game_mode = config[ConfigIndex.GAME_MODE].value
         if game_mode == "Casual":
-            args[3] = "0"  # game_type
-            args[5] = "0"  # gamne_mode
+            args[2] = "0"  # game_type
+            args[4] = "0"  # gamne_mode
         elif game_mode == "Competitive":
-            args[3] = "0"  # game_type
-            args[5] = "1"  # gamne_mode
+            args[2] = "0"  # game_type
+            args[4] = "1"  # gamne_mode
         elif game_mode == "ArmsRace":
-            args[3] = "1"  # game_type
-            args[5] = "0"  # gamne_mode
+            args[2] = "1"  # game_type
+            args[4] = "0"  # gamne_mode
         elif game_mode == "DeathMatch":
-            args[3] = "1"  # game_type
-            args[5] = "2"  # gamne_mode
+            args[2] = "1"  # game_type
+            args[4] = "2"  # gamne_mode
         elif game_mode == "Demolition":
-            args[3] = "1"  # game_type
-            args[5] = "1"  # gamne_mode
+            args[2] = "1"  # game_type
+            args[4] = "1"  # gamne_mode
         else:
             exit(1)
-        args[7] = str(config[ConfigIndex.PLAYER_COUNT].value)
+        args[6] = str(config[ConfigIndex.PLAYER_COUNT].value)
+        if config[ConfigIndex.STEAM_GSLT].value:  # possibly required when hosting?
+            args.append("+sv_setsteamaccount")
+            args.append(config[ConfigIndex.STEAM_GSLT].value)
         if self._is_workshop_map(config[ConfigIndex.SELECTED_MAP].value):
-            args.append("-authkey")
-            args.append(config[ConfigIndex.STEAM_API_AUTH_KEY].value)
+            args.append(
+                "+map"  # dummy map seems to be needed when hosting a workshop map
+            )
+            args.append("de_dust2")
+            if config[ConfigIndex.STEAM_API_AUTH_KEY].value:  # required when hosting
+                args.append("-authkey")
+                args.append(config[ConfigIndex.STEAM_API_AUTH_KEY].value)
             args.append("+host_workshop_map")
             id = self._get_workshop_id(config[ConfigIndex.SELECTED_MAP].value)
             args.append(str(id))
         else:
             args.append("+map")
             args.append(config[ConfigIndex.SELECTED_MAP].value)
+        # TODO: add "-usercon",
         self._write_server_cfg(config)
         super().start_server(args)
 
@@ -380,6 +388,7 @@ class CS2Game(Game):
             TabSpec(
                 title="Steam",
                 items=[
+                    ConfigIndex.STEAM_GSLT,
                     ConfigIndex.STEAM_API_AUTH_KEY,
                 ],
             ),

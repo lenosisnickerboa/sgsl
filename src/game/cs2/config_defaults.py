@@ -451,4 +451,12 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="The Steam API authorization key used e.g. when hosting workshop maps",
             value="",
         ),
+        ConfigIndex.STEAM_GSLT: ConfigItem(
+            name="gslt",
+            visible_name="Game Server Login Token",
+            type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="The Game Server Login Token, identifying your game server with Valve",
+            value="",
+        ),
     }

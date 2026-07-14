@@ -76,8 +76,9 @@ class ConfigIndex(IntEnum):
     ORDINARY_MAPS = 48
     WORKSHOP_MAPS = 49
 
-    # -- Misc --
+    # -- Steamn --
     STEAM_API_AUTH_KEY = 50
+    STEAM_GSLT = 51
 
 
 _values = [item.value for item in ConfigIndex]
