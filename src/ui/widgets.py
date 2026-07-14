@@ -1,6 +1,7 @@
 from typing import Optional
 
 import tkinter as tk
+import tkinter.font as tkfont
 import tkinter.ttk as tkttk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
@@ -210,7 +211,15 @@ class EditStringDialog(EnableDisableMixin, ttk.Toplevel):
         frame.pack(fill=BOTH, expand=YES)
 
         self.value_var = ttk.StringVar(value=value)
-        entry = ttk.Entry(frame, textvariable=self.value_var, width=60)
+        entry = ttk.Entry(frame, textvariable=self.value_var)
+        # Entry's `width` is in units of its font's "0" character, not
+        # raw character count — with the proportional font used here,
+        # len(value) undercounts and clips the text, so measure actual
+        # pixel width instead.
+        entry_font = tkfont.nametofont(str(entry.cget("font")))
+        char_width = entry_font.measure("0")
+        text_width = -(-entry_font.measure(value) // char_width)  # ceil div
+        entry.configure(width=min(max(text_width, 1), 200))
         entry.pack(fill=X, pady=(0, 15))
         entry.bind("<Return>", lambda _event: self._handle_ok())
         entry.icursor(END)
