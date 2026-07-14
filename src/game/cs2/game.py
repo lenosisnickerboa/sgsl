@@ -9,6 +9,7 @@ from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from game.cs2.config_defaults import WorkshopMapIdPattern, build_game_defaults
 from game.cs2.config_index import ConfigIndex
+from game.cs2.config_parser.valve_config_parser import ValveConfigParser
 from game.game import Game, OperationResult
 from support import bat_runner
 from support.dialog import edit_string_dialog_box
@@ -329,10 +330,33 @@ class CS2Game(Game):
         ]
 
     def _workshop_maps(self) -> list[str]:
-        maps_dir = Path(self.server_root) / "steamapps" / "workshop" / "content" / "730"
-        return [p.stem for p in maps_dir.glob("**/*.vpk")] + [
+        maps_dir = (
+            Path(self.server_root)
+            / "game"
+            / "bin"
+            / "win64"
+            / "steamapps"
+            / "workshop"
+            / "content"
+            / "730"
+        )
+        maps = []
+        map_id_files = [p.stem for p in maps_dir.glob("**/*.vpk")] + [
             p.stem for p in maps_dir.glob("**/*.bsp")
         ]
+        for map_id_file in map_id_files:
+            map_id = Path(map_id_file).stem
+            publish_data_file = maps_dir / map_id / "publish_data.txt"
+            if not publish_data_file.exists():
+                continue
+            try:
+                publish_data = ValveConfigParser.read(publish_data_file)
+            except (OSError, ValueError):
+                continue
+            source_folder = publish_data.get("publish_data", {}).get("source_folder")
+            if source_folder:
+                maps.append(f"workshop\\{map_id}\\{source_folder}")
+        return maps
 
     def config_defaults(self) -> Config[IndexT]:
         defaults = build_game_defaults()
