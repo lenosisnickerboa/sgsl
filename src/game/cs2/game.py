@@ -7,7 +7,7 @@ from typing import Callable, Optional, Union
 from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
-from game.cs2.config_defaults import WorkshopMapIdPattern, build_game_defaults
+from game.cs2.config_defaults import build_game_defaults
 from game.cs2.config_index import ConfigIndex
 from game.cs2.config_parser.valve_config_parser import ValveConfigParser
 from game.game import Game, OperationResult

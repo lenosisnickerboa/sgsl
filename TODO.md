@@ -14,6 +14,12 @@
 
 # Minimize all command windows with title "Counter-Strike 2"
 
+# Edit command before run - dialog entry box needs to be larger, same as text lenght within reason?
+
+# Detect when workshop map has been loaded / load failed
+
+By looking into the stdout passed to terminal.
+
 # Custom widgets
 
 Replace shortcuts with custom widget tray

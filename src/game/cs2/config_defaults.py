@@ -4,20 +4,27 @@ from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType, Range
 from config.toml_config import Config
 from game.cs2.config_index import ConfigIndex
 
-WorkshopMapIdPattern = re.compile(r"\d+")
+WorkshopMapPattern = re.compile(r"(\d+)(?:\\([^\\]+))?\s*$")
+WorkshopUrlIdPattern = re.compile(r"^https?://\S*[?&]id=(\d+)", re.IGNORECASE)
 
 
 def _normalize_workshop_map(value: str) -> str:
-    """Normalize a workshop map entry down to its numeric workshop id
-    and rebuild it as "workshop\\<id>\\unknown" — the form the map
-    name is stored in whether the user typed just the id (123),
-    "workshop\\123", or the full "workshop\\123\\unknown"."""
-    match = WorkshopMapIdPattern.search(value)
+    """Normalize a workshop map entry down to "workshop\\<id>\\<name>" —
+    the form the map name is stored in — whether the user typed just the
+    id (123), "workshop\\123", the full "workshop\\123\\<name>", or a
+    Steam Workshop URL (e.g. "https://steamcommunity.com/sharedfiles/
+    filedetails/?id=123"), in which case only the id is extracted from
+    it. The name defaults to "unknown" unless one was already given."""
+    url_match = WorkshopUrlIdPattern.search(value)
+    if url_match is not None:
+        value = url_match.group(1)
+    match = WorkshopMapPattern.search(value)
     if match is None:
         raise ValueError(
             f"workshop map entry must contain a numeric workshop id, got {value!r}"
         )
-    return f"workshop\\{match.group()}\\unknown"
+    workshop_id, name = match.group(1), match.group(2)
+    return f"workshop\\{workshop_id}\\{name or 'unknown'}"
 
 
 def build_game_defaults() -> Config[ConfigIndex]:
@@ -439,7 +446,10 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.ARRAY,
             item_type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Workshop map IDs that can be downloaded and used on this server",
+            tooltip="Workshop map IDs that can be downloaded and used on this server. "
+            "When adding new workshop either the full url or just the map id can be entered. "
+            "It will be transformed to workshop\\map-id\\unknown until the map has been downloaded to the server. "
+            "After download, the real map name will be shown.",
             value=[],
             transform=_normalize_workshop_map,
         ),
