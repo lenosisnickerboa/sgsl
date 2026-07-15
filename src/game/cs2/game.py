@@ -331,6 +331,11 @@ class CS2Game(Game):
             p.stem for p in maps_dir.glob("*.bsp")
         ]
 
+    # A map's .vpk/.bsp can be split into numbered parts sharing its
+    # workshop id, e.g. "<id>_000.vpk", "<id>_001.vpk" — strip that
+    # suffix to recover the id all parts share.
+    _WorkshopMapFilePattern = re.compile(r"^(\d+)(?:_\d+)?$")
+
     def _workshop_maps(self) -> list[str]:
         maps_dir = (
             Path(self.server_root)
@@ -343,11 +348,16 @@ class CS2Game(Game):
             / "730"
         )
         maps = []
-        map_id_files = [p.stem for p in maps_dir.glob("**/*.vpk")] + [
-            p.stem for p in maps_dir.glob("**/*.bsp")
-        ]
-        for map_id_file in map_id_files:
-            map_id = Path(map_id_file).stem
+        seen_ids = set()
+        map_files = list(maps_dir.glob("**/*.vpk")) + list(maps_dir.glob("**/*.bsp"))
+        for map_file in map_files:
+            match = self._WorkshopMapFilePattern.match(map_file.stem)
+            if match is None:
+                continue
+            map_id = match.group(1)
+            if map_id in seen_ids:
+                continue
+            seen_ids.add(map_id)
             publish_data_file = maps_dir / map_id / "publish_data.txt"
             if not publish_data_file.exists():
                 continue
@@ -355,9 +365,9 @@ class CS2Game(Game):
                 publish_data = ValveConfigParser.read(publish_data_file)
             except (OSError, ValueError):
                 continue
-            source_folder = publish_data.get("publish_data", {}).get("source_folder")
-            if source_folder:
-                maps.append(f"workshop\\{map_id}\\{source_folder}")
+            title = publish_data.get("publish_data", {}).get("title")
+            if title:
+                maps.append(f"workshop\\{map_id}\\{title}")
         return maps
 
     def config_defaults(self) -> Config[IndexT]:
