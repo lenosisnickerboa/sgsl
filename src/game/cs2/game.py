@@ -27,6 +27,12 @@ class CS2Game(Game):
     def __init__(self, directory: Union[str, Path], terminal):
         super().__init__(directory, terminal)
         self.server_binary = self.server_root / GameExeWithPath
+        # Only set once config_loaded() runs, i.e. once the game is
+        # already installed and its config exists — still None during
+        # the initial install (config_defaults()/config_loaded() never
+        # ran yet), when install-time troubleshooting toggles simply
+        # aren't available to the user.
+        self.config: Optional[Config[IndexT]] = None
 
     def detect(self) -> bool:
         return self.server_binary.exists()
@@ -167,6 +173,12 @@ class CS2Game(Game):
 
         steamcmd_dir.mkdir(parents=True, exist_ok=True)
 
+        if self.config is not None and self.config[ConfigIndex.REMOVE_MANIFEST_FILE].value:
+            manifest_file = self.server_root / "steamapps" / "appmanifest_730.acf"
+            if manifest_file.exists():
+                manifest_file.unlink()
+                self.print(f"Removed stale Steam app manifest {manifest_file}")
+
         def on_output(l):
             self.print(l)
 
@@ -205,22 +217,38 @@ class CS2Game(Game):
         def on_setup_result(exit_code):
             run_update_install(1)
 
-        # Pinned to the Windows-native executables via their full paths:
-        # PATH commonly also resolves to Git for Windows' curl/tar
-        # (e.g. C:\Program Files\Git\usr\bin\tar.exe), whose GNU tar
-        # misreads a bare drive-letter path like "C:\..." as a
-        # host:path remote-tape spec ("Cannot connect to C:").
-        bat_runner.run(
-            [
-                f"curl.exe https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip -o {steamcmd_zip}",
-                f"tar.exe -xf {steamcmd_zip} -C {steamcmd_dir}",
-                f"cd {steamcmd_dir}",
-                f"echo steamcmd +force_install_dir {self.server_root} +login anonymous +app_update 730 validate +quit > update_install.bat",
-            ],
-            self.directory,
-            on_output,
-            on_setup_result,
+        update_install_bat_line = f"echo steamcmd +force_install_dir {self.server_root} +login anonymous +app_update 730 validate +quit > update_install.bat"
+        update_steamcmd = (
+            self.config is None or self.config[ConfigIndex.UPDATE_STEAMCMD].value
         )
+        if update_steamcmd:
+            # Pinned to the Windows-native executables via their full
+            # paths: PATH commonly also resolves to Git for Windows'
+            # curl/tar (e.g. C:\Program Files\Git\usr\bin\tar.exe),
+            # whose GNU tar misreads a bare drive-letter path like
+            # "C:\..." as a host:path remote-tape spec ("Cannot
+            # connect to C:").
+            bat_runner.run(
+                [
+                    f"curl.exe https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip -o {steamcmd_zip}",
+                    f"tar.exe -xf {steamcmd_zip} -C {steamcmd_dir}",
+                    f"cd {steamcmd_dir}",
+                    update_install_bat_line,
+                ],
+                self.directory,
+                on_output,
+                on_setup_result,
+            )
+        else:
+            self.print(
+                "Skipping steamcmd download/update because Update steamcmd is disabled"
+            )
+            bat_runner.run(
+                [f"cd {steamcmd_dir}", update_install_bat_line],
+                self.directory,
+                on_output,
+                on_setup_result,
+            )
 
     def install(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Installing {self.get_long_name()} into {self.server_root}")
@@ -415,6 +443,7 @@ class CS2Game(Game):
         return installed_ids
 
     def config_loaded(self, config: Config[IndexT]) -> None:
+        self.config = config
         installed_ws_maps = self._workshop_maps()
         installed_ws_maps_ids = self._get_workshop_ids(installed_ws_maps)
         not_installed_ws_maps = []
@@ -538,6 +567,13 @@ class CS2Game(Game):
             TabSpec(
                 title="Maps",
                 items=[ConfigIndex.ORDINARY_MAPS, ConfigIndex.WORKSHOP_MAPS],
+            ),
+            TabSpec(
+                title="Troubleshooting",
+                items=[
+                    ConfigIndex.REMOVE_MANIFEST_FILE,
+                    ConfigIndex.UPDATE_STEAMCMD,
+                ],
             ),
         ]
 

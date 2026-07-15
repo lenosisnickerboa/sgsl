@@ -477,4 +477,22 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Show an editable copy of the launch command before starting the server",
             value=False,
         ),
+        ConfigIndex.REMOVE_MANIFEST_FILE: ConfigItem(
+            name="remove_manifest_file",
+            visible_name="Remove manifest file before install/update. "
+            "This can help when the update process keeps failing.",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Delete the Steam app manifest (appmanifest_730.acf) before installing/updating — use if updates get stuck or fail to detect changes",
+            value=False,
+        ),
+        ConfigIndex.UPDATE_STEAMCMD: ConfigItem(
+            name="update_steamcmd",
+            visible_name="Update steamcmd before install/update. "
+            "Disable this if the steamcmd update for some reason interrupt the update process.",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Re-download and extract the latest steamcmd before installing/updating; disable to reuse the existing steamcmd install",
+            value=True,
+        ),
     }
