@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from config.config_item import ConfigItem, ConfigType
+from config.config_item import ConfigItem, ConfigType, Range
 from config.toml_config import Config, TomlConfigParser
 from app.version import VERSION
 import ui.widgets as ui
@@ -44,6 +44,14 @@ def build_app_defaults() -> Config[ConfigIndex]:
             visible_name="Enable terminal",
             type=ConfigType.BOOLEAN,
             value=False,
+        ),
+        ConfigIndex.TERMINAL_LOG_MAX_LINES: ConfigItem(
+            name="terminal_log_max_lines",
+            visible_name="Terminal log max lines",
+            type=ConfigType.INTEGER,
+            tooltip="Maximum number of lines kept in the terminal log; 0 = no limit",
+            value=0,
+            range=Range(min_value=0),
         ),
     }
 
@@ -375,10 +383,17 @@ def on_close_configure_window():
 
 root = ui.Window(title="Simple Game Server Launcher" + " " + VERSION)
 
+current_dir = os.getcwd()
+
+g_app_config_file = Path(current_dir) / "sgsl.toml"
+g_app_config = TomlConfigParser.read(g_app_config_file, build_app_defaults())
+
 g_terminal_window = terminal.TerminalWindow(
     root,
     on_close_terminal_window,
+    install_dir=current_dir,
     title="Log Output",
+    max_lines=g_app_config[ConfigIndex.TERMINAL_LOG_MAX_LINES].value,
     # Snap onto the config window if it's open, else the main window.
     snap_anchor=lambda: (
         g_configure_window
@@ -397,11 +412,6 @@ init_status_line(g_status_line)
 
 g_main_frame = ui.MainFrame(master=root)
 g_main_frame.pack()
-
-current_dir = os.getcwd()
-
-g_app_config_file = Path(current_dir) / "sgsl.toml"
-g_app_config = TomlConfigParser.read(g_app_config_file, build_app_defaults())
 
 terminal_printer = lambda line: g_terminal_window.add_line(line)
 game = GameFactory.create(current_dir, terminal_printer)

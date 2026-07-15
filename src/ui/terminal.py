@@ -1,8 +1,9 @@
-import tkinter as tk
-from typing import Callable
+from pathlib import Path
+from typing import Callable, Optional, Union
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
+from ttkbootstrap.tooltip import ToolTip
 from datetime import datetime
 from ui.widgets import SnapWindow
 
@@ -18,14 +19,35 @@ class TerminalWindow(SnapWindow, tb.Toplevel):
     """
 
     def __init__(
-        self, master, on_close: Callable[[], None], title="Terminal", snap_anchor=None
+        self,
+        master,
+        on_close: Callable[[], None],
+        install_dir: Union[str, Path],
+        title="Terminal",
+        snap_anchor=None,
+        max_lines: int = 0,
     ):
         super().__init__(master)
         self.title(title)
         self.geometry("1024x768")
 
         self.on_close = on_close
+        self.install_dir = Path(install_dir)
+        # 0 means "no limit" — the log is left to grow unbounded.
+        self.max_lines = max_lines
         self._init_snap(snap_anchor)
+
+        button_row = tb.Frame(self)
+        button_row.pack(fill=X, padx=1, pady=(1, 0))
+
+        save_button = tb.Button(button_row, text="Save", command=self.save_to_file)
+        save_button.pack(side=LEFT, padx=(0, 5))
+        ToolTip(save_button, text="Save the current log to a timestamped file")
+
+        clear_button = tb.Button(button_row, text="Clear", command=self.clear)
+        clear_button.pack(side=LEFT)
+        ToolTip(clear_button, text="Clear the log")
+
         self.output = ScrolledText(
             self, padding=5, autohide=False, height=20, vbar=True
         )
@@ -57,10 +79,31 @@ class TerminalWindow(SnapWindow, tb.Toplevel):
 
     def _append(self, text, tag):
         self.output.text.insert("end", text + "\n", tag)
+        self._trim_to_max_lines()
         self.output.text.see("end")
+
+    def _trim_to_max_lines(self):
+        if self.max_lines <= 0:
+            return
+        # The Text widget always has a trailing phantom empty line past
+        # the last "\n", which "end-1c"'s line number includes — don't
+        # count it as one of the log's actual lines.
+        line_count = int(self.output.text.index("end-1c").split(".")[0]) - 1
+        excess = line_count - self.max_lines
+        if excess > 0:
+            self.output.text.delete("1.0", f"{excess + 1}.0")
 
     def clear(self):
         self.after(0, lambda: self.output.text.delete("1.0", "end"))
+
+    def save_to_file(self):
+        log_dir = self.install_dir / "terminal_logs"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".txt"
+        file_path = log_dir / filename
+        content = self.output.text.get("1.0", "end-1c")
+        file_path.write_text(content, encoding="utf-8")
+        self.add_line(f"Saved terminal log to {file_path}", tag="info")
 
     def show(self):
         """Reveal the window, snapped to the right edge of its anchor

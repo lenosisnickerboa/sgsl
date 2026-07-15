@@ -11,6 +11,7 @@ class ConfigIndex(IntEnum):
     """
 
     TERMINAL_ENABLED = 1
+    TERMINAL_LOG_MAX_LINES = 2
 
 
 _values = [item.value for item in ConfigIndex]
