@@ -173,7 +173,10 @@ class CS2Game(Game):
 
         steamcmd_dir.mkdir(parents=True, exist_ok=True)
 
-        if self.config is not None and self.config[ConfigIndex.REMOVE_MANIFEST_FILE].value:
+        if (
+            self.config is not None
+            and self.config[ConfigIndex.REMOVE_MANIFEST_FILE].value
+        ):
             manifest_file = self.server_root / "steamapps" / "appmanifest_730.acf"
             if manifest_file.exists():
                 manifest_file.unlink()
@@ -264,6 +267,10 @@ class CS2Game(Game):
         ):  # harmless and uninteresting
             return None
         if " UNEXPECTED LONG FRAME DETECTED:" in line:  # harmless and uninteresting
+            return None
+        if " Sending S2C_CONNECTION to " in line:  # harmless and uninteresting
+            return None
+        if " Long frame " in line:  # harmless and uninteresting
             return None
         return line
 
