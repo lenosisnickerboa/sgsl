@@ -1,5 +1,3 @@
-# Minimize all command windows with title "Counter-Strike 2"
-
 # Add "Create an error report" functionality
 
 # Make static functions instead of methods where possible
@@ -30,3 +28,5 @@ Add a custom widget tab in config to allow customization of widgets
 - RMB on widget->Add as custom (ask for location)
 
 Defaults -> todays shortcut menu
+
+# Minimize all command windows with title "Counter-Strike 2"
