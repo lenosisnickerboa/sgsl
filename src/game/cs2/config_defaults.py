@@ -58,8 +58,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
                 "Casual",
                 "Competitive",
                 "ArmsRace",
-                "DeathMatch",
                 "Demolition",
+                "DeathMatch",
             ],
         ),
         ConfigIndex.PLAYER_COUNT: ConfigItem(
