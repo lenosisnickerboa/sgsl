@@ -513,7 +513,6 @@ class CS2Game(Game):
                     ConfigIndex.BOT_WALK,
                     ConfigIndex.BOT_JOIN_AFTER_PLAYER,
                     ConfigIndex.BOT_ALL_WEAPONS,
-                    ConfigIndex.BOT_AUTO_DIFFICULTY,
                 ],
             ),
             TabSpec(
@@ -558,17 +557,6 @@ class CS2Game(Game):
                 title="Security",
                 items=[
                     ConfigIndex.SV_CHEATS,
-                    ConfigIndex.SV_PURE,
-                    ConfigIndex.SV_ALLOW_WAIT_COMMAND,
-                ],
-            ),
-            TabSpec(
-                title="Performance",
-                items=[
-                    ConfigIndex.SV_MAXUPDATERATE,
-                    ConfigIndex.SV_MINUPDATERATE,
-                    ConfigIndex.SV_MAXCMDRATE,
-                    ConfigIndex.SV_MINCMDRATE,
                 ],
             ),
             TabSpec(
