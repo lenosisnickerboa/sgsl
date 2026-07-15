@@ -42,3 +42,8 @@ Defaults -> todays shortcut menu
 [2026.07.15 14:03:15] [OUT] Unknown command 'sv_maxcmdrate'!
 [2026.07.15 14:03:15] [OUT] Unknown command 'sv_mincmdrate'!
 
+# Add a custom filter config widget
+
+Allow filtering of stdout/stderr
+
+Current filtering should be moved as defaults for filtering stdout

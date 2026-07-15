@@ -382,22 +382,27 @@ def setup_detected_game_server(game: Game):
     application_frame = ui.EditGroupFrame(master=g_main_frame, name="Application")
     application_frame.pack()
 
-    save_app_config_button = ui.Button(
-        master=application_frame,
-        name="Save config",
-        tooltip="Save the current application and game configuration to file",
-        command=on_save_config,
-    )
-    save_app_config_button.pack()
+    # Anchored to the right of application_frame, as a group — same
+    # pattern as game_frame's right_button_frame.
+    app_right_button_frame = ui.Frame(master=application_frame)
+    app_right_button_frame.pack(side=ui.RIGHT)
 
     global g_app_configure_open_close
     g_app_configure_open_close = ui.CheckButton(
-        master=application_frame,
+        master=app_right_button_frame,
         name="Configure",
         tooltip="Edit application configuration",
         command=lambda _value: on_toggle_app_configure_window(),
     )
     g_app_configure_open_close.pack()
+
+    save_app_config_button = ui.Button(
+        master=app_right_button_frame,
+        name="Save config",
+        tooltip="Save the current application and game configuration to file",
+        command=on_save_config,
+    )
+    save_app_config_button.pack()
 
     def on_app_config_item_changed(_config_item, config):
         ui.SnapWindow.enabled = config[ConfigIndex.SNAP_WINDOWS_ENABLED].value
@@ -416,15 +421,15 @@ def setup_detected_game_server(game: Game):
         "Configure application",
         [
             TabSpec(
+                title="General",
+                items=[ConfigIndex.SNAP_WINDOWS_ENABLED],
+            ),
+            TabSpec(
                 title="Terminal",
                 items=[
                     ConfigIndex.TERMINAL_ENABLED,
                     ConfigIndex.TERMINAL_LOG_MAX_LINES,
                 ],
-            ),
-            TabSpec(
-                title="General",
-                items=[ConfigIndex.SNAP_WINDOWS_ENABLED],
             ),
         ],
         g_app_config,
@@ -443,6 +448,9 @@ def setup_detected_game_server(game: Game):
     # the main window, the same way the terminal window does.
     g_configure_window.add_snap_follower(g_app_configure_window)
     root.add_snap_follower(g_app_configure_window)
+    # The terminal window chains off the app config window when it's
+    # open (see its snap_anchor) — keep it following along too.
+    g_app_configure_window.add_snap_follower(g_terminal_window)
 
     spacer_at_end = ui.Spacer(master=g_main_frame)
     spacer_at_end.pack()
@@ -482,11 +490,17 @@ g_terminal_window = terminal.TerminalWindow(
     install_dir=current_dir,
     title="Log Output",
     max_lines=g_app_config[ConfigIndex.TERMINAL_LOG_MAX_LINES].value,
-    # Snap onto the config window if it's open, else the main window.
+    # Chain rightward off whichever of the app config / game config
+    # windows is open, so it never lands on top of either of them —
+    # falling back to the main window if neither is open.
     snap_anchor=lambda: (
-        g_configure_window
-        if g_configure_window is not None and g_configure_window.is_visible()
-        else root
+        g_app_configure_window
+        if g_app_configure_window is not None and g_app_configure_window.is_visible()
+        else (
+            g_configure_window
+            if g_configure_window is not None and g_configure_window.is_visible()
+            else root
+        )
     ),
 )
 # Also a direct follower of the main window: when the config window
