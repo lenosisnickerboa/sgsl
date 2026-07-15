@@ -3,7 +3,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 
 from config.config_item import ConfigItem
 from config.tab_spec import TabSpec
@@ -28,6 +28,8 @@ class Game(ABC):
         self.server_root = self.directory / "server"
         self.server_root.mkdir(parents=True, exist_ok=True)
         self.process_handler = None
+        self.filter_stdout = None
+        self.filter_stderr = None
 
     def print(self, message: str) -> None:
         self.terminal(message)
@@ -36,17 +38,32 @@ class Game(ABC):
         return self.directory
 
     def handle_stdout_output(self, line: str):
+        if self.filter_stdout:
+            line = self.filter_stdout(line)
+            if not line:
+                return
         prefix = "[OUT]"
         self.print(f"{prefix} {line}")
 
     def handle_stderr_output(self, line: str):
+        if self.filter_stderr:
+            line = self.filter_stderr(line)
+            if not line:
+                return
         prefix = "[ERR]"
         self.print(f"{prefix} {line}")
 
     def handle_done(self, pid: int, returncode: int):
         self.print(f"Process tree {pid} finished with exit code {returncode}")
 
-    def start_server(self, args) -> None:
+    def start_server(
+        self,
+        args,
+        filter_stdout: Optional[Callable[[str], str]] = None,
+        filter_stderr: Optional[Callable[[str], str]] = None,
+    ) -> None:
+        self.filter_stdout = filter_stdout
+        self.filter_stderr = filter_stderr
         if not self.process_handler:
             self.process_handler = process_handler.ProcessHandler(
                 self.get_server_binary_path()

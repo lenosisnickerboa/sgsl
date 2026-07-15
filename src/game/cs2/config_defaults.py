@@ -68,7 +68,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Total player slots — adjust to your group size",
-            value=10,
+            value=4,
             range=Range(min_value=1, max_value=64),
         ),
         # -- Network --

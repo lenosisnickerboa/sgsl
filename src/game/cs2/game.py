@@ -230,6 +230,15 @@ class CS2Game(Game):
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
         self._install_or_update(result_callback)
 
+    def _filter_stdout(self, line: str) -> str:
+        if (
+            "CTextConsoleWin::GetLine: !GetNumberOfConsoleInputEvents" in line
+        ):  # harmless and uninteresting
+            return None
+        if " UNEXPECTED LONG FRAME DETECTED:" in line:  # harmless and uninteresting
+            return None
+        return line
+
     def run(self, config: Config[IndexT]) -> bool:
         args = [
             "-dedicated",
@@ -237,10 +246,10 @@ class CS2Game(Game):
             "TYPE",
             "+game_mode",
             "MODE",
-            "+maxplayers",
+            "-maxplayers",
             "<number>",
-            #            "-exec",
-            #            f"{self._ServerCfgName}",
+            "+exec",
+            f"{self._ServerCfgName}",
         ]
         game_mode = config[ConfigIndex.GAME_MODE].value
         if game_mode == "Casual":
@@ -285,7 +294,7 @@ class CS2Game(Game):
             if edited is None:
                 return False
             args = shlex.split(edited)
-        super().start_server(args)
+        super().start_server(args, self._filter_stdout)
         return True
 
     def _write_server_cfg(self, config: Config[IndexT]) -> None:
@@ -336,6 +345,12 @@ class CS2Game(Game):
     # suffix to recover the id all parts share.
     _WorkshopMapFilePattern = re.compile(r"^(\d+)(?:_\d+)?$")
 
+    # Some old workshop maps are instead stored as a single
+    # "<id>_legacy.bin" with no publish_data.txt alongside it, so
+    # there's no title to read — synthesize one from the id. The id
+    # in the filename itself isn't reliable; the containing directory
+    # is named after the actual workshop id, so use that instead.
+
     def _workshop_maps(self) -> list[str]:
         maps_dir = (
             Path(self.server_root)
@@ -368,6 +383,14 @@ class CS2Game(Game):
             title = publish_data.get("publish_data", {}).get("title")
             if title:
                 maps.append(f"workshop\\{map_id}\\{title}")
+
+        for legacy_file in maps_dir.glob("**/*_legacy.bin"):
+            map_id = legacy_file.parent.name
+            if map_id in seen_ids:
+                continue
+            seen_ids.add(map_id)
+            maps.append(f"workshop\\{map_id}\\legacy_{map_id}")
+
         return maps
 
     def config_defaults(self) -> Config[IndexT]:
