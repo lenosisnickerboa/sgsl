@@ -173,6 +173,15 @@ def on_save_config():
     save_config()
 
 
+def on_restart_application():
+    # Config is saved unconditionally after mainloop() returns (see
+    # the bottom of this file) — destroying root just gets us there,
+    # the same way a successful install triggers a restart.
+    global g_restart_requested
+    g_restart_requested = True
+    root.destroy()
+
+
 def on_toggle_configure_window():
     global g_configure_is_open
     g_configure_is_open = not g_configure_is_open
@@ -403,6 +412,14 @@ def setup_detected_game_server(game: Game):
         command=on_save_config,
     )
     save_app_config_button.pack()
+
+    restart_button = ui.Button(
+        master=app_right_button_frame,
+        name="Restart",
+        tooltip="Save configuration and restart the application",
+        command=on_restart_application,
+    )
+    restart_button.pack()
 
     def on_app_config_item_changed(_config_item, config):
         ui.SnapWindow.enabled = config[ConfigIndex.SNAP_WINDOWS_ENABLED].value
