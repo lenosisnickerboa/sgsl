@@ -73,7 +73,14 @@ class SnapWindow:
     widget this window should snap its left edge to the right of
     (defaults to its master). It's re-evaluated on every reposition, so
     it can return different widgets over time — e.g. "the config
-    window if it's open, else the main window"."""
+    window if it's open, else the main window".
+
+    `enabled` is a class-level, app-wide on/off switch (not per-
+    instance): set SnapWindow.enabled = False to turn snapping off
+    everywhere — windows stay wherever they are/get placed and no
+    longer reposition or drag each other."""
+
+    enabled = True
 
     def _init_snap(self, snap_anchor=None):
         self._snap_anchor = snap_anchor
@@ -92,6 +99,8 @@ class SnapWindow:
         self._snap_to_anchor()
 
     def _snap_to_anchor(self) -> None:
+        if not SnapWindow.enabled:
+            return
         anchor = self._snap_anchor() if self._snap_anchor is not None else self.master
         if anchor is None:
             return
@@ -114,6 +123,8 @@ class SnapWindow:
         )
 
     def _on_snap_configure(self, event=None) -> None:
+        if not SnapWindow.enabled:
+            return
         # Recomputed from live geometry (not a "did I cause this"
         # flag) so a direct user drag away from the anchor is detected
         # reliably regardless of event timing/ordering.
