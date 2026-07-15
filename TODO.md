@@ -1,4 +1,3 @@
-# Add "Create an error report" functionality
 
 # Make static functions instead of methods where possible
 

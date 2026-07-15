@@ -96,13 +96,16 @@ class TerminalWindow(SnapWindow, tb.Toplevel):
     def clear(self):
         self.after(0, lambda: self.output.text.delete("1.0", "end"))
 
+    def get_content(self) -> str:
+        """Return the current log text (no trailing newline)."""
+        return self.output.text.get("1.0", "end-1c")
+
     def save_to_file(self):
         log_dir = self.install_dir / "terminal_logs"
         log_dir.mkdir(parents=True, exist_ok=True)
         filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".txt"
         file_path = log_dir / filename
-        content = self.output.text.get("1.0", "end-1c")
-        file_path.write_text(content, encoding="utf-8")
+        file_path.write_text(self.get_content(), encoding="utf-8")
         self.add_line(f"Saved terminal log to {file_path}", tag="info")
 
     def show(self):

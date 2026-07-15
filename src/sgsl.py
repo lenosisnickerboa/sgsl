@@ -1,4 +1,7 @@
+import copy
 import os
+import shutil
+from datetime import datetime
 from pathlib import Path
 from config.config_item import ConfigItem, ConfigType, Range
 from config.tab_spec import TabSpec
@@ -180,6 +183,74 @@ def on_restart_application():
     global g_restart_requested
     g_restart_requested = True
     root.destroy()
+
+
+def _redact_masked_values(config: Config) -> Config:
+    """Return a deep copy of `config` with every MASKED_STRING item's
+    value replaced by asterisks, so it's safe to write to a shared
+    file like an error report."""
+    redacted = copy.deepcopy(config)
+    for item in redacted.values():
+        if item.type is ConfigType.MASKED_STRING:
+            item.value = "********"
+    return redacted
+
+
+def _redact_secrets(text: str, *configs: Config) -> str:
+    """Replace any occurrence of a MASKED_STRING item's actual value
+    (e.g. a server password) in `text` with asterisks."""
+    for config in configs:
+        for item in config.values():
+            if item.type is ConfigType.MASKED_STRING and item.value:
+                text = text.replace(str(item.value), "********")
+    return text
+
+
+def on_error_report():
+    # Make sure the config files on disk reflect the current in-memory
+    # state, not a stale save — the report below is written from the
+    # in-memory configs, but this keeps sgsl.toml/game.toml themselves
+    # current too, same as a manual Save config.
+    save_config()
+
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    report_name = f"error-report-{timestamp}"
+    report_dir = Path(current_dir) / report_name
+    report_dir.mkdir(parents=True)
+
+    configs = [g_app_config] + ([g_game_config] if g_game_config is not None else [])
+    (report_dir / "terminal.txt").write_text(
+        _redact_secrets(g_terminal_window.get_content(), *configs), encoding="utf-8"
+    )
+    TomlConfigParser.write(
+        report_dir / g_app_config_file.name, _redact_masked_values(g_app_config)
+    )
+    if g_game_config is not None:
+        TomlConfigParser.write(
+            report_dir / g_game_config_file.name,
+            _redact_masked_values(g_game_config),
+        )
+
+    (report_dir / "program_version.txt").write_text(VERSION, encoding="utf-8")
+    (report_dir / "install_directory_path.txt").write_text(
+        str(current_dir), encoding="utf-8"
+    )
+    free_gb = shutil.disk_usage(current_dir).free / (1024**3)
+    (report_dir / "available_diskspace.txt").write_text(
+        f"{free_gb:.2f} GB", encoding="utf-8"
+    )
+
+    error_reports_dir = Path(current_dir) / "error_reports"
+    error_reports_dir.mkdir(parents=True, exist_ok=True)
+    archive_path = shutil.make_archive(
+        str(error_reports_dir / report_name), "zip", root_dir=report_dir
+    )
+
+    shutil.rmtree(report_dir)
+
+    print_to_terminal(f"Error report created: {archive_path}")
+    set_status_line("Error report created")
+    root.after(5000, restore_status_line)
 
 
 def on_toggle_configure_window():
@@ -420,6 +491,14 @@ def setup_detected_game_server(game: Game):
         command=on_restart_application,
     )
     restart_button.pack()
+
+    error_report_button = ui.Button(
+        master=app_right_button_frame,
+        name="Error report",
+        tooltip="Bundle the terminal log and config files into a zipped error report",
+        command=on_error_report,
+    )
+    error_report_button.pack()
 
     def on_app_config_item_changed(_config_item, config):
         ui.SnapWindow.enabled = config[ConfigIndex.SNAP_WINDOWS_ENABLED].value
