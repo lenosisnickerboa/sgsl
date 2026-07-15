@@ -500,7 +500,6 @@ class CS2Game(Game):
                     ConfigIndex.HOSTNAME,
                     ConfigIndex.SV_LAN,
                     ConfigIndex.SV_PASSWORD,
-                    ConfigIndex.SV_VISIBLEMAXPLAYERS,
                 ],
             ),
             TabSpec(
@@ -584,4 +583,8 @@ class CS2Game(Game):
             if maps and config[ConfigIndex.SELECTED_MAP].value not in maps:
                 config[ConfigIndex.SELECTED_MAP].set(maps[0])
             return [ConfigIndex.SELECTED_MAP]
+        elif config_item is config[ConfigIndex.PLAYER_COUNT]:
+            config[ConfigIndex.SV_VISIBLEMAXPLAYERS].set(
+                config[ConfigIndex.PLAYER_COUNT].value
+            )
         return []
