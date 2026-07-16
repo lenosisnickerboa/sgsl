@@ -35,3 +35,7 @@ Defaults -> todays shortcut menu
 Allow filtering of stdout/stderr
 
 Current filtering should be moved as defaults for filtering stdout
+
+# Add support for csgo
+
+# Add support for vu
