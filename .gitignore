@@ -7,6 +7,7 @@ dist/
 *.toml
 terminal_logs/**
 error_reports/**
+server/**
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
