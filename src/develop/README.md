@@ -16,7 +16,9 @@ In a terminal:
   git config --global user.email "you@example.com"
   git config --global user.name "Your Name"
 
-## Required python extensions (just run install-python-stuff.bat)
+## Required python extensions
+
+(just run install-python-stuff.bat from the support folder)
 
 1. pyinstaller (py -m pip install pyinstaller)
 1. psutil (py -m pip install psutil)
