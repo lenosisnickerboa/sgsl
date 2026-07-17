@@ -1,3 +1,17 @@
+# Application icon instead of default pyinstaller
+
+# Game icons?
+
+# VU server key approach not working
+
+server.key is not the same thing as the server key string, the file needs to be downloaded into the "server" folder.
+
+# VU Delay when selecting Install/Update, no feedback
+
+# VU mods?
+
+- At least bots would be nice to have by default?
+- Bots config?
 
 # Make static functions instead of methods where possible
 
@@ -44,13 +58,12 @@ Current filtering should be moved as defaults for filtering stdout
 
 Valid for cs2 and vu. 
 
-# VU mods?`
-
-- At least bots would be nice to have by default?
-- Bots config?
-
 # If install fails, create an error report automnatically before exit
 
 # The error report button must be available on the install mode as well
 
 To be able to report install errors.
+
+# Add a donate button
+
+# Add download stats 

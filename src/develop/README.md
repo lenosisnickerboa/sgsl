@@ -28,3 +28,21 @@ In a terminal:
 ## Things nice to install
 
 1. vscode extensions: "Markdown Preview"
+
+## Support scripts, in folder support
+
+### build-for-release.bat
+
+Builds sgsl.exe for release. sgsl is developed in python and converted into an .exe file by [pyInstaller](https://pyinstaller.org/en/stable/)
+
+### build-for-test.bat
+
+Builds sgsl.exe for test, then named sgsl-for-test.exe, i.e. with a console showing any python related errors. This is accomplished by not using the pyinstaller option --noconsole.
+
+### install-python-stuff.bat
+
+Installs all the python dependencies
+
+### sgsl-show-what-failed.bat
+
+A wrapper running sgsl-for-test.exe or sgsl.exe adding a pause at the end allowing the developer to see any python output.

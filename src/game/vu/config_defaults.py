@@ -43,14 +43,6 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value=4,
             range=Range(min_value=1, max_value=64),
         ),
-        ConfigIndex.SERVER_KEY: ConfigItem(
-            name="server_key",
-            visible_name="Server Key",
-            type=ConfigType.MASKED_STRING,
-            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="The server key (identifies your server with the VU site)",
-            value="",
-        ),
         ConfigIndex.SERVER_UPDATE_FREQUENCY: ConfigItem(
             name="update_frequency",
             visible_name="Update frequence",
