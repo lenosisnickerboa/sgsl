@@ -47,4 +47,4 @@ Click Download and select both vcredist_x86.exe and vcredist_x64.exe. After the 
 
 ## Developer information
 
-If you want to develop sgsl on your own, [here](develop/README.md) are some hints.
+If you want to develop sgsl on your own, [here](src/develop/README.md) are some hints.
