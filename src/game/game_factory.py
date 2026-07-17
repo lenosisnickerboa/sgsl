@@ -4,6 +4,7 @@ from typing import Type, Union
 from game.cs2.game import CS2Game
 from game.game import Game
 from game.null_game.game import NullGame
+from game.vu.game import VUGame
 
 
 class GameFactory:
@@ -22,6 +23,9 @@ class GameFactory:
         if game.detect():
             return game
         game = CS2Game(directory, terminal)
+        if game.detect():
+            return game
+        game = VUGame(directory, terminal)
         if game.detect():
             return game
         return None
@@ -44,3 +48,4 @@ class GameFactory:
 # Register games
 GameFactory.register("Null Game", NullGame)
 GameFactory.register("Counter-Strike 2", CS2Game)
+GameFactory.register("Venice Unleashed", VUGame)

@@ -39,3 +39,12 @@ Current filtering should be moved as defaults for filtering stdout
 # Add support for csgo
 
 # Add support for vu
+
+# Add support for using installed game client
+
+Valid for cs2 and vu. 
+
+# VU mods?`
+
+- At least bots would be nice to have by default?
+- Bots config?

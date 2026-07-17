@@ -404,7 +404,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ConfigIndex.STEAM_API_AUTH_KEY: ConfigItem(
             name="api_auth_key",
             visible_name="API auth key",
-            type=ConfigType.STRING,
+            type=ConfigType.MASKED_STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="The Steam API authorization key used e.g. when hosting workshop maps",
             value="",
@@ -412,7 +412,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ConfigIndex.STEAM_GSLT: ConfigItem(
             name="gslt",
             visible_name="Game Server Login Token",
-            type=ConfigType.STRING,
+            type=ConfigType.MASKED_STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="The Game Server Login Token, identifying your game server with Valve",
             value="",
