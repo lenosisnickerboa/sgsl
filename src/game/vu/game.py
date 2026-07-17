@@ -1,8 +1,7 @@
-import re
 import shlex
 from pathlib import Path
 from typing import Callable, Optional, Union
-from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType
+from config.config_item import ConfigItem, ConfigType
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from game.vu import maps_info
@@ -14,7 +13,7 @@ from support.dialog import edit_string_dialog_box
 from support.unzip import unzip_with_return
 from support.wget import download_with_return
 
-GameExe = "VU-Server.exe"
+GameExe = "vu.exe"
 
 # All relative to server root directory
 GameExeWithPath = Path(GameExe)
@@ -30,6 +29,8 @@ class VUGame(Game):
         # ran yet), so _install_or_update() falls back to the default
         # DOWNLOAD_URL in that case.
         self.config: Optional[Config[IndexT]] = None
+        self.maps = maps_info.MapsInfo()
+        self.modes = mode_info.ModeInfo()
 
     def detect(self) -> bool:
         return self.server_binary.exists()
@@ -48,7 +49,7 @@ class VUGame(Game):
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
         self._install_or_update(result_callback)
 
-    _ArchiveFileName = "vu_server.zip"
+    _ArchiveFileName = "vu.zip"
 
     def _install_or_update(
         self, result_callback: Callable[[OperationResult], None]
@@ -61,9 +62,9 @@ class VUGame(Game):
 
         archive_path = self.directory / self._ArchiveFileName
         self.print(
-            f"Downloading {self.get_long_name()} server archive from {download_url}..."
+            f"Downloading {self.get_long_name()} server archive from {download_url} to {archive_path}..."
         )
-        if not download_with_return(download_url, archive_path):
+        if not download_with_return(download_url, archive_path, self.print):
             self.print(
                 f"Failed to download {self.get_long_name()} server archive from {download_url}"
             )
@@ -119,10 +120,10 @@ class VUGame(Game):
         admin_dir = self.server_root / self._MapListFileName.parent
         admin_dir.mkdir(parents=True, exist_ok=True)
 
-        selected_map_id = maps_info.MapsInfo.id_from_name(
+        selected_map_id = self.maps.MapsInfo.id_from_name(
             config[ConfigIndex.SELECTED_MAP].value
         )
-        selected_game_mode_id = mode_info.ModeInfo.id_from_name(
+        selected_game_mode_id = self.mode.ModeInfo.id_from_name(
             config[ConfigIndex.GAME_MODE].value
         )
         (self.server_root / self._MapListFileName).write_text(
@@ -163,9 +164,12 @@ class VUGame(Game):
 
     def config_defaults(self) -> Config[IndexT]:
         defaults = build_game_defaults()
-        all_maps = maps_info.all_names()
+        all_maps = self.maps.all_names()
         defaults[ConfigIndex.SELECTED_MAP].allowed_values = all_maps
         defaults[ConfigIndex.SELECTED_MAP].value = all_maps[0]
+        all_game_modes = self.modes.all_names()
+        defaults[ConfigIndex.GAME_MODE].allowed_values = all_game_modes
+        defaults[ConfigIndex.GAME_MODE].value = all_game_modes[0]
         return defaults
 
     def config_loaded(self, config: Config[IndexT]) -> None:

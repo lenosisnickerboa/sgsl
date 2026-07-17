@@ -14,9 +14,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="The currently selected map, one of the maps in the selected map group",
             value="",  #  will be filled in later
-            allowed_values=[
-                #  will be filled in later
-            ],
+            # will be filled in later allowed_values=[],
         ),
         ConfigIndex.SELECTED_MAP_GROUP: ConfigItem(
             name="selected_map_group",
@@ -34,9 +32,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Currently selected game mode",
             value="",  # will be filled in later
-            allowed_values=[
-                # will be filled in later
-            ],
+            # will be filled in later allowed_values=[],
         ),
         ConfigIndex.PLAYER_COUNT: ConfigItem(
             name="sv_maxplayers",
@@ -72,12 +68,12 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Listen on this host IP address (0.0.0.0 == all interfaces)",
             value="0.0.0.0",
         ),
-        ConfigIndex.LISTEN_PORT_FROSTBYTE: ConfigItem(
-            name="listen_port_frostbyte",
-            visible_name="Frostbyte Listen Port",
+        ConfigIndex.LISTEN_PORT_FROSTBITE: ConfigItem(
+            name="listen_port_frostbite",
+            visible_name="Frostbite Listen Port",
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="The Frostbyte network layer listen port",
+            tooltip="The Frostbite network layer listen port",
             value=25200,
             range=Range(min_value=1, max_value=65535),
         ),
@@ -137,6 +133,14 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Download the VU archive from this URL",
-            value="https://veniceunleashed.net",
+            value="https://veniceunleashed.net/files/vu.zip",
+        ),
+        ConfigIndex.RUN_COMMAND_EDIT: ConfigItem(
+            name="run_command_edit",
+            visible_name="Edit run command",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Show an editable copy of the launch command before starting the server",
+            value=False,
         ),
     }

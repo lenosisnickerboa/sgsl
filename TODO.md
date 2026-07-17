@@ -48,3 +48,9 @@ Valid for cs2 and vu.
 
 - At least bots would be nice to have by default?
 - Bots config?
+
+# If install fails, create an error report automnatically before exit
+
+# The error report button must be available on the install mode as well
+
+To be able to report install errors.

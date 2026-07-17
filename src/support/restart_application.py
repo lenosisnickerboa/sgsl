@@ -21,4 +21,12 @@ import sys
 
 def restart_application() -> None:
     """Replace the current process with a new instance of itself."""
+    # For a frozen (PyInstaller onefile) build, this tells the
+    # bootloader that the new process is a fresh, independent instance
+    # rather than a worker sub-process of this one. Without it, the new
+    # process reuses/tracks this one's extracted _MEIPASS temp
+    # directory and races its cleanup on exit, crashing with a
+    # FileNotFoundError for base_library.zip. No effect when running
+    # unfrozen (`python src/sgsl.py`).
+    os.environ["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
     os.execv(sys.executable, [sys.executable] + sys.argv)

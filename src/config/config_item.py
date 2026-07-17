@@ -109,7 +109,7 @@ class ConfigItem:
     the list as a whole. It may raise (e.g. ValueError) to reject a
     value outright, the same as `validator`.
 
-    `possible_values`, if provided, is the closed set of values this
+    `allowed_values`, if provided, is the closed set of values this
     item is allowed to hold (e.g. ["low", "medium", "high"] for a
     STRING item, or [0, 1, 2] for an INTEGER item). If set, the current
     value is checked for membership as part of validation, and it's
@@ -203,7 +203,7 @@ class ConfigItem:
 
         if self.allowed_values is not None and self.value not in self.allowed_values:
             raise ValueError(
-                f"{self.name}: value {self.value!r} not in possible_values "
+                f"{self.name}: value {self.value!r} not in allowed_values "
                 f"{self.allowed_values!r}"
             )
 

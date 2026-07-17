@@ -12,10 +12,19 @@ from typing import Callable, Optional, Union
 # Bytes per read/write chunk while streaming the download.
 CHUNK_SIZE = 64 * 1024
 
+# Plenty of hosts (e.g. sites fronted by Cloudflare) reject urllib's
+# default "Python-urllib/x.y" User-Agent with a 403 — send a normal
+# browser-style one instead.
+_UserAgent = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+)
+
 
 def download(
     url: str,
     target_path: Union[str, Path],
+    error_printer: Callable[[str], None],
     progress_callback: Optional[Callable[[int, Optional[int]], None]] = None,
 ) -> Path:
     """
@@ -29,6 +38,11 @@ def download(
     target_path : Union[str, Path]
         Full path, including filename, to write the downloaded file to.
         Parent directories are created if they don't already exist.
+    error_printer : Callable[[str], None]
+        Called with a human-readable message if the HTTP request fails
+        (unreachable URL, error status, etc.), so the caller can surface
+        it (e.g. print it to a terminal/log window). The error is still
+        raised afterwards.
     progress_callback : Optional[Callable[[int, Optional[int]], None]]
         If given, called after each chunk is written as
         progress_callback(bytes_downloaded, total_bytes), where
@@ -53,23 +67,28 @@ def download(
     # leaves a partial file sitting at the final target_path.
     tmp_path = target_path.with_name(target_path.name + ".part")
 
-    with urllib.request.urlopen(url) as response:
-        total_bytes = response.length  # Content-Length, or None if unknown
-        downloaded = 0
+    request = urllib.request.Request(url, headers={"User-Agent": _UserAgent})
+    try:
+        with urllib.request.urlopen(request) as response:
+            total_bytes = response.length  # Content-Length, or None if unknown
+            downloaded = 0
 
-        try:
-            with tmp_path.open("wb") as f:
-                while True:
-                    chunk = response.read(CHUNK_SIZE)
-                    if not chunk:
-                        break
-                    f.write(chunk)
-                    downloaded += len(chunk)
-                    if progress_callback is not None:
-                        progress_callback(downloaded, total_bytes)
-        except BaseException:
-            tmp_path.unlink(missing_ok=True)
-            raise
+            try:
+                with tmp_path.open("wb") as f:
+                    while True:
+                        chunk = response.read(CHUNK_SIZE)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if progress_callback is not None:
+                            progress_callback(downloaded, total_bytes)
+            except BaseException:
+                tmp_path.unlink(missing_ok=True)
+                raise
+    except Exception as e:
+        error_printer(f"Failed to download {url}: {e}")
+        raise
 
     tmp_path.replace(target_path)
     return target_path
@@ -78,6 +97,7 @@ def download(
 def download_with_return(
     url: str,
     target_path: Union[str, Path],
+    error_printer: Callable[[str], None],
     progress_callback: Optional[Callable[[int, Optional[int]], None]] = None,
 ) -> bool:
     """
@@ -92,6 +112,8 @@ def download_with_return(
     target_path : Union[str, Path]
         Full path, including filename, to write the downloaded file to.
         Parent directories are created if they don't already exist.
+    error_printer : Callable[[str], None]
+        Same as download()'s error_printer.
     progress_callback : Optional[Callable[[int, Optional[int]], None]]
         Same as download()'s progress_callback.
 
@@ -101,7 +123,7 @@ def download_with_return(
         True if the file was downloaded successfully, False otherwise.
     """
     try:
-        download(url, target_path, progress_callback)
+        download(url, target_path, error_printer, progress_callback)
         return True
     except Exception:
         return False
@@ -118,6 +140,7 @@ if __name__ == "__main__":
     path = download(
         "https://www.python.org/static/img/python-logo.png",
         r"C:\temp\python-logo.png",
+        error_printer=print,
         progress_callback=show_progress,
     )
     print(f"\nDownloaded to {path}")
