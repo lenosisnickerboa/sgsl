@@ -77,6 +77,8 @@ class VUGame(Game):
             result_callback(OperationResult.FAIL)
             return
 
+        archive_path.unlink(missing_ok=True)
+
         self.print(f"Installed {self.get_long_name()} into {self.server_root}")
         result_callback(OperationResult.OK)
 
