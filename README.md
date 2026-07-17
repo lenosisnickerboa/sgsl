@@ -2,6 +2,16 @@
 
 Simple Game Server Launcher
 
+# The general idea - "One click install game server"
+
+This is a simple game server launcher suitable for people wanting to quickly setup and host a game server for some friends to join without diving into all the details of setting up and configuring a game server.
+
+Even though the "One click install game server" vision is hard to reach due to how games are developed, this is still as close as you get. Create an empty directory for your server, drop sgsl.exe into it and start it, select game to install. Done.
+
+Currently supported games:
+- [Counter-Strike 2](src/game/cs2/README)
+- [Venice Unleashed](src/game/vu/README)
+
 # Preconditions
 
 ## Network
@@ -34,3 +44,7 @@ with e.g Steam, but if you are running a standalone game server without Steam in
 Download it from here: https://www.microsoft.com/en-us/download/details.aspx?id=26999
 
 Click Download and select both vcredist_x86.exe and vcredist_x64.exe. After the download finishes, simply run both installers. Now retry installing cs2.
+
+## Developer information
+
+If you want to develop sgsl on your own, [here](develop/README) are some hints.
