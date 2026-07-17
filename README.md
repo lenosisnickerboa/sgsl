@@ -9,8 +9,8 @@ This is a simple game server launcher suitable for people wanting to quickly set
 Even though the "One click install game server" vision is hard to reach due to how games are developed, this is still as close as you get. Create an empty directory for your server, drop sgsl.exe into it and start it, select game to install. Done.
 
 Currently supported games:
-- [Counter-Strike 2](src/game/cs2/README)
-- [Venice Unleashed](src/game/vu/README)
+- [Counter-Strike 2](src/game/cs2/README.md)
+- [Venice Unleashed](src/game/vu/README.md)
 
 # Preconditions
 
@@ -47,4 +47,4 @@ Click Download and select both vcredist_x86.exe and vcredist_x64.exe. After the 
 
 ## Developer information
 
-If you want to develop sgsl on your own, [here](develop/README) are some hints.
+If you want to develop sgsl on your own, [here](develop/README.md) are some hints.
