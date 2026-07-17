@@ -12,6 +12,7 @@ error_reports/**
 __pycache__/
 *.py[codz]
 *$py.class
+.vscode/**
 
 # C extensions
 *.so
