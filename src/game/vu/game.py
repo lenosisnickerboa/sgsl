@@ -1,7 +1,7 @@
 import shlex
 from pathlib import Path
 from typing import Callable, Optional, Union
-from config.config_item import ConfigItem, ConfigType
+from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from game.vu import maps_info
@@ -129,8 +129,9 @@ class VUGame(Game):
         )
 
         startup_lines = [
-            self._format_cvar_line(config[ConfigIndex.SERVER_NAME]),
-            self._format_cvar_line(config[ConfigIndex.FRIENDLY_FIRE]),
+            self._format_cvar_line(item)
+            for item in config.values()
+            if item.config_type is ConfigDeliveryType.SERVER_CFG_FILE
         ]
         (self.server_root / self._StartupFileName).write_text(
             "\n".join(startup_lines) + "\n", encoding="utf-8"
@@ -191,6 +192,8 @@ class VUGame(Game):
                     ConfigIndex.SELECTED_MAP_GROUP,
                     ConfigIndex.SELECTED_MAP,
                     ConfigIndex.PLAYER_COUNT,
+                    ConfigIndex.PLAYER_COUNT_START_ROUND,
+                    ConfigIndex.PLAYER_COUNT_RESTART_ROUND,
                     ConfigIndex.FRIENDLY_FIRE,
                     ConfigIndex.RUN_COMMAND_EDIT,
                 ],

@@ -26,6 +26,8 @@ class ConfigIndex(IntEnum):
     SERVER_PASSWORD = 13
     FRIENDLY_FIRE = 14
     DOWNLOAD_URL = 15
+    PLAYER_COUNT_START_ROUND = 16
+    PLAYER_COUNT_RESTART_ROUND = 17
 
 
 _values = [item.value for item in ConfigIndex]
