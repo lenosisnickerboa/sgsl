@@ -1,17 +1,15 @@
+
+# VU startup times
+
+- start game immediately, no warmup
+
+# Other VU mods?
+
 # Application icon instead of default pyinstaller
 
 # Game icons?
 
-# VU server key approach not working
-
-server.key is not the same thing as the server key string, the file needs to be downloaded into the "server" folder.
-
 # VU Delay when selecting Install/Update, no feedback
-
-# VU mods?
-
-- At least bots would be nice to have by default?
-- Bots config?
 
 # Make static functions instead of methods where possible
 

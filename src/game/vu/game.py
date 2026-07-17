@@ -50,6 +50,8 @@ class VUGame(Game):
         self._install_or_update(result_callback)
 
     _ArchiveFileName = "vu.zip"
+    _ModsDirName = Path("Admin") / "mods"
+    _FunBotsArchiveFileName = "fun-bots.zip"
 
     def _install_or_update(
         self, result_callback: Callable[[OperationResult], None]
@@ -79,8 +81,35 @@ class VUGame(Game):
 
         archive_path.unlink(missing_ok=True)
 
+        if not self._install_fun_bots_mod():
+            result_callback(OperationResult.FAIL)
+            return
+
         self.print(f"Installed {self.get_long_name()} into {self.server_root}")
         result_callback(OperationResult.OK)
+
+    def _install_fun_bots_mod(self) -> bool:
+        config = self.config if self.config is not None else build_game_defaults()
+        if not config[ConfigIndex.MODS_FUN_BOTS_ENABLED].value:
+            return True
+
+        mods_url = config[ConfigIndex.MODS_FUN_BOTS_URL].value
+        mods_dir = self.server_root / self._ModsDirName
+        mods_dir.mkdir(parents=True, exist_ok=True)
+
+        archive_path = self.directory / self._FunBotsArchiveFileName
+        self.print(f"Downloading fun-bots mod from {mods_url} to {archive_path}...")
+        if not download_with_return(mods_url, archive_path, self.print):
+            self.print(f"Failed to download fun-bots mod from {mods_url}")
+            return False
+
+        self.print(f"Extracting {archive_path} into {mods_dir}...")
+        if not unzip_with_return(archive_path, mods_dir):
+            self.print(f"Failed to extract {archive_path} into {mods_dir}")
+            return False
+
+        archive_path.unlink(missing_ok=True)
+        return True
 
     def run(self, config: Config[IndexT]) -> bool:
         args = [
@@ -137,9 +166,46 @@ class VUGame(Game):
             "\n".join(startup_lines) + "\n", encoding="utf-8"
         )
 
-        (self.server_root / self._ModListFileName).write_text(
-            "# No mods yet\n", encoding="utf-8"
-        )
+        self._write_mod_list(config)
+
+    _FunBotsRepoName = "fun-bots"
+    _NoModsPlaceholder = "# No mods yet"
+
+    def _find_fun_bots_mod_dir_name(self) -> Optional[str]:
+        """The fun-bots archive extracts into a folder named after its
+        repo and release tag (e.g. "fun-bots-3.0.0-Release"), which
+        varies with MODS_FUN_BOTS_URL — so look up the actual folder
+        under Admin/mods rather than guessing the name."""
+        mods_dir = self.server_root / self._ModsDirName
+        if not mods_dir.is_dir():
+            return None
+        for entry in mods_dir.iterdir():
+            if entry.is_dir() and entry.name.startswith(self._FunBotsRepoName):
+                return entry.name
+        return None
+
+    def _write_mod_list(self, config: Config[IndexT]) -> None:
+        mod_list_path = self.server_root / self._ModListFileName
+
+        existing_lines = []
+        if mod_list_path.exists():
+            existing_lines = [
+                line
+                for line in mod_list_path.read_text(encoding="utf-8").splitlines()
+                if line.strip()
+                and line.strip() != self._NoModsPlaceholder
+                and not line.strip().startswith(self._FunBotsRepoName)
+            ]
+
+        if config[ConfigIndex.MODS_FUN_BOTS_ENABLED].value:
+            fun_bots_dir_name = self._find_fun_bots_mod_dir_name()
+            if fun_bots_dir_name is not None:
+                existing_lines.append(fun_bots_dir_name)
+
+        if not existing_lines:
+            existing_lines = [self._NoModsPlaceholder]
+
+        mod_list_path.write_text("\n".join(existing_lines) + "\n", encoding="utf-8")
 
     def _format_cvar_line(self, item: ConfigItem) -> str:
         if item.type in (
@@ -220,6 +286,13 @@ class VUGame(Game):
                 title="Downloads",
                 items=[
                     ConfigIndex.DOWNLOAD_URL,
+                ],
+            ),
+            TabSpec(
+                title="Mods",
+                items=[
+                    ConfigIndex.MODS_FUN_BOTS_ENABLED,
+                    ConfigIndex.MODS_FUN_BOTS_URL,
                 ],
             ),
         ]

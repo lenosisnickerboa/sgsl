@@ -153,4 +153,20 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Show an editable copy of the launch command before starting the server",
             value=False,
         ),
+        ConfigIndex.MODS_FUN_BOTS_ENABLED: ConfigItem(
+            name="modsFunBotsEnabled",
+            visible_name="Fun Bots",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Enable mod fun-boots",
+            value=True,
+        ),
+        ConfigIndex.MODS_FUN_BOTS_URL: ConfigItem(
+            name="modsFunBotsUrl",
+            visible_name="Fun bots URL",
+            type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Where to download mod fun-bots from",
+            value="https://github.com/Joe91/fun-bots/archive/refs/tags/V3.0.0-Release.zip",
+        ),
     }

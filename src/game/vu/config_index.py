@@ -28,6 +28,8 @@ class ConfigIndex(IntEnum):
     DOWNLOAD_URL = 15
     PLAYER_COUNT_START_ROUND = 16
     PLAYER_COUNT_RESTART_ROUND = 17
+    MODS_FUN_BOTS_ENABLED = 18
+    MODS_FUN_BOTS_URL = 19
 
 
 _values = [item.value for item in ConfigIndex]

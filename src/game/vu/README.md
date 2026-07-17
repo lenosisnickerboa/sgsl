@@ -7,10 +7,11 @@ Depending on how you want to run your server, here comes some scenarios.
 ### Simplest possible, LAN only, just want to play locally with friends
 
 1. Get your original BF3 working. Start it up and make sure you can run multiplayer.
-1. Register some stuff with VU, like a VU account, linking of your VU and Origin account and a server key.
+1. Register some stuff with VU, like a VU account, linking of your VU and Origin account and a [server key](https://veniceunleashed.net/keys).
+1. Download the server.key file and store it for use a couple of steps later
 1. Drop sgsl.exe into an empty folder where you want your VU game server installed and click sgsl.exe.
 1. When sgsl.exe launches, click the install button. I recommend first opening the terminal (Toggle to the far right).
-1. When sgsl.exe relaunches, enter the server key in the sgsl.exe config.
+1. When sgsl.exe relaunches, copy the downloaded server.key file into <your-install-dir>\"server" directory.
 1. Start your server.
 1. ENJOY!
 
@@ -27,10 +28,11 @@ If you don't like this approach proceed to the next scenario.
 If you want your server publically available in the VU server browser, and have friends connect to it from outside your LAN, this is what you need to do:
 
 1. Get your original BF3 working. Start it up and make sure you can run multiplayer.
-1. Register some stuff with VU, like a VU account, linking of your VU and Origin account and a server key.
+1. Register some stuff with VU, like a VU account, linking of your VU and Origin account and a [server key](https://veniceunleashed.net/keys).
+1. Download the server.key file and store it for use a couple of steps later
 1. Drop sgsl.exe into an empty folder where you want your VU game server installed and click sgsl.exe. 
 1. When sgsl.exe launches, click the install button. I recommend first opening the terminal (Toggle to the far right).
-1. When sgsl.exe relaunches, enter the server key in the sgsl.exe config.
+1. When sgsl.exe relaunches, copy the downloaded server.key file into <your-install-dir>\"server" directory.
 1. Start your server.
 1. Open up ports for VU in your router and firewall, e.g. look [here](https://docs.veniceunleashed.net/hosting/setup-win/#port-forwarding)
 1. ENJOY!
