@@ -1,3 +1,5 @@
+# Auto open/close terminal on install/update
+- default yes
 
 # VU startup times
 

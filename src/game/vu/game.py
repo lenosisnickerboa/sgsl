@@ -9,9 +9,8 @@ from game.vu import mode_info
 from game.vu.config_defaults import build_game_defaults
 from game.vu.config_index import ConfigIndex
 from game.game import Game, OperationResult
+from support import bat_runner
 from support.dialog import edit_string_dialog_box
-from support.unzip import unzip_with_return
-from support.wget import download_with_return
 
 GameExe = "vu.exe"
 
@@ -53,63 +52,59 @@ class VUGame(Game):
     _ModsDirName = Path("Admin") / "mods"
     _FunBotsArchiveFileName = "fun-bots.zip"
 
+    # Bare "curl.exe"/"tar.exe" can resolve to Git for Windows' copies
+    # earlier on PATH than the Windows-native ones in System32; Git's
+    # GNU tar misreads a bare drive-letter path like "C:\..." as a
+    # host:path remote-tape spec and fails ("Cannot connect to C:"), so
+    # pin to the Windows-native executables by their full paths.
+#    _CurlExe = r"%SystemRoot%\System32\curl.exe"
+    _CurlExe = r"curl.exe"
+#    _TarExe = r"%SystemRoot%\System32\tar.exe"
+    _TarExe = r"tar.exe"
+
     def _install_or_update(
         self, result_callback: Callable[[OperationResult], None]
     ) -> None:
-        download_url = (
-            self.config[ConfigIndex.DOWNLOAD_URL].value
-            if self.config is not None
-            else build_game_defaults()[ConfigIndex.DOWNLOAD_URL].value
-        )
-
-        archive_path = self.directory / self._ArchiveFileName
-        self.print(
-            f"Downloading {self.get_long_name()} server archive from {download_url} to {archive_path}..."
-        )
-        if not download_with_return(download_url, archive_path, self.print):
-            self.print(
-                f"Failed to download {self.get_long_name()} server archive from {download_url}"
-            )
-            result_callback(OperationResult.FAIL)
-            return
-
-        self.print(f"Extracting {archive_path} into {self.server_root}...")
-        if not unzip_with_return(archive_path, self.server_root):
-            self.print(f"Failed to extract {archive_path} into {self.server_root}")
-            result_callback(OperationResult.FAIL)
-            return
-
-        archive_path.unlink(missing_ok=True)
-
-        if not self._install_fun_bots_mod():
-            result_callback(OperationResult.FAIL)
-            return
-
-        self.print(f"Installed {self.get_long_name()} into {self.server_root}")
-        result_callback(OperationResult.OK)
-
-    def _install_fun_bots_mod(self) -> bool:
         config = self.config if self.config is not None else build_game_defaults()
-        if not config[ConfigIndex.MODS_FUN_BOTS_ENABLED].value:
-            return True
 
-        mods_url = config[ConfigIndex.MODS_FUN_BOTS_URL].value
-        mods_dir = self.server_root / self._ModsDirName
-        mods_dir.mkdir(parents=True, exist_ok=True)
+        download_url = config[ConfigIndex.DOWNLOAD_URL].value
+        archive_path = self.directory / self._ArchiveFileName
+        commands = [
+            f'{self._CurlExe} -fsSL "{download_url}" -o "{archive_path}"',
+            f'{self._TarExe} -xf "{archive_path}" -C "{self.server_root}"',
+        ]
 
-        archive_path = self.directory / self._FunBotsArchiveFileName
-        self.print(f"Downloading fun-bots mod from {mods_url} to {archive_path}...")
-        if not download_with_return(mods_url, archive_path, self.print):
-            self.print(f"Failed to download fun-bots mod from {mods_url}")
-            return False
+        fun_bots_enabled = config[ConfigIndex.MODS_FUN_BOTS_ENABLED].value
+        fun_bots_archive_path = self.directory / self._FunBotsArchiveFileName
+        if fun_bots_enabled:
+            mods_url = config[ConfigIndex.MODS_FUN_BOTS_URL].value
+            mods_dir = self.server_root / self._ModsDirName
+            mods_dir.mkdir(parents=True, exist_ok=True)
+            commands += [
+                f'{self._CurlExe} -fsSL "{mods_url}" -o "{fun_bots_archive_path}"',
+                f'{self._TarExe} -xf "{fun_bots_archive_path}" -C "{mods_dir}"',
+            ]
 
-        self.print(f"Extracting {archive_path} into {mods_dir}...")
-        if not unzip_with_return(archive_path, mods_dir):
-            self.print(f"Failed to extract {archive_path} into {mods_dir}")
-            return False
+        def on_output(line: str) -> None:
+            self.print(line)
 
-        archive_path.unlink(missing_ok=True)
-        return True
+        def on_result(exit_code: int) -> None:
+            archive_path.unlink(missing_ok=True)
+            if fun_bots_enabled:
+                fun_bots_archive_path.unlink(missing_ok=True)
+
+            if not self.server_binary.exists():
+                self.print(
+                    f"Failed to install {self.get_long_name()} into {self.server_root} "
+                    f"(exit code {exit_code})"
+                )
+                result_callback(OperationResult.FAIL)
+                return
+
+            self.print(f"Installed {self.get_long_name()} into {self.server_root}")
+            result_callback(OperationResult.OK)
+
+        bat_runner.run(commands, self.directory, on_output, on_result)
 
     def run(self, config: Config[IndexT]) -> bool:
         args = [
