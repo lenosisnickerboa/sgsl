@@ -8,6 +8,7 @@ dist/
 terminal_logs/**
 error_reports/**
 server/**
+.claude/**
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
