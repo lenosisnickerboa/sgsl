@@ -3,6 +3,10 @@
 
 - start game immediately, no warmup
 
+# VU/CS2: Player count "one off"
+
+Always one player less than #players, perhaps add 1? Not counting myself.
+
 # Other VU mods?
 
 # Application icon instead of default pyinstaller

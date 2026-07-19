@@ -599,6 +599,9 @@ g_terminal_window = terminal.TerminalWindow(
         )
     ),
 )
+
+print_to_terminal(f"sgsl.exe {VERSION} starting...")
+
 # Also a direct follower of the main window: when the config window
 # isn't open (so the terminal is snapped straight to the main window),
 # moving the main window still needs to drag the terminal along.
@@ -619,9 +622,14 @@ if game is None:
 else:
     setup_detected_game_server(game)
 
+print_to_terminal(f"sgsl.exe {VERSION} entering mainloop...")
 root.mainloop()
 
+print_to_terminal(f"sgsl.exe {VERSION} saving config...")
 save_config()
 
 if g_restart_requested:
+    print_to_terminal(f"sgsl.exe {VERSION} restarting application...")
     restart_application()
+
+print_to_terminal(f"sgsl.exe {VERSION} exiting application...")
