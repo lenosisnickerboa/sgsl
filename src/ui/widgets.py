@@ -66,6 +66,14 @@ class SnapWindow:
     moving after that no longer drags the detached window back. It
     re-snaps the next time it's explicitly shown/repositioned.
 
+    While loose, dragging it close to another SnapWindow's right edge
+    (within _DragSnapThreshold pixels on both axes) snaps it flush
+    against that edge and adopts that window as its new anchor going
+    forward — the same "drag it away, it stays put; move the anchor,
+    it follows" relationship as the app's built-in anchor chain, just
+    established ad hoc instead of at construction time. See
+    _try_drag_snap().
+
     Call _init_snap() from __init__, after the underlying Tk widget is
     constructed.
 
@@ -82,11 +90,33 @@ class SnapWindow:
 
     enabled = True
 
+    # Dragging a loose window's left edge within this many pixels of
+    # another SnapWindow's right edge (on both x and y) triggers an
+    # ad-hoc snap — see _try_drag_snap().
+    _DragSnapThreshold = 20
+
+    # Every live SnapWindow instance, used by _try_drag_snap() to find
+    # a candidate to snap to; added in _init_snap(), dropped again in
+    # _on_snap_destroy() once the underlying widget is destroyed.
+    _all_windows: list = []
+
     def _init_snap(self, snap_anchor=None):
         self._snap_anchor = snap_anchor
         self._snap_followers = []
         self._is_snapped = False
+        self._current_anchor = None
+        SnapWindow._all_windows.append(self)
         self.bind("<Configure>", self._on_snap_configure, add="+")
+        self.bind("<Destroy>", self._on_snap_destroy, add="+")
+
+    def _on_snap_destroy(self, event=None) -> None:
+        if self in SnapWindow._all_windows:
+            SnapWindow._all_windows.remove(self)
+
+    def is_visible(self) -> bool:
+        """Default for windows that don't already have their own
+        (e.g. the app's single root Window, which is never withdrawn)."""
+        return self.state() != "withdrawn"
 
     def add_snap_follower(self, window) -> None:
         """Register `window` to be kept snapped to this one: repositioned
@@ -104,7 +134,14 @@ class SnapWindow:
         anchor = self._snap_anchor() if self._snap_anchor is not None else self.master
         if anchor is None:
             return
-        anchor.update_idletasks()
+        # update_idletasks() alone isn't enough for an anchor that was
+        # just deiconified for the first time: its final decorated size
+        # isn't known until the window manager actually maps it, which
+        # only a full update() (processing that Map/Configure event,
+        # not just idle tasks) guarantees — otherwise winfo_width() can
+        # still read a stale/default value (e.g. 1px), landing this
+        # window right on top of the anchor instead of beside it.
+        anchor.update()
         x = anchor.winfo_x() + anchor.winfo_width()
         y = anchor.winfo_y()
         self.geometry(f"+{x}+{y}")
@@ -112,6 +149,7 @@ class SnapWindow:
         # <Configure> event (which Tk may deliver later, or not fire
         # at all if we were already exactly at this position).
         self._is_snapped = True
+        self._current_anchor = anchor
 
     def _is_at_anchor_position(self) -> bool:
         anchor = self._snap_anchor() if self._snap_anchor is not None else self.master
@@ -122,6 +160,33 @@ class SnapWindow:
             and self.winfo_y() == anchor.winfo_y()
         )
 
+    def _try_drag_snap(self) -> None:
+        """Called while this window is loose (not snapped to its
+        configured anchor). If it's now close to another window's
+        right edge, snap flush against it and make that window this
+        one's new anchor from now on, detaching from whatever anchor
+        it had before."""
+        x, y = self.winfo_x(), self.winfo_y()
+        for other in SnapWindow._all_windows:
+            if other is self or other in self._snap_followers:
+                continue
+            if not other.is_visible():
+                continue
+            other_right_edge = other.winfo_x() + other.winfo_width()
+            if (
+                abs(x - other_right_edge) <= self._DragSnapThreshold
+                and abs(y - other.winfo_y()) <= self._DragSnapThreshold
+            ):
+                if (
+                    self._current_anchor is not None
+                    and self in self._current_anchor._snap_followers
+                ):
+                    self._current_anchor._snap_followers.remove(self)
+                self._snap_anchor = lambda anchor=other: anchor
+                other.add_snap_follower(self)
+                self._snap_to_anchor()
+                return
+
     def _on_snap_configure(self, event=None) -> None:
         if not SnapWindow.enabled:
             return
@@ -129,6 +194,24 @@ class SnapWindow:
         # flag) so a direct user drag away from the anchor is detected
         # reliably regardless of event timing/ordering.
         self._is_snapped = self._is_at_anchor_position()
+        # Only a *visible* window can plausibly be the target of a user
+        # drag — without this guard, the geometry churn a window goes
+        # through while still withdrawn (initial construction, widgets
+        # being packed, its very first _snap_to_anchor() before
+        # deiconify()) can spuriously land it within the threshold of
+        # some other window and permanently hijack its snap_anchor
+        # before it's ever actually shown.
+        if not self._is_snapped and self.is_visible():
+            self._try_drag_snap()
+        self.notify_snap_followers()
+
+    def notify_snap_followers(self) -> None:
+        """Re-snap every visible, still-actually-snapped follower.
+        <Configure> covers this automatically while this window is
+        moved/resized, but withdraw() fires no <Configure> at all — so
+        subclasses must call this explicitly after hiding themselves,
+        or a follower dynamically anchored to "me, if visible, else
+        something else" would never learn it should fall back."""
         for follower in self._snap_followers:
             if follower.is_visible() and follower._is_snapped:
                 follower.reposition()
@@ -322,6 +405,11 @@ class TabbedWindow(SnapWindow, EnableDisableMixin, ttk.Toplevel):
     def hide(self):
         """Hide the window without destroying it or losing its contents."""
         self.withdraw()
+        # withdraw() fires no <Configure>, so a follower dynamically
+        # anchored to "me, if visible, else something else" (e.g. the
+        # terminal window falling back to the main window once this
+        # config window closes) would otherwise never reposition.
+        self.notify_snap_followers()
         self.on_close()
 
     def toggle(self):

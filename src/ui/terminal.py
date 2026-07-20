@@ -121,6 +121,10 @@ class TerminalWindow(SnapWindow, tb.Toplevel):
     def hide(self):
         """Hide the window without destroying it or losing its contents."""
         self.withdraw()
+        # withdraw() fires no <Configure>, so a follower dynamically
+        # anchored to "me, if visible, else something else" would
+        # otherwise never learn it should reposition.
+        self.notify_snap_followers()
         self.on_close()
 
     def toggle(self):
