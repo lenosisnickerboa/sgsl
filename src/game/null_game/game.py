@@ -1,6 +1,6 @@
 import threading
 from pathlib import Path
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from game.game import Game, OperationResult
@@ -19,6 +19,10 @@ class NullGame(Game):
         super().__init__(directory, terminal)
         self.running = False
         self.server_binary = self.server_root / GameExeWithPath
+        # Only set once config_loaded() runs — still None during the
+        # initial install, so install()/update() fall back to
+        # build_game_defaults() in that case.
+        self.config: Optional[Config[IndexT]] = None
 
     def get_short_name(self) -> str:
         return "ng"
@@ -34,12 +38,21 @@ class NullGame(Game):
     # would behave against a real, non-instant game install/update.
     _InstallUpdateDelaySeconds = 3.0
 
+    def _should_fail_install_or_update(self) -> bool:
+        config = self.config if self.config is not None else build_game_defaults()
+        return config[ConfigIndex.FAIL_TO_INSTALL_AND_UPDATE].value
+
     def install(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Installing {self.get_long_name()} into {self.server_root}")
         self.print(f"touch({self.server_binary})")
         self.server_binary.touch(exist_ok=True)
+        should_fail = self._should_fail_install_or_update()
 
         def finish():
+            if should_fail:
+                self.print(f"Failed to install {self.get_long_name()}")
+                result_callback(OperationResult.FAIL)
+                return
             self.print(f"Installed {self.get_long_name()} into {self.server_root}")
             result_callback(OperationResult.OK)
 
@@ -47,8 +60,13 @@ class NullGame(Game):
 
     def update(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
+        should_fail = self._should_fail_install_or_update()
 
         def finish():
+            if should_fail:
+                self.print(f"Failed to update {self.get_long_name()}")
+                result_callback(OperationResult.FAIL)
+                return
             result_callback(OperationResult.OK)
 
         threading.Timer(self._InstallUpdateDelaySeconds, finish).start()
@@ -114,6 +132,7 @@ class NullGame(Game):
                     ConfigIndex.RUN_COMMAND_EDIT,
                     ConfigIndex.CUSTOM_RUN_COMMAND_PRE,
                     ConfigIndex.CUSTOM_RUN_COMMAND_POST,
+                    ConfigIndex.FAIL_TO_INSTALL_AND_UPDATE,
                 ],
             ),
             TabSpec(
@@ -144,4 +163,4 @@ class NullGame(Game):
         return []
 
     def config_loaded(self, config: Config[IndexT]) -> None:
-        pass
+        self.config = config

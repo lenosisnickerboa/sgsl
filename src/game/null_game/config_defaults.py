@@ -190,4 +190,12 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Appended after the last argument when starting the server",
             value="",
         ),
+        ConfigIndex.FAIL_TO_INSTALL_AND_UPDATE: ConfigItem(
+            name="fail_to_install_and_update",
+            visible_name="Fail to install/update",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Testing aid: make install/update fail (after the simulated delay) instead of succeeding",
+            value=False,
+        ),
     }
