@@ -221,6 +221,14 @@ class SnapWindow:
 class Window(SnapWindow, EnableDisableMixin, ttk.Window):
     def __init__(self, title: str):
         super().__init__(themename="superhero", title=title)
+        # Parked off-screen until center_on_screen() repositions it --
+        # a withdrawn toplevel never runs its geometry manager, so
+        # winfo_width()/height() would still read Tk's 200x200 default
+        # instead of this window's real packed size when the time
+        # comes to center it. Staying mapped (just off-screen) keeps
+        # that geometry computation live without ever flashing at the
+        # window manager's default on-screen placement first.
+        self.geometry("+8000+8000")
         # Horizontal resize only — vertical layout is fixed.
         self.resizable(True, False)
         self._init_snap()
