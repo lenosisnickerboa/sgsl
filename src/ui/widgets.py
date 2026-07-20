@@ -9,6 +9,7 @@ from ttkbootstrap.tooltip import ToolTip
 from ttkbootstrap.scrolled import ScrolledFrame
 from ttkbootstrap.tableview import Tableview
 import ui.helpers as helpers
+from app.resources import resource_path
 
 
 def Nop():
@@ -223,6 +224,18 @@ class Window(SnapWindow, EnableDisableMixin, ttk.Window):
         # Horizontal resize only — vertical layout is fixed.
         self.resizable(True, False)
         self._init_snap()
+
+        # No -default here: ttkbootstrap's own __init__ above already
+        # gave this window an icon via iconphoto(), so iconbitmap()
+        # must be called plainly to actually override it -- -default
+        # only supplies a fallback for windows that don't have an icon
+        # yet, which this one, at this point, already does. Swap
+        # app/assets/icon.ico to customize.
+        icon_path = resource_path("app/assets/icon.ico")
+        try:
+            self.iconbitmap(str(icon_path))
+        except tk.TclError as e:
+            print(f"Could not load application icon from {icon_path}: {e}")
 
     def center_on_screen(self):
         """Center the window on the screen. Call once all of the
