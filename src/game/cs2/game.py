@@ -2,6 +2,7 @@ import re
 import shlex
 import shutil
 import winreg
+from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional, Union
 from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType
@@ -10,6 +11,10 @@ from config.toml_config import Config, IndexT
 from game.cs2.config_defaults import build_game_defaults
 from game.cs2.config_index import ConfigIndex
 from game.cs2.config_parser.valve_config_parser import ValveConfigParser
+from game.cs2.config_parser.valve_gamemode_config_parser import (
+    ConfigEntry,
+    ValveGamemodeConfigParser,
+)
 from game.game import Game, OperationResult, TerminalLineResult
 from support import bat_runner
 from support.dialog import edit_string_dialog_box
@@ -65,8 +70,6 @@ class CS2Game(Game):
     _DiskSpaceLogPattern = re.compile(
         r'Failed to preallocate \(Not enough disk space\) "([^"]+)"'
     )
-
-    _ServerCfgName = "sgsl_server.cfg"
 
     # A SteamCMD-only install doesn't ship these Steamworks
     # redistributable DLLs, so the dedicated server fails at startup
@@ -283,8 +286,6 @@ class CS2Game(Game):
             "MODE",
             "-maxplayers",
             "<number>",
-            "+exec",
-            f"{self._ServerCfgName}",
         ]
         game_mode = config[ConfigIndex.GAME_MODE].value
         if game_mode == "Casual":
@@ -323,7 +324,7 @@ class CS2Game(Game):
             args.append("+map")
             args.append(config[ConfigIndex.SELECTED_MAP].value)
         # TODO: add "-usercon",
-        self._write_server_cfg(config)
+        self._update_gamemode_cfg(config)
         args = (
             shlex.split(config[ConfigIndex.CUSTOM_RUN_COMMAND_PRE].value)
             + args
@@ -337,33 +338,55 @@ class CS2Game(Game):
         super().start_server(args, self._filter_stdout)
         return True
 
-    def _write_server_cfg(self, config: Config[IndexT]) -> None:
+    def _gamemode_cfg_path(self, config: Config[IndexT]) -> Path:
         cfg_dir = self.server_root / "game" / "csgo" / "cfg"
-        cfg_dir.mkdir(parents=True, exist_ok=True)
-        lines = [
-            self._format_cvar_line(item)
+        gamemode = config[ConfigIndex.GAME_MODE].value.lower()
+        return cfg_dir / f"gamemode_{gamemode}.cfg"
+
+    # Marks a line as sgsl's own, so a later run can find and drop it
+    # again before appending a fresh copy -- see _update_gamemode_cfg().
+    _AddedByComment = "added by sgsl.exe"
+
+    def _update_gamemode_cfg(self, config: Config[IndexT]) -> None:
+        """Strip any cvar lines sgsl previously appended to this game
+        mode's Valve-provided override cfg, then append the current
+        config's SERVER_CFG_FILE items back on, each tagged with when
+        it was written -- so repeated runs update in place instead of
+        piling up duplicates, while everything else in the file (the
+        game's own defaults, comments, formatting) is left alone."""
+        path = self._gamemode_cfg_path(config)
+        entries = ValveGamemodeConfigParser.read(path)
+        entries = [
+            entry
+            for entry in entries
+            if not (
+                isinstance(entry, ConfigEntry)
+                and self._AddedByComment in entry.comment
+            )
+        ]
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        entries.extend(
+            ConfigEntry(
+                name=item.name,
+                value=self._cvar_value(item),
+                comment=f"{self._AddedByComment} {timestamp}",
+            )
             for item in config.values()
             if item.config_type is ConfigDeliveryType.SERVER_CFG_FILE
-        ]
-        (cfg_dir / self._ServerCfgName).write_text(
-            "\n".join(lines) + "\n", encoding="utf-8"
         )
 
-    def _format_cvar_line(self, item: ConfigItem) -> str:
+        ValveGamemodeConfigParser.write(path, entries)
+
+    def _cvar_value(self, item: ConfigItem) -> str:
         if item.name == "bot_difficulty":
             # Stored/edited as a friendly label (see config_defaults.py's
             # allowed_values), but the game cvar takes its list position
             # as an integer.
-            return f"{item.name} {item.allowed_values.index(item.value)}"
-        if item.type in (
-            ConfigType.STRING,
-            ConfigType.STRING_LIST,
-            ConfigType.MASKED_STRING,
-        ):
-            return f'{item.name} "{item.value}"'
+            return str(item.allowed_values.index(item.value))
         if item.type is ConfigType.BOOLEAN:
-            return f"{item.name} {1 if item.value else 0}"
-        return f"{item.name} {item.value}"
+            return "1" if item.value else "0"
+        return str(item.value)
 
     def stop(self) -> bool:
         return super().stop_server()

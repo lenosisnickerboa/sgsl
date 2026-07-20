@@ -1,3 +1,7 @@
+# All top windows should have the same icon
+
+# Change config items / page from 8 to 16
+
 # Detect if server crashes (per game mode?)
 
 - Added framework for it, implement in cs2 and vu
