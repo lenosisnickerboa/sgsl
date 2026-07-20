@@ -1,3 +1,5 @@
+<img src="src/app/assets/icon.png" width="96" alt="sgsl icon">
+
 # sgsl
 
 Simple Game Server Launcher
