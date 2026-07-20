@@ -31,6 +31,7 @@ class ConfigIndex(IntEnum):
     CUSTOM_RUN_COMMAND_PRE = 19
     CUSTOM_RUN_COMMAND_POST = 20
     FAIL_TO_INSTALL_AND_UPDATE = 21
+    SERVER_RUN_BEHAVIOR = 22
 
 
 _values = [item.value for item in ConfigIndex]

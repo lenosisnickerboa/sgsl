@@ -1,6 +1,10 @@
 # Detect if server crashes (per game mode?)
 - upodate game state accordingly, now keeps saying "Stop" and game running...
 
+# cs2: Warmup times, round times seems not to be taken from config
+
+- Are they overridden by other configs?
+
 # VU startup times
 
 - start game immediately, no warmup
@@ -14,8 +18,6 @@ Always one player less than #players, perhaps add 1? Not counting myself.
 # Application icon instead of default pyinstaller
 
 # Game icons?
-
-# VU Delay when selecting Install/Update, no feedback
 
 # Make static functions instead of methods where possible
 

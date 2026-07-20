@@ -19,6 +19,16 @@ class OperationResult(Enum):
     NOT_SUPPORTED = "NOT_SUPPORTED"
 
 
+class TerminalLineResult(Enum):
+    """Outcome of interpret_terminal_line(): what, if anything, a
+    single line of terminal output revealed about the game's state.
+    Only report stuff which happens assynchronously."""
+
+    OK = "OK"
+    SERVER_CRASHED = "SERVER_CRASHED"
+    MAP_DOWNLOAD_FAILED = "MAP_DOWNLOAD_FAILED"
+
+
 class Game(ABC):
     """Interface that every game implementation must follow."""
 
@@ -80,18 +90,27 @@ class Game(ABC):
         )
         self.print(f"Started game server {self.get_long_name()} with pid {pid}")
 
-    def stop_server(self):
+    def stop_server(self) -> bool:
         self.print(
             f'Stopping game server {self.get_long_name()} with executable "{self.get_server_binary_path()}" ...'
         )
         if not self.process_handler:
-            return
+            return True
         server_pids = self.process_handler.list_pids()
-        if len(server_pids) > 0:
+        failed_pids = (
             self.process_handler.kill_pids(server_pids, timeout=10.0, force=True)
+            if server_pids
+            else []
+        )
+        if failed_pids:
+            self.print(
+                f"Failed to stop game server {self.get_long_name()}, still running pids {failed_pids}"
+            )
+            return False
         self.print(
             f"Stopped game server {self.get_long_name()} with pids {server_pids}"
         )
+        return True
 
     def is_server_running(self) -> bool:
         """Check if the game is running."""
@@ -140,13 +159,21 @@ class Game(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def stop(self) -> None:
-        """Stop the game."""
+    def stop(self) -> bool:
+        """Stop the game. Returns True if the server was successfully
+        stopped, or False otherwise."""
         raise NotImplementedError
 
     @abstractmethod
     def is_running(self) -> None:
         """Check if the game is running."""
+        raise NotImplementedError
+
+    @abstractmethod
+    def interpret_terminal_line(self, line: str) -> TerminalLineResult:
+        """Inspect a single line of terminal output and report what it
+        reveals about the game's state, if anything. Called for every
+        line printed to the terminal while this is the active game."""
         raise NotImplementedError
 
     @abstractmethod

@@ -35,6 +35,7 @@ class TerminalWindow(SnapWindow, tb.Toplevel):
         self.install_dir = Path(install_dir)
         # 0 means "no limit" — the log is left to grow unbounded.
         self.max_lines = max_lines
+        self._listeners: list[Callable[[str], object]] = []
         self._init_snap(snap_anchor)
 
         button_row = tb.Frame(self)
@@ -71,8 +72,18 @@ class TerminalWindow(SnapWindow, tb.Toplevel):
         # Start hidden — the main app decides when to show it
         self.withdraw()
 
+    def register_listener(self, callback: Callable[[str], object]) -> None:
+        """Register a callback to be invoked with the raw text of every
+        line passed to add_line(). The callback's return value is not
+        used by the terminal itself; it exists so callers can share a
+        common signature, e.g. one that reports back an interpretation
+        of the line (see game.Game.interpret_terminal_line)."""
+        self._listeners.append(callback)
+
     def add_line(self, text, tag="normal"):
         """Append a timestamped line of text. Safe to call from any thread."""
+        for listener in self._listeners:
+            listener(text)
         timestamp = datetime.now().strftime("%Y.%m.%d %H:%M:%S")
         full_text = f"[{timestamp}] {text}"
         self.after(0, self._append, full_text, tag)

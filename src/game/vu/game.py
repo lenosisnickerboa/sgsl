@@ -8,7 +8,7 @@ from game.vu import maps_info
 from game.vu import mode_info
 from game.vu.config_defaults import build_game_defaults
 from game.vu.config_index import ConfigIndex
-from game.game import Game, OperationResult
+from game.game import Game, OperationResult, TerminalLineResult
 from support import bat_runner
 from support.dialog import edit_string_dialog_box
 
@@ -57,9 +57,9 @@ class VUGame(Game):
     # GNU tar misreads a bare drive-letter path like "C:\..." as a
     # host:path remote-tape spec and fails ("Cannot connect to C:"), so
     # pin to the Windows-native executables by their full paths.
-#    _CurlExe = r"%SystemRoot%\System32\curl.exe"
+    #    _CurlExe = r"%SystemRoot%\System32\curl.exe"
     _CurlExe = r"curl.exe"
-#    _TarExe = r"%SystemRoot%\System32\tar.exe"
+    #    _TarExe = r"%SystemRoot%\System32\tar.exe"
     _TarExe = r"tar.exe"
 
     def _install_or_update(
@@ -147,9 +147,7 @@ class VUGame(Game):
         admin_dir = self.server_root / self._MapListFileName.parent
         admin_dir.mkdir(parents=True, exist_ok=True)
 
-        selected_map_id = self.maps.id_from_name(
-            config[ConfigIndex.SELECTED_MAP].value
-        )
+        selected_map_id = self.maps.id_from_name(config[ConfigIndex.SELECTED_MAP].value)
         selected_game_mode_id = self.modes.id_from_name(
             config[ConfigIndex.GAME_MODE].value
         )
@@ -218,11 +216,14 @@ class VUGame(Game):
             return f"{item.name} {"true" if item.value else "false"}"
         return f"{item.name} {item.value}"
 
-    def stop(self) -> None:
-        super().stop_server()
+    def stop(self) -> bool:
+        return super().stop_server()
 
     def is_running(self) -> bool:
         return super().is_server_running()
+
+    def interpret_terminal_line(self, line: str) -> TerminalLineResult:
+        return TerminalLineResult.OK
 
     def get_server_binary_path(self) -> Path:
         return self.server_binary

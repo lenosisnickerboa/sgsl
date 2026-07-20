@@ -198,4 +198,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Testing aid: make install/update fail (after the simulated delay) instead of succeeding",
             value=False,
         ),
+        ConfigIndex.SERVER_RUN_BEHAVIOR: ConfigItem(
+            name="server_run_behavior",
+            visible_name="Server run behavior",
+            type=ConfigType.STRING_LIST,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Testing aid: simulate how the server behaves once run — "
+            "SUCCESSFUL runs normally, START_FAILS fails immediately, CRASHES "
+            "crashes after a few seconds, DOES_NOT_DIE ignores stop requests",
+            value="SUCCESSFUL",
+            allowed_values=["SUCCESSFUL", "START_FAILS", "CRASHES", "DOES_NOT_DIE"],
+        ),
     }

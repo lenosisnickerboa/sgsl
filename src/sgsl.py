@@ -9,7 +9,7 @@ from config.toml_config import Config, TomlConfigParser
 from app.version import VERSION
 import ui.widgets as ui
 import ui.terminal as terminal
-from game.game import Game, OperationResult
+from game.game import Game, OperationResult, TerminalLineResult
 from game.game_factory import GameFactory
 from app.config_index import ConfigIndex
 from ui_builder.ui_builder import UiBuilder
@@ -88,9 +88,10 @@ def _auto_open_terminal_for_install_or_update() -> bool:
     return True so the caller closes it again once the operation
     finishes successfully; otherwise (disabled, or already open)
     return False and leave it as it is."""
-    if not g_app_config[
-        ConfigIndex.AUTO_OPEN_TERMINAL_ON_INSTALL_OR_UPDATE
-    ].value or g_terminal_window.is_visible():
+    if (
+        not g_app_config[ConfigIndex.AUTO_OPEN_TERMINAL_ON_INSTALL_OR_UPDATE].value
+        or g_terminal_window.is_visible()
+    ):
         return False
     on_toggle_terminal_window()
     # A real click updates the checkbox's own visual state as part of
@@ -194,6 +195,10 @@ def on_update_game_server(game: Game):
     game.update(on_update_result)
 
 
+def restore_status_line_delayed():
+    root.after(5000, restore_status_line)
+
+
 def save_config():
     set_status_line("Saving Configuration...")
     TomlConfigParser.write(g_app_config_file, g_app_config)
@@ -201,7 +206,7 @@ def save_config():
         TomlConfigParser.write(g_game_config_file, g_game_config)
     print_to_terminal("Configuration saved")
     set_status_line("Configuration saved")
-    root.after(5000, restore_status_line)
+    restore_status_line_delayed()
 
 
 def on_save_config():
@@ -324,14 +329,33 @@ def on_start_stop_game_server(game: Game):
             f"Stopping game server for {game.get_long_name()} in directory {game.get_directory()}..."
         )
         set_status_line(f"Stopping {game.get_long_name()}...")
-        game.stop()
+        if not game.stop():
+            f"Stopping game server for {game.get_long_name()} in directory {game.get_directory()} failed..."
+            set_status_line(
+                f"{game.get_long_name()} is running (tried to stop it and failed)..."
+            )
+            return
+
         g_start_stop_server.set_name(name="Start")
         g_start_stop_server.set_tooltip(tooltip="Start server")
         g_update_open_close.enable()
         print_to_terminal(
-            f"Stoped game server for {game.get_long_name()} in directory {game.get_directory()}..."
+            f"Stopped game server for {game.get_long_name()} in directory {game.get_directory()}..."
         )
         restore_status_line()
+
+
+def on_game_server_crashed(game: Game):
+    global g_start_stop_server
+
+    g_start_stop_server.set_name(name="Start")
+    g_start_stop_server.set_tooltip(tooltip="Start server")
+    g_update_open_close.enable()
+    set_status_line(f"Game server {game.get_long_name()} crashed...")
+    print_to_terminal(
+        f"Game server for {game.get_long_name()} in directory {game.get_directory()} crashed..."
+    )
+    restore_status_line_delayed()
 
 
 def on_toggle_terminal_window():
@@ -649,6 +673,24 @@ g_main_frame.pack()
 
 terminal_printer = lambda line: g_terminal_window.add_line(line)
 game = GameFactory.create(current_dir, terminal_printer)
+
+
+def on_terminal_line(line: str):
+    """Ask the currently active game what a line of terminal output
+    means, if a game is active."""
+    if not game:
+        return
+    result = game.interpret_terminal_line(line)
+    if result == TerminalLineResult.OK:
+        return
+    if result == TerminalLineResult.MAP_DOWNLOAD_FAILED:
+        return
+    if result == TerminalLineResult.SERVER_CRASHED:
+        on_game_server_crashed(game)
+        return
+
+
+g_terminal_window.register_listener(on_terminal_line)
 
 if game is None:
     setup_install_game(current_dir)

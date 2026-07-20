@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
-from game.game import Game, OperationResult
+from game.game import Game, OperationResult, TerminalLineResult
 from game.null_game.config_defaults import build_game_defaults
 from game.null_game.config_index import ConfigIndex
 from support.dialog import edit_string_dialog_box
@@ -38,9 +38,16 @@ class NullGame(Game):
     # would behave against a real, non-instant game install/update.
     _InstallUpdateDelaySeconds = 3.0
 
+    # Simulated delay before a CRASHES-behavior server "crashes" once running.
+    _CrashDelaySeconds = 3.0
+
     def _should_fail_install_or_update(self) -> bool:
         config = self.config if self.config is not None else build_game_defaults()
         return config[ConfigIndex.FAIL_TO_INSTALL_AND_UPDATE].value
+
+    def _server_run_behavior(self) -> str:
+        config = self.config if self.config is not None else build_game_defaults()
+        return config[ConfigIndex.SERVER_RUN_BEHAVIOR].value
 
     def install(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Installing {self.get_long_name()} into {self.server_root}")
@@ -89,15 +96,39 @@ class NullGame(Game):
                 return False
             args = edited
         self.print(f"Starting with args: {args}")
+
+        behavior = config[ConfigIndex.SERVER_RUN_BEHAVIOR].value
+        if behavior == "START_FAILS":
+            self.print("Server start failed")
+            return False
+
         self.running = True
+        if behavior == "CRASHES":
+            threading.Timer(self._CrashDelaySeconds, self._simulate_crash).start()
         return True
 
-    def stop(self) -> None:
+    def _simulate_crash(self) -> None:
+        self.running = False
+        self.print("Server crashed")
+
+    def stop(self) -> bool:
+        if self._server_run_behavior() == "DOES_NOT_DIE":
+            self.print(
+                f"{self.get_long_name()} ignored the stop request (DOES_NOT_DIE)"
+            )
+            return False
         self.print(f"Stopping {self.get_long_name()} from {self.server_root}")
         self.running = False
+        return True
 
     def is_running(self) -> bool:
         return self.running
+
+    def interpret_terminal_line(self, line: str) -> TerminalLineResult:
+        if "Server crashed" in line:
+            self.running = False
+            return TerminalLineResult.SERVER_CRASHED
+        return TerminalLineResult.OK
 
     def get_server_binary_path(self) -> Path:
         return self.server_binary
@@ -133,6 +164,7 @@ class NullGame(Game):
                     ConfigIndex.CUSTOM_RUN_COMMAND_PRE,
                     ConfigIndex.CUSTOM_RUN_COMMAND_POST,
                     ConfigIndex.FAIL_TO_INSTALL_AND_UPDATE,
+                    ConfigIndex.SERVER_RUN_BEHAVIOR,
                 ],
             ),
             TabSpec(

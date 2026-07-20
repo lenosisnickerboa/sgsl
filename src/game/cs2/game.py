@@ -10,7 +10,7 @@ from config.toml_config import Config, IndexT
 from game.cs2.config_defaults import build_game_defaults
 from game.cs2.config_index import ConfigIndex
 from game.cs2.config_parser.valve_config_parser import ValveConfigParser
-from game.game import Game, OperationResult
+from game.game import Game, OperationResult, TerminalLineResult
 from support import bat_runner
 from support.dialog import edit_string_dialog_box
 from support.unzip import unzip_with_return
@@ -365,11 +365,14 @@ class CS2Game(Game):
             return f"{item.name} {1 if item.value else 0}"
         return f"{item.name} {item.value}"
 
-    def stop(self) -> None:
-        super().stop_server()
+    def stop(self) -> bool:
+        return super().stop_server()
 
     def is_running(self) -> bool:
         return super().is_server_running()
+
+    def interpret_terminal_line(self, line: str) -> TerminalLineResult:
+        return TerminalLineResult.OK
 
     def get_server_binary_path(self) -> Path:
         return self.server_binary
