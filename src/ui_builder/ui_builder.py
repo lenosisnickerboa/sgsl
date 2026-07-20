@@ -14,7 +14,7 @@ _FLOAT_MAX = 1e9
 
 # A tab with more items than this gets a scrollbar instead of growing
 # past this many rows.
-MAX_VISIBLE_CONFIG_ITEMS_PER_TAB = 8
+MAX_VISIBLE_CONFIG_ITEMS_PER_TAB = 16
 
 
 class UiBuilder:

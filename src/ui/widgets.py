@@ -233,15 +233,21 @@ class Window(SnapWindow, EnableDisableMixin, ttk.Window):
         self.resizable(True, False)
         self._init_snap()
 
-        # No -default here: ttkbootstrap's own __init__ above already
-        # gave this window an icon via iconphoto(), so iconbitmap()
-        # must be called plainly to actually override it -- -default
-        # only supplies a fallback for windows that don't have an icon
-        # yet, which this one, at this point, already does. Swap
-        # app/assets/icon.ico to customize.
+        # Two separate calls, since iconbitmap() only ever applies one
+        # or the other per call:
+        #   - Plain (no -default) applies immediately to THIS window,
+        #     overriding the icon ttkbootstrap's own __init__ above
+        #     already gave it via iconphoto() -- -default alone
+        #     wouldn't touch a window that already has an icon.
+        #   - -default registers it as the fallback for every other
+        #     Toplevel (terminal, configure windows, dialogs, ...)
+        #     opened afterwards that doesn't set its own icon, which
+        #     none of them do.
+        # Swap app/assets/icon.ico to customize.
         icon_path = resource_path("app/assets/icon.ico")
         try:
             self.iconbitmap(str(icon_path))
+            self.iconbitmap(default=str(icon_path))
         except tk.TclError as e:
             print(f"Could not load application icon from {icon_path}: {e}")
 
