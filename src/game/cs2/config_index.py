@@ -77,6 +77,9 @@ class ConfigIndex(IntEnum):
     REMOVE_MANIFEST_FILE = 45
     UPDATE_STEAMCMD = 46
 
+    CUSTOM_RUN_COMMAND_PRE = 47
+    CUSTOM_RUN_COMMAND_POST = 48
+
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"

@@ -324,6 +324,11 @@ class CS2Game(Game):
             args.append(config[ConfigIndex.SELECTED_MAP].value)
         # TODO: add "-usercon",
         self._write_server_cfg(config)
+        args = (
+            shlex.split(config[ConfigIndex.CUSTOM_RUN_COMMAND_PRE].value)
+            + args
+            + shlex.split(config[ConfigIndex.CUSTOM_RUN_COMMAND_POST].value)
+        )
         if config[ConfigIndex.RUN_COMMAND_EDIT].value:
             edited = edit_string_dialog_box("Edit run command", " ".join(args))
             if edited is None:
@@ -485,6 +490,8 @@ class CS2Game(Game):
                     ConfigIndex.SELECTED_MAP,
                     ConfigIndex.PLAYER_COUNT,
                     ConfigIndex.RUN_COMMAND_EDIT,
+                    ConfigIndex.CUSTOM_RUN_COMMAND_PRE,
+                    ConfigIndex.CUSTOM_RUN_COMMAND_POST,
                 ],
             ),
             TabSpec(

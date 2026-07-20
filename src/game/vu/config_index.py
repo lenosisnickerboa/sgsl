@@ -30,6 +30,8 @@ class ConfigIndex(IntEnum):
     PLAYER_COUNT_RESTART_ROUND = 17
     MODS_FUN_BOTS_ENABLED = 18
     MODS_FUN_BOTS_URL = 19
+    CUSTOM_RUN_COMMAND_PRE = 20
+    CUSTOM_RUN_COMMAND_POST = 21
 
 
 _values = [item.value for item in ConfigIndex]

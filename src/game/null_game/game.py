@@ -42,6 +42,15 @@ class NullGame(Game):
     def run(self, config: Config[IndexT]) -> bool:
         self.print(f"Running {self.get_long_name()} from {self.server_root}")
         args = f"game_mode={config[ConfigIndex.GAME_MODE].value} map={config[ConfigIndex.SELECTED_MAP].value} player_count={config[ConfigIndex.PLAYER_COUNT].value} friendly_fire={config[ConfigIndex.FRIENDLY_FIRE_ENABLED].value}"
+        args = " ".join(
+            part
+            for part in (
+                config[ConfigIndex.CUSTOM_RUN_COMMAND_PRE].value,
+                args,
+                config[ConfigIndex.CUSTOM_RUN_COMMAND_POST].value,
+            )
+            if part
+        )
         if config[ConfigIndex.RUN_COMMAND_EDIT].value:
             edited = edit_string_dialog_box("Edit run command", args)
             if edited is None:
@@ -89,6 +98,8 @@ class NullGame(Game):
                     ConfigIndex.DUMMY_1,
                     ConfigIndex.PASSWORD,
                     ConfigIndex.RUN_COMMAND_EDIT,
+                    ConfigIndex.CUSTOM_RUN_COMMAND_PRE,
+                    ConfigIndex.CUSTOM_RUN_COMMAND_POST,
                 ],
             ),
             TabSpec(

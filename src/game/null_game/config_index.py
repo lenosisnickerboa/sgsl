@@ -28,6 +28,8 @@ class ConfigIndex(IntEnum):
     BOT_DIFFICULTY = 16
     AVAILABLE_MAPS = 17
     RUN_COMMAND_EDIT = 18
+    CUSTOM_RUN_COMMAND_PRE = 19
+    CUSTOM_RUN_COMMAND_POST = 20
 
 
 _values = [item.value for item in ConfigIndex]

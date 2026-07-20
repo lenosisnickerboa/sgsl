@@ -425,6 +425,22 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Show an editable copy of the launch command before starting the server",
             value=False,
         ),
+        ConfigIndex.CUSTOM_RUN_COMMAND_PRE: ConfigItem(
+            name="custom_run_command_pre",
+            visible_name="Custom run command (pre)",
+            type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Prepended before the first argument when starting the server",
+            value="",
+        ),
+        ConfigIndex.CUSTOM_RUN_COMMAND_POST: ConfigItem(
+            name="custom_run_command_post",
+            visible_name="Custom run command (post)",
+            type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Appended after the last argument when starting the server",
+            value="",
+        ),
         ConfigIndex.REMOVE_MANIFEST_FILE: ConfigItem(
             name="remove_manifest_file",
             visible_name="Remove manifest file before install/update. "

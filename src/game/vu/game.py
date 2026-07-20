@@ -125,6 +125,11 @@ class VUGame(Game):
         elif config[ConfigIndex.SERVER_UPDATE_FREQUENCY].value == "120":
             args.append("-high120")
         self._write_server_cfg(config)
+        args = (
+            shlex.split(config[ConfigIndex.CUSTOM_RUN_COMMAND_PRE].value)
+            + args
+            + shlex.split(config[ConfigIndex.CUSTOM_RUN_COMMAND_POST].value)
+        )
         if config[ConfigIndex.RUN_COMMAND_EDIT].value:
             edited = edit_string_dialog_box("Edit run command", " ".join(args))
             if edited is None:
@@ -257,6 +262,8 @@ class VUGame(Game):
                     ConfigIndex.PLAYER_COUNT_RESTART_ROUND,
                     ConfigIndex.FRIENDLY_FIRE,
                     ConfigIndex.RUN_COMMAND_EDIT,
+                    ConfigIndex.CUSTOM_RUN_COMMAND_PRE,
+                    ConfigIndex.CUSTOM_RUN_COMMAND_POST,
                 ],
             ),
             TabSpec(
