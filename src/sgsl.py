@@ -697,6 +697,8 @@ if game is None:
 else:
     setup_detected_game_server(game)
 
+root.center_on_screen()
+
 print_to_terminal(f"sgsl.exe {VERSION} entering mainloop...")
 root.mainloop()
 

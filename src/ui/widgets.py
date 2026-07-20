@@ -224,6 +224,16 @@ class Window(SnapWindow, EnableDisableMixin, ttk.Window):
         self.resizable(True, False)
         self._init_snap()
 
+    def center_on_screen(self):
+        """Center the window on the screen. Call once all of the
+        window's contents have been added — winfo_width()/height()
+        need the real final size to center correctly, not whatever
+        placeholder size exists right after construction."""
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() - self.winfo_width()) // 2
+        y = (self.winfo_screenheight() - self.winfo_height()) // 2
+        self.geometry(f"+{x}+{y}")
+
 
 class TopLevelWindow(EnableDisableMixin, ttk.Toplevel):
     def __init__(self, title: str):
