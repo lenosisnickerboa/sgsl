@@ -11,16 +11,9 @@ Simon-tjat
 
 Overhaul
 
-# UI window management, e.g. snap to window on close
-
-Snapping windows doesn't work
-
 # UI window management, minimize breaks snapping
 
 minimize, close config, open config -> not snapped
-
-# VU Update hangs GUI, copy cs2 update
-
 
 # Player count off by one
 

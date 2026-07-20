@@ -2,6 +2,8 @@
 
 Simple Game Server Launcher
 
+[![Downloads](https://img.shields.io/github/downloads/lenosisnickerboa/sgsl/total.svg)](https://github.com/lenosisnickerboa/sgsl/releases) — [detailed download stats](https://somsubhra.github.io/github-release-stats/?username=lenosisnickerboa&repository=sgsl)
+
 # The general idea - "One click install game server"
 
 This is a simple game server launcher suitable for people wanting to quickly setup and host a game server for some friends to join without diving into all the details of setting up and configuring a game server.

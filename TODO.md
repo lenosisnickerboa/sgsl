@@ -1,5 +1,6 @@
 # Detect if server crashes (per game mode?)
-- upodate game state accordingly, now keeps saying "Stop" and game running...
+
+- Added framework for it, implement in cs2 and vu
 
 # cs2: Warmup times, round times seems not to be taken from config
 
@@ -9,11 +10,7 @@
 
 - start game immediately, no warmup
 
-# VU/CS2: Player count "one off"
-
-Always one player less than #players, perhaps add 1? Not counting myself.
-
-# Other VU mods?
+# Other VU mods? A general VU mods page?
 
 # Application icon instead of default pyinstaller
 
@@ -57,12 +54,6 @@ Allow filtering of stdout/stderr
 Current filtering should be moved as defaults for filtering stdout
 
 # Add support for csgo
-
-# Add support for vu
-
-# Add support for using installed game client
-
-Valid for cs2 and vu. 
 
 # If install fails, create an error report automnatically before exit
 
