@@ -14,7 +14,7 @@ _FLOAT_MAX = 1e9
 
 # A tab with more items than this gets a scrollbar instead of growing
 # past this many rows.
-MAX_VISIBLE_CONFIG_ITEMS_PER_TAB = 16
+MAX_VISIBLE_CONFIG_ITEMS_PER_TAB = 24
 
 
 class UiBuilder:
@@ -179,7 +179,9 @@ class UiBuilder:
         index: IndexT,
         item: ConfigItem,
         config: Config[IndexT],
-        config_changed_callback: Optional[Callable[[ConfigItem, Config[IndexT]], list[IndexT]]],
+        config_changed_callback: Optional[
+            Callable[[ConfigItem, Config[IndexT]], list[IndexT]]
+        ],
         compact: bool,
     ):
         tooltip = item.tooltip if item.tooltip else item.visible_name
