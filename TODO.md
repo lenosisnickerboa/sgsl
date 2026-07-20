@@ -1,6 +1,3 @@
-# Auto open/close terminal on install/update
-- default yes
-
 # Detect if server crashes (per game mode?)
 - upodate game state accordingly, now keeps saying "Stop" and game running...
 

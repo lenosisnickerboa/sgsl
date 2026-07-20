@@ -13,6 +13,7 @@ class ConfigIndex(IntEnum):
     TERMINAL_ENABLED = 1
     TERMINAL_LOG_MAX_LINES = 2
     SNAP_WINDOWS_ENABLED = 3
+    AUTO_OPEN_TERMINAL_ON_INSTALL_OR_UPDATE = 4
 
 
 _values = [item.value for item in ConfigIndex]

@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 from typing import Callable, Union
 from config.tab_spec import TabSpec
@@ -28,16 +29,29 @@ class NullGame(Game):
     def detect(self) -> bool:
         return self.server_binary.exists()
 
+    # Simulated install/update latency, so the UI can be exercised
+    # (e.g. auto-open/close of the terminal window) the same way it
+    # would behave against a real, non-instant game install/update.
+    _InstallUpdateDelaySeconds = 3.0
+
     def install(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Installing {self.get_long_name()} into {self.server_root}")
         self.print(f"touch({self.server_binary})")
         self.server_binary.touch(exist_ok=True)
-        self.print(f"Installed {self.get_long_name()} into {self.server_root}")
-        result_callback(OperationResult.OK)
+
+        def finish():
+            self.print(f"Installed {self.get_long_name()} into {self.server_root}")
+            result_callback(OperationResult.OK)
+
+        threading.Timer(self._InstallUpdateDelaySeconds, finish).start()
 
     def update(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
-        result_callback(OperationResult.OK)
+
+        def finish():
+            result_callback(OperationResult.OK)
+
+        threading.Timer(self._InstallUpdateDelaySeconds, finish).start()
 
     def run(self, config: Config[IndexT]) -> bool:
         self.print(f"Running {self.get_long_name()} from {self.server_root}")

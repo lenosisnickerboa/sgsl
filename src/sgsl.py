@@ -67,6 +67,15 @@ def build_app_defaults() -> Config[ConfigIndex]:
             tooltip="Snap the terminal/config windows to and drag them along with the main window",
             value=True,
         ),
+        ConfigIndex.AUTO_OPEN_TERMINAL_ON_INSTALL_OR_UPDATE: ConfigItem(
+            name="auto_open_terminal_on_install_or_update",
+            visible_name="Auto open terminal on install/update",
+            type=ConfigType.BOOLEAN,
+            tooltip="If the terminal isn't already open, open it automatically when "
+            "install/update starts and close it again once it finishes successfully "
+            "(left open if it was already open, or if install/update fails)",
+            value=True,
+        ),
     }
 
 
@@ -74,11 +83,29 @@ def print_to_terminal(line: str):
     g_terminal_window.add_line(f"{line}")
 
 
+def _auto_open_terminal_for_install_or_update() -> bool:
+    """If enabled and the terminal isn't already open, open it and
+    return True so the caller closes it again once the operation
+    finishes successfully; otherwise (disabled, or already open)
+    return False and leave it as it is."""
+    if not g_app_config[
+        ConfigIndex.AUTO_OPEN_TERMINAL_ON_INSTALL_OR_UPDATE
+    ].value or g_terminal_window.is_visible():
+        return False
+    on_toggle_terminal_window()
+    # A real click updates the checkbox's own visual state as part of
+    # the click itself before on_toggle_terminal_window() ever runs;
+    # this programmatic call has no such click, so it's done here.
+    g_terminal_open_close.on()
+    return True
+
+
 def on_install_game_server(name: str):
     print_to_terminal(
         f"Installing game server for {name} in directory {current_dir}..."
     )
     set_status_line(f"Installing {name}...")
+    auto_opened_terminal = _auto_open_terminal_for_install_or_update()
     game = GameFactory.create_from_name(name, current_dir, terminal_printer)
     if not game:
         root.after(0, g_install_open_close.off)
@@ -89,6 +116,8 @@ def on_install_game_server(name: str):
 
         def finish():
             g_install_open_close.off()
+            if result == OperationResult.OK and auto_opened_terminal:
+                g_terminal_window.hide()
             if result == OperationResult.FAIL:
                 message = (
                     f"Installation of game {game.get_long_name()} failed, have a look "
@@ -133,11 +162,14 @@ def on_update_game_server(game: Game):
     )
     set_status_line(f"Updating {game.get_long_name()}...")
     g_start_stop_server.disable()
+    auto_opened_terminal = _auto_open_terminal_for_install_or_update()
 
     def on_update_result(result):
 
         def finish():
             if result == OperationResult.OK:
+                if auto_opened_terminal:
+                    g_terminal_window.hide()
                 message = f"Update of {game.get_long_name()} finished successfully"
                 print_to_terminal(message)
                 set_status_line(message)
@@ -525,6 +557,7 @@ def setup_detected_game_server(game: Game):
                 items=[
                     ConfigIndex.TERMINAL_ENABLED,
                     ConfigIndex.TERMINAL_LOG_MAX_LINES,
+                    ConfigIndex.AUTO_OPEN_TERMINAL_ON_INSTALL_OR_UPDATE,
                 ],
             ),
         ],
