@@ -360,8 +360,7 @@ class CS2Game(Game):
             entry
             for entry in entries
             if not (
-                isinstance(entry, ConfigEntry)
-                and self._AddedByComment in entry.comment
+                isinstance(entry, ConfigEntry) and self._AddedByComment in entry.comment
             )
         ]
 
@@ -620,4 +619,8 @@ class CS2Game(Game):
             config[ConfigIndex.SV_VISIBLEMAXPLAYERS].set(
                 config[ConfigIndex.PLAYER_COUNT].value
             )
+        elif config_item is config[ConfigIndex.MP_WARMUPTIME]:
+            if config[ConfigIndex.MP_WARMUPTIME].value == 0:
+                config[ConfigIndex.MP_WARMUP_PAUSETIMER].set(False)
+                config[ConfigIndex.MP_DO_WARMUP_OFFLINE].set(False)
         return []
