@@ -163,6 +163,7 @@ def on_update_game_server(game: Game):
     )
     set_status_line(f"Updating {game.get_long_name()}...")
     g_start_stop_server.disable()
+    g_update_open_close.disable()
     auto_opened_terminal = _auto_open_terminal_for_install_or_update()
 
     def on_update_result(result):
@@ -188,6 +189,7 @@ def on_update_game_server(game: Game):
 
             restore_status_line()
             g_update_open_close.off()
+            g_update_open_close.enable()
             g_start_stop_server.enable()
 
         root.after(0, finish)
