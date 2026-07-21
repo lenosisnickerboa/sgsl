@@ -201,11 +201,15 @@ def restore_status_line_delayed():
     root.after(5000, restore_status_line)
 
 
-def save_config():
-    set_status_line("Saving Configuration...")
+def _write_config_files() -> None:
     TomlConfigParser.write(g_app_config_file, g_app_config)
     if g_game_config is not None:
         TomlConfigParser.write(g_game_config_file, g_game_config)
+
+
+def save_config():
+    set_status_line("Saving Configuration...")
+    _write_config_files()
     print_to_terminal("Configuration saved")
     set_status_line("Configuration saved")
     restore_status_line_delayed()
@@ -308,6 +312,7 @@ def on_start_stop_game_server(game: Game):
     global g_start_stop_server
 
     if not game.is_running():
+        _write_config_files()
         print_to_terminal(
             f"Starting game server for {game.get_long_name()} in directory {game.get_directory()}..."
         )
