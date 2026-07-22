@@ -1,26 +1,20 @@
-# Other VU mods? A general VU mods page?
+# General improvements
 
-# Game icons?
+## Map groups
 
-# Make static functions instead of methods where possible
+Define custom map groups
+Host workshop collections
+Map vote
 
-General review
+## General code review
 
-# Host workshop collections
+Make static functions instead of methods where possible
 
-# Map groups
+## Map images
 
-# Add map images
+## Game icons?
 
-# Add map group images
-
-# Map vote
-
-# Detect when workshop map has been loaded / load failed
-
-By looking into the stdout passed to terminal.
-
-# Custom widgets
+## Custom widgets
 
 Replace shortcuts with custom widget tray
 
@@ -31,20 +25,31 @@ Add a custom widget tab in config to allow customization of widgets
 
 Defaults -> todays shortcut menu
 
-# Add a custom filter config widget
+## Add a custom filter config widget
 
 Allow filtering of stdout/stderr
 
 Current filtering should be moved as defaults for filtering stdout
 
-# Add support for csgo
+## Add a donate button
 
-# Add a donate button
-
-# Add download stats 
-
-# Improve how toggles are shown disabled
+## Improve how toggles are shown disabled
 
 Hard (impossibkle) to see now if a toggle is disabled.
 
-# Introduce map <-> game mode relation
+## Introduce map <-> game mode relation
+
+# CS2
+
+
+# VU
+
+## General mods support?
+
+Or just hardcode some more mods?
+
+
+# Add support for more games?
+
+## csgo?
+
