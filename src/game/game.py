@@ -112,13 +112,12 @@ class Game(ABC):
         return True
 
     def is_server_running(self) -> bool:
-        """Check if the game is running."""
+        """Check if the game is running. No logging -- called
+        periodically (e.g. to poll for a crash), so it must stay
+        quiet."""
         if not self.process_handler:
             return False
         pids = self.process_handler.list_pids()
-        self.print(
-            f"Found {len(pids)} running server(s) {pids} for {self.get_long_name()} with executable {self.get_server_binary_path()}"
-        )
         return len(pids) > 0
 
     @abstractmethod
