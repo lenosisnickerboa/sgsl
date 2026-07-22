@@ -463,6 +463,7 @@ def setup_detected_game_server(game: Game):
             tooltip="Stop server",
             command=lambda: on_start_stop_game_server(game),
         )
+        set_status_line(f"{game.get_long_name()} is running...")
     else:
         g_start_stop_server = ui.Button(
             master=game_frame,
@@ -470,6 +471,7 @@ def setup_detected_game_server(game: Game):
             tooltip="Start server",
             command=lambda: on_start_stop_game_server(game),
         )
+        set_status_line("Ready")
     g_start_stop_server.pack()
 
     # Anchored to the right of game_frame, as a group, so Start stays
@@ -485,7 +487,7 @@ def setup_detected_game_server(game: Game):
         command=lambda value: on_update_game_server(game) if value else None,
     )
     g_update_open_close.pack()
-    if game.is_running():
+    if g_server_should_be_running:
         g_update_open_close.disable()
 
     global g_configure_open_close
