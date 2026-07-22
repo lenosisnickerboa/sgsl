@@ -39,12 +39,6 @@ Current filtering should be moved as defaults for filtering stdout
 
 # Add support for csgo
 
-# If install fails, create an error report automnatically before exit
-
-# The error report button must be available on the install mode as well
-
-To be able to report install errors.
-
 # Add a donate button
 
 # Add download stats 

@@ -124,11 +124,12 @@ def on_install_game_server(name: str):
             if result == OperationResult.OK and auto_opened_terminal:
                 g_terminal_window.hide()
             if result == OperationResult.FAIL:
+                on_error_report()
                 message = (
-                    f"Installation of game {game.get_long_name()} failed, have a look "
-                    "in the terminal output. If a cause can't be determined consider "
-                    "creating an error report and create a github issue attaching the "
-                    "report"
+                    f"Installation of game {game.get_long_name()} failed, an error "
+                    "report was created. Have a look in the terminal output, and if "
+                    "a cause can't be determined consider creating a github issue "
+                    "attaching the report"
                 )
                 set_status_line(f"Installation of game {game.get_long_name()} failed")
                 ok_dialog_exit(message, title="Install failed")
