@@ -42,3 +42,9 @@ Current filtering should be moved as defaults for filtering stdout
 # Add a donate button
 
 # Add download stats 
+
+# Improve how toggles are shown disabled
+
+Hard (impossibkle) to see now if a toggle is disabled.
+
+# Introduce map <-> game mode relation

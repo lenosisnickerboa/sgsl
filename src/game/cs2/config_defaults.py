@@ -260,7 +260,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Off is the recommended default for casual play with friends",
             value=False,
         ),
-        ConfigIndex.MP_AUTOTEAMBALANCE: ConfigItem(
+        ConfigIndex.MP_AUTO_TEAM_BALANCE: ConfigItem(
             name="mp_autoteambalance",
             visible_name="Auto team balance",
             type=ConfigType.BOOLEAN,
@@ -268,7 +268,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Auto-balance teams between rounds",
             value=False,
         ),
-        ConfigIndex.MP_LIMITTEAMS: ConfigItem(
+        ConfigIndex.MP_LIMIT_TEAMS: ConfigItem(
             name="mp_limitteams",
             visible_name="Team size limit",
             type=ConfigType.INTEGER,
@@ -277,7 +277,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value=20,
             range=Range(min_value=0, max_value=20),
         ),
-        ConfigIndex.MP_WARMUPTIME: ConfigItem(
+        ConfigIndex.MP_WARMUP_TIME: ConfigItem(
             name="mp_warmuptime",
             visible_name="Warmup time",
             type=ConfigType.INTEGER,

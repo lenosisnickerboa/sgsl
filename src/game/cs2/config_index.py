@@ -42,9 +42,9 @@ class ConfigIndex(IntEnum):
     MP_STARTMONEY = 23
     MP_MAXMONEY = 24
     MP_FRIENDLYFIRE = 25
-    MP_AUTOTEAMBALANCE = 26
-    MP_LIMITTEAMS = 27
-    MP_WARMUPTIME = 28
+    MP_AUTO_TEAM_BALANCE = 26
+    MP_LIMIT_TEAMS = 27
+    MP_WARMUP_TIME = 28
     MP_WARMUP_PAUSETIMER = 29
     MP_RESPAWN_ON_DEATH_CT = 30
     MP_RESPAWN_ON_DEATH_T = 31
@@ -79,6 +79,7 @@ class ConfigIndex(IntEnum):
 
     CUSTOM_RUN_COMMAND_PRE = 47
     CUSTOM_RUN_COMMAND_POST = 48
+    MP_DO_WARMUP_OFFLINE = 49
 
 
 _values = [item.value for item in ConfigIndex]
