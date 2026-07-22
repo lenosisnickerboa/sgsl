@@ -365,6 +365,22 @@ def on_game_server_crashed(game: Game):
     restore_status_line_delayed()
 
 
+def on_game_map_load_failed(game: Game):
+    global g_start_stop_server
+
+    ok_dialog("Map load failed, server will be stopped", title="Map load failed")
+
+    game.stop()
+    g_start_stop_server.set_name(name="Start")
+    g_start_stop_server.set_tooltip(tooltip="Start server")
+    g_update_open_close.enable()
+    set_status_line(f"Game server {game.get_long_name()} stopped (map load failed)...")
+    print_to_terminal(
+        f"Game server for {game.get_long_name()} in directory {game.get_directory()} stopped after map load failure..."
+    )
+    restore_status_line_delayed()
+
+
 def on_toggle_terminal_window():
     global g_terminal_is_open
     g_terminal_is_open = not g_terminal_is_open
@@ -694,6 +710,9 @@ def on_terminal_line(line: str):
         return
     if result == TerminalLineResult.SERVER_CRASHED:
         on_game_server_crashed(game)
+        return
+    if result == TerminalLineResult.MAP_LOAD_FAILED:
+        on_game_map_load_failed(game)
         return
 
 

@@ -27,6 +27,7 @@ class TerminalLineResult(Enum):
     OK = "OK"
     SERVER_CRASHED = "SERVER_CRASHED"
     MAP_DOWNLOAD_FAILED = "MAP_DOWNLOAD_FAILED"
+    MAP_LOAD_FAILED = "MAP_LOAD_FAILED"
 
 
 class Game(ABC):

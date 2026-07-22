@@ -205,8 +205,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Testing aid: simulate how the server behaves once run — "
             "SUCCESSFUL runs normally, START_FAILS fails immediately, CRASHES "
-            "crashes after a few seconds, DOES_NOT_DIE ignores stop requests",
+            "crashes after a few seconds, DOES_NOT_DIE ignores stop requests, "
+            "MAP_FAILS_TO_LOAD fails to load the map after a few seconds",
             value="SUCCESSFUL",
-            allowed_values=["SUCCESSFUL", "START_FAILS", "CRASHES", "DOES_NOT_DIE"],
+            allowed_values=[
+                "SUCCESSFUL",
+                "START_FAILS",
+                "CRASHES",
+                "DOES_NOT_DIE",
+                "MAP_FAILS_TO_LOAD",
+            ],
         ),
     }

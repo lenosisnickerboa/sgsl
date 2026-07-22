@@ -41,6 +41,10 @@ class NullGame(Game):
     # Simulated delay before a CRASHES-behavior server "crashes" once running.
     _CrashDelaySeconds = 3.0
 
+    # Simulated delay before a MAP_FAILS_TO_LOAD-behavior server fails to
+    # load its map once running.
+    _MapLoadDelaySeconds = 3.0
+
     def _should_fail_install_or_update(self) -> bool:
         config = self.config if self.config is not None else build_game_defaults()
         return config[ConfigIndex.FAIL_TO_INSTALL_AND_UPDATE].value
@@ -105,11 +109,19 @@ class NullGame(Game):
         self.running = True
         if behavior == "CRASHES":
             threading.Timer(self._CrashDelaySeconds, self._simulate_crash).start()
+        elif behavior == "MAP_FAILS_TO_LOAD":
+            threading.Timer(
+                self._MapLoadDelaySeconds, self._simulate_map_load_failure
+            ).start()
         return True
 
     def _simulate_crash(self) -> None:
         self.running = False
         self.print("Server crashed")
+
+    def _simulate_map_load_failure(self) -> None:
+        self.running = False
+        self.print("Map load failed")
 
     def stop(self) -> bool:
         if self._server_run_behavior() == "DOES_NOT_DIE":
@@ -128,6 +140,9 @@ class NullGame(Game):
         if "Server crashed" in line:
             self.running = False
             return TerminalLineResult.SERVER_CRASHED
+        if "Map load failed" in line:
+            self.running = False
+            return TerminalLineResult.MAP_LOAD_FAILED
         return TerminalLineResult.OK
 
     def get_server_binary_path(self) -> Path:
