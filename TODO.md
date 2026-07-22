@@ -1,7 +1,3 @@
-# Detect if server crashes (per game mode?)
-
-- Added framework for it, implement in cs2 and vu
-
 # VU startup times
 
 - start game immediately, no warmup
