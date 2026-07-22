@@ -273,6 +273,11 @@ class VUGame(Game):
                     ConfigIndex.SERVER_NAME,
                     ConfigIndex.SERVER_PASSWORD,
                     ConfigIndex.SERVER_UPDATE_FREQUENCY,
+                    ConfigIndex.COLOR_CORRECTION_ENABLED,
+                    ConfigIndex.SQUAD_SIZE,
+                    ConfigIndex.SUN_FLARE_ENABLED,
+                    ConfigIndex.DISABLE_PRE_ROUND,
+                    ConfigIndex.CORPSE_DAMAGE_ENABLED,
                 ],
             ),
             TabSpec(

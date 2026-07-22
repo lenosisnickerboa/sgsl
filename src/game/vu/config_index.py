@@ -32,6 +32,11 @@ class ConfigIndex(IntEnum):
     MODS_FUN_BOTS_URL = 19
     CUSTOM_RUN_COMMAND_PRE = 20
     CUSTOM_RUN_COMMAND_POST = 21
+    COLOR_CORRECTION_ENABLED = 22
+    SQUAD_SIZE = 23
+    SUN_FLARE_ENABLED = 24
+    DISABLE_PRE_ROUND = 25
+    CORPSE_DAMAGE_ENABLED = 26
 
 
 _values = [item.value for item in ConfigIndex]

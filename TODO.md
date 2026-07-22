@@ -1,10 +1,4 @@
-# VU startup times
-
-- start game immediately, no warmup
-
 # Other VU mods? A general VU mods page?
-
-# Application icon instead of default pyinstaller
 
 # Game icons?
 
@@ -36,8 +30,6 @@ Add a custom widget tab in config to allow customization of widgets
 - RMB on widget->Add as custom (ask for location)
 
 Defaults -> todays shortcut menu
-
-# Minimize all command windows with title "Counter-Strike 2"
 
 # Add a custom filter config widget
 
