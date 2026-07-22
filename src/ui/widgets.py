@@ -276,6 +276,10 @@ class Dialog(EnableDisableMixin, ttk.Toplevel):
 
     def __init__(self, title: str, message: str, on_ok=Nop(), **kwargs):
         super().__init__(title=title, **kwargs)
+        # Parked off-screen until _center_on_master() repositions it --
+        # same reasoning as Window.__init__: avoids a flash at the
+        # window manager's default placement before centering.
+        self.geometry("+8000+8000")
 
         self.on_ok = on_ok
 
@@ -332,6 +336,10 @@ class EditStringDialog(EnableDisableMixin, ttk.Toplevel):
 
     def __init__(self, title: str, value: str, **kwargs):
         super().__init__(title=title, **kwargs)
+        # Parked off-screen until _center_on_master() repositions it --
+        # same reasoning as Window.__init__: avoids a flash at the
+        # window manager's default placement before centering.
+        self.geometry("+8000+8000")
 
         self._result: Optional[str] = None
 
