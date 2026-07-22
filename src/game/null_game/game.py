@@ -137,9 +137,6 @@ class NullGame(Game):
         return self.running
 
     def interpret_terminal_line(self, line: str) -> TerminalLineResult:
-        if "Server crashed" in line:
-            self.running = False
-            return TerminalLineResult.SERVER_CRASHED
         if "Map load failed" in line:
             self.running = False
             return TerminalLineResult.MAP_LOAD_FAILED

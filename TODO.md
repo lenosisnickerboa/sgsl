@@ -2,10 +2,6 @@
 
 - Added framework for it, implement in cs2 and vu
 
-# cs2: Warmup times, round times seems not to be taken from config
-
-- Are they overridden by other configs?
-
 # VU startup times
 
 - start game immediately, no warmup

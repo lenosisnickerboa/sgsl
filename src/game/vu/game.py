@@ -223,8 +223,6 @@ class VUGame(Game):
         return super().is_server_running()
 
     def interpret_terminal_line(self, line: str) -> TerminalLineResult:
-        if "Server crashed" in line:
-            return TerminalLineResult.SERVER_CRASHED
         return TerminalLineResult.OK
 
     def get_server_binary_path(self) -> Path:

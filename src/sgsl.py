@@ -36,6 +36,10 @@ g_app_configure_open_close = None
 g_install_open_close = None
 g_update_open_close = None
 g_start_stop_server = None
+# Whether the current game is expected to be running (started, and not
+# yet stopped/crashed) -- checked by poll_game_running() against
+# game.is_running() to notice a crash.
+g_server_should_be_running = False
 g_config_default = None
 g_app_config = None
 g_app_config_file = None
@@ -309,7 +313,7 @@ def on_toggle_app_configure_window():
 
 
 def on_start_stop_game_server(game: Game):
-    global g_start_stop_server
+    global g_start_stop_server, g_server_should_be_running
 
     if not game.is_running():
         _write_config_files()
@@ -324,6 +328,7 @@ def on_start_stop_game_server(game: Game):
             )
             restore_status_line()
             return
+        g_server_should_be_running = True
         g_start_stop_server.set_name(name="Stop")
         g_start_stop_server.set_tooltip(tooltip="Stop server")
         g_update_open_close.disable()
@@ -343,6 +348,7 @@ def on_start_stop_game_server(game: Game):
             )
             return
 
+        g_server_should_be_running = False
         g_start_stop_server.set_name(name="Start")
         g_start_stop_server.set_tooltip(tooltip="Start server")
         g_update_open_close.enable()
@@ -353,7 +359,10 @@ def on_start_stop_game_server(game: Game):
 
 
 def on_game_server_crashed(game: Game):
-    global g_start_stop_server
+    global g_start_stop_server, g_server_should_be_running
+
+    g_server_should_be_running = False
+    ok_dialog(f"{game.get_long_name()} crashed", title="Server crashed")
 
     g_start_stop_server.set_name(name="Start")
     g_start_stop_server.set_tooltip(tooltip="Start server")
@@ -366,8 +375,9 @@ def on_game_server_crashed(game: Game):
 
 
 def on_game_map_load_failed(game: Game):
-    global g_start_stop_server
+    global g_start_stop_server, g_server_should_be_running
 
+    g_server_should_be_running = False
     ok_dialog("Map load failed, server will be stopped", title="Map load failed")
 
     game.stop()
@@ -379,6 +389,18 @@ def on_game_map_load_failed(game: Game):
         f"Game server for {game.get_long_name()} in directory {game.get_directory()} stopped after map load failure..."
     )
     restore_status_line_delayed()
+
+
+_PollGameRunningIntervalMs = 3000
+
+
+def poll_game_running():
+    """Periodically check whether the current game is still running
+    when it's expected to be, so a crash (the process disappearing on
+    its own) is noticed even though nothing told us about it directly."""
+    if game is not None and g_server_should_be_running and not game.is_running():
+        on_game_server_crashed(game)
+    root.after(_PollGameRunningIntervalMs, poll_game_running)
 
 
 def on_toggle_terminal_window():
@@ -431,8 +453,9 @@ def setup_detected_game_server(game: Game):
     game_frame = ui.EditGroupFrame(master=g_main_frame, name=game.get_long_name())
     game_frame.pack()
 
-    global g_start_stop_server
-    if game.is_running():
+    global g_start_stop_server, g_server_should_be_running
+    g_server_should_be_running = game.is_running()
+    if g_server_should_be_running:
         g_start_stop_server = ui.Button(
             master=game_frame,
             name="Stop",
@@ -708,9 +731,6 @@ def on_terminal_line(line: str):
         return
     if result == TerminalLineResult.MAP_DOWNLOAD_FAILED:
         return
-    if result == TerminalLineResult.SERVER_CRASHED:
-        on_game_server_crashed(game)
-        return
     if result == TerminalLineResult.MAP_LOAD_FAILED:
         on_game_map_load_failed(game)
         return
@@ -724,6 +744,8 @@ else:
     setup_detected_game_server(game)
 
 root.center_on_screen()
+
+root.after(_PollGameRunningIntervalMs, poll_game_running)
 
 print_to_terminal(f"sgsl.exe {VERSION} entering mainloop...")
 root.mainloop()

@@ -25,8 +25,6 @@ class TerminalLineResult(Enum):
     Only report stuff which happens assynchronously."""
 
     OK = "OK"
-    SERVER_CRASHED = "SERVER_CRASHED"
-    MAP_DOWNLOAD_FAILED = "MAP_DOWNLOAD_FAILED"
     MAP_LOAD_FAILED = "MAP_LOAD_FAILED"
 
 
@@ -41,10 +39,6 @@ class Game(ABC):
         self.process_handler = None
         self.filter_stdout = None
         self.filter_stderr = None
-        # Set while a stop() (via stop_server()) is in progress, so
-        # handle_done() can tell an intentional stop apart from the
-        # server process disappearing on its own -- i.e. a crash.
-        self._stop_requested = False
 
     def print(self, message: str) -> None:
         self.terminal(message)
@@ -70,11 +64,6 @@ class Game(ABC):
 
     def handle_done(self, pid: int, returncode: int):
         self.print(f"Process tree {pid} finished with exit code {returncode}")
-        if not self._stop_requested:
-            # Same marker text null_game.py's simulated crash uses --
-            # lets interpret_terminal_line() implementations detect a
-            # crash the same way regardless of which game it is.
-            self.print("Server crashed")
 
     def start_server(
         self,
@@ -84,7 +73,6 @@ class Game(ABC):
     ) -> None:
         self.filter_stdout = filter_stdout
         self.filter_stderr = filter_stderr
-        self._stop_requested = False
         if not self.process_handler:
             self.process_handler = process_handler.ProcessHandler(
                 self.get_server_binary_path()
@@ -102,7 +90,6 @@ class Game(ABC):
         self.print(f"Started game server {self.get_long_name()} with pid {pid}")
 
     def stop_server(self) -> bool:
-        self._stop_requested = True
         self.print(
             f'Stopping game server {self.get_long_name()} with executable "{self.get_server_binary_path()}" ...'
         )
