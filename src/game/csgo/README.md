@@ -1,15 +1,24 @@
 # Counter-Strike: Global Offensive [Read more here](https://store.steampowered.com/app/4465480/CounterStrikeGlobal_Offensive/)
 
-## Installation [Read more here](https://developer.valvesoftware.com/wiki/Counter-Strike:_Global_Offensive/Dedicated_Servers)
+## Installation [Read more here](https://developer.valvesoftware.com/wiki/Counter-Strike:_Global_Offensive/Dedicated_Servers) and [here](https://steamcommunity.com/sharedfiles/filedetails/?id=3678325098)
 
 Depending on how you want to run your server, here comes some scenarios.
+
+A note first; csgo is discontinued and my only ambition with getting it to work is to be able to play locally with friends. To do this I had to do some things which might not be necessary, but it worked for me.
+
+1. If running the game server and the game client on the same host, always start the game client **first** or Steam will detect the game already running.
+1. Once the game client is running I got a message "Connecting to game servers...", I just ignored this and started the game server instead.
+1. To connect to the game server I created a desktop shortcut with "steam://open/servers" as target and named it "Game server".
+1. Click on the shortcut and now your server should be visible in the LAN tab. Or add a favourite...
+1. Double-click on your server and the game client should start loading the correct map and now you can play.
 
 ### Simplest possible, LAN only, no workshop maps, just want to play locally with friends
 
 1. Get your original csgo client working. Since csgo is no longer searchable in Steam you have to perform a little quirk:
-   Press WIN+R and enter steam://launch/740
-   This will open up Steam allowing you to install Counter-Strike: Global Offensive
+   Open this [link](https://store.steampowered.com/app/4465480/CounterStrikeGlobal_Offensive/)
+   Add the game to your library, then head into Steam and install it as usual.
    Start it up and make sure you can run multiplayer.
+   This info taken from [here](https://store.steampowered.com/app/4465480/CounterStrikeGlobal_Offensive/)
 1. Drop sgsl.exe into an empty folder where you want your CSGO game server installed and click sgsl.exe. 
 1. When sgsl.exe launches, select csgo and click the install button. I recommend first opening the terminal (Toggle to the far right).
 1. ENJOY!
@@ -21,7 +30,7 @@ Your friends can now connect to you using the console command "connect <your-ip>
 I'm not sure what the exact requirements are after googling, AI:ing, ... Some suggest you need a GSLT, some an API auth key. I eventually configured both to get it working. 
 
 1. Get your original csgo working as described above.
-1. Register some stuff with Valve, like [GSLT](https://developer.valvesoftware.com/wiki/Counter-Strike_2/Dedicated_Servers#Registering_Game_Server_Login_Token) which can be done [here](http://steamcommunity.com/dev/managegameservers) and and [API auth key](https://steamcommunity.com/dev/apikey)
+1. Register some stuff with Valve, like [GSLT](https://zap-hosting.com/guides/docs/csgo-gslt/) which can be done [here](http://steamcommunity.com/dev/managegameservers) and [API auth key](https://steamcommunity.com/dev/apikey). Use 4465480 for the appId.
 1. Drop sgsl.exe into an empty folder where you want your csgo game server installed and click sgsl.exe. 
 1. When sgsl.exe launches select csgo and, click the install button. I recommend first opening the terminal (Toggle to the far right).
 1. Enter the GSLT, API auth key
@@ -37,7 +46,7 @@ If you don't like this approach proceed to the next scenario.
 
 If you want your server publically available in the Valve server browser, and have friends connect to it from outside your LAN, this is what you need to do:
 
-1. Get your original csgo working as described above.
+1. Get your original csgo working as described above. It is important that the game is installed prior to proceeding, it must exist in Steam before step 2 will be successful.
 1. Register some stuff with Valve, like [GSLT](https://developer.valvesoftware.com/wiki/Counter-Strike_2/Dedicated_Servers#Registering_Game_Server_Login_Token) which can be done [here](http://steamcommunity.com/dev/managegameservers) and and [API auth key](https://steamcommunity.com/dev/apikey)
 1. Drop sgsl.exe into an empty folder where you want your CSGO game server installed and click sgsl.exe. 
 1. When sgsl.exe launches, select csgo and click the install button. I recommend first opening the terminal (Toggle to the far right).

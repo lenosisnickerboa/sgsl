@@ -18,7 +18,7 @@ Your friends can now connect to you using the console command "connect <your-ip>
 I'm not sure what the exact requirements are after googling, AI:ing, ... Some suggest you need a GSLT, some an API auth key. I eventually configured both to get it working. 
 
 1. Get your original CS2 working. Start it up and make sure you can run multiplayer.
-1. Register some stuff with Valve, like [GSLT](https://developer.valvesoftware.com/wiki/Counter-Strike_2/Dedicated_Servers#Registering_Game_Server_Login_Token) which can be done [here](http://steamcommunity.com/dev/managegameservers) and and [API auth key](https://steamcommunity.com/dev/apikey)
+1. Register some stuff with Valve, like [GSLT](https://developer.valvesoftware.com/wiki/Counter-Strike_2/Dedicated_Servers#Registering_Game_Server_Login_Token) which can be done [here](http://steamcommunity.com/dev/managegameservers) and and [API auth key](https://steamcommunity.com/dev/apikey). Use 730 for the appId.
 1. Drop sgsl.exe into an empty folder where you want your CS2 game server installed and click sgsl.exe. 
 1. When sgsl.exe launches, select cs2 and click the install button. I recommend first opening the terminal (Toggle to the far right).
 1. Enter the GSLT, API auth key

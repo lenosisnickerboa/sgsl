@@ -122,12 +122,15 @@ class CSGOGame(Game):
         matches = list(steam_dir.glob(f"**/{dll_name}"))
         return matches[0] if matches else None
 
-    # The standalone re-release still ships a steam.inf reporting the
-    # old, pre-CS2 CS:GO app id (730) rather than its own (see NewAppId
-    # above) -- some client/server handshake logic reads this file
-    # directly, so it must be patched post-install or the reported id
-    # won't match the one the server was actually installed/updated as.
-    _SteamInfAppIdPattern = re.compile(r"^appID=730$", re.MULTILINE)
+    # The standalone re-release still ships a steam.inf reporting
+    # whatever app id its depot was built under (e.g. 730 or AppId/740
+    # above) rather than the store page's app id (see NewAppId above)
+    # -- some client/server handshake logic reads this file directly,
+    # so it must be patched post-install or the reported id won't
+    # match the one the server is actually meant to identify as.
+    # Matched by digits rather than a specific literal since we've
+    # seen the shipped value vary.
+    _SteamInfAppIdPattern = re.compile(r"^appID=\d+", re.MULTILINE)
 
     def _patch_steam_inf(self) -> None:
         steam_inf = self.server_root / "csgo" / "steam.inf"
@@ -137,15 +140,13 @@ class CSGOGame(Game):
             self.print(f"Could not find {steam_inf} to patch its app ID; skipping")
             return
 
-        patched, count = self._SteamInfAppIdPattern.subn(
-            f"appID={NewAppId}", text
-        )
+        patched, count = self._SteamInfAppIdPattern.subn(f"appID={NewAppId}", text)
         if count == 0:
-            self.print(f"No appID=730 line found in {steam_inf}; leaving it as-is")
+            self.print(f"No appID=<n> line found in {steam_inf}; leaving it as-is")
             return
 
         steam_inf.write_text(patched, encoding="utf-8")
-        self.print(f"Patched {steam_inf}: appID=730 -> appID={NewAppId}")
+        self.print(f"Patched {steam_inf} to appID={NewAppId}")
 
     def _copy_steamworks_dlls(self) -> None:
         """Best-effort: locate a local Steam client install and copy
@@ -318,7 +319,10 @@ class CSGOGame(Game):
 
     def run(self, config: Config[IndexT]) -> bool:
         args = [
-            "-dedicated",
+            "-game",
+            "csgo",
+            "-console",
+            "-usercon",
             "+game_type",
             "TYPE",
             "+game_mode",
@@ -328,23 +332,23 @@ class CSGOGame(Game):
         ]
         game_mode = config[ConfigIndex.GAME_MODE].value
         if game_mode == "Casual":
-            args[2] = "0"  # game_type
-            args[4] = "0"  # gamne_mode
+            args[5] = "0"  # game_type
+            args[7] = "0"  # gamne_mode
         elif game_mode == "Competitive":
-            args[2] = "0"  # game_type
-            args[4] = "1"  # gamne_mode
+            args[5] = "0"  # game_type
+            args[7] = "1"  # gamne_mode
         elif game_mode == "ArmsRace":
-            args[2] = "1"  # game_type
-            args[4] = "0"  # gamne_mode
+            args[5] = "1"  # game_type
+            args[7] = "0"  # gamne_mode
         elif game_mode == "DeathMatch":
-            args[2] = "1"  # game_type
-            args[4] = "2"  # gamne_mode
+            args[5] = "1"  # game_type
+            args[7] = "2"  # gamne_mode
         elif game_mode == "Demolition":
-            args[2] = "1"  # game_type
-            args[4] = "1"  # gamne_mode
+            args[5] = "1"  # game_type
+            args[7] = "1"  # gamne_mode
         else:
             exit(1)
-        args[6] = str(config[ConfigIndex.PLAYER_COUNT].value)
+        args[9] = str(config[ConfigIndex.PLAYER_COUNT].value)
         if config[ConfigIndex.STEAM_GSLT].value:  # possibly required when hosting?
             args.append("+sv_setsteamaccount")
             args.append(config[ConfigIndex.STEAM_GSLT].value)
