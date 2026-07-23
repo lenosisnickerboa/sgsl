@@ -122,6 +122,31 @@ class CSGOGame(Game):
         matches = list(steam_dir.glob(f"**/{dll_name}"))
         return matches[0] if matches else None
 
+    # The standalone re-release still ships a steam.inf reporting the
+    # old, pre-CS2 CS:GO app id (730) rather than its own (see NewAppId
+    # above) -- some client/server handshake logic reads this file
+    # directly, so it must be patched post-install or the reported id
+    # won't match the one the server was actually installed/updated as.
+    _SteamInfAppIdPattern = re.compile(r"^appID=730$", re.MULTILINE)
+
+    def _patch_steam_inf(self) -> None:
+        steam_inf = self.server_root / "csgo" / "steam.inf"
+        try:
+            text = steam_inf.read_text(encoding="utf-8")
+        except OSError:
+            self.print(f"Could not find {steam_inf} to patch its app ID; skipping")
+            return
+
+        patched, count = self._SteamInfAppIdPattern.subn(
+            f"appID={NewAppId}", text
+        )
+        if count == 0:
+            self.print(f"No appID=730 line found in {steam_inf}; leaving it as-is")
+            return
+
+        steam_inf.write_text(patched, encoding="utf-8")
+        self.print(f"Patched {steam_inf}: appID=730 -> appID={NewAppId}")
+
     def _copy_steamworks_dlls(self) -> None:
         """Best-effort: locate a local Steam client install and copy
         the Steamworks redistributable DLLs into the server root, next
@@ -199,6 +224,7 @@ class CSGOGame(Game):
         def run_update_install(attempt: int):
             def on_result(exit_code):
                 if self.server_binary.exists():
+                    self._patch_steam_inf()
                     self._copy_steamworks_dlls()
                     result_callback(OperationResult.OK)
                     return
