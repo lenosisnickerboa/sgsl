@@ -2,7 +2,7 @@ import re
 
 from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType, Range
 from config.toml_config import Config
-from game.cs2.config_index import ConfigIndex
+from game.csgo.config_index import ConfigIndex
 
 WorkshopMapPattern = re.compile(r"(\d+)(?:\\([^\\]+))?\s*$")
 WorkshopUrlIdPattern = re.compile(r"^https?://\S*[?&]id=(\d+)", re.IGNORECASE)
@@ -71,15 +71,6 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value=4,
             range=Range(min_value=1, max_value=64),
         ),
-        ConfigIndex.SV_VISIBLEMAXPLAYERS: ConfigItem(
-            name="sv_visiblemaxplayers",
-            visible_name="Visible max players",
-            type=ConfigType.INTEGER,
-            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Total player slots — adjust to your group size",
-            value=4,
-            range=Range(min_value=1, max_value=64),
-        ),
         # -- Network --
         ConfigIndex.HOSTNAME: ConfigItem(
             name="hostname",
@@ -104,6 +95,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Password required to join; empty means no password",
             value="",
+        ),
+        ConfigIndex.SV_VISIBLEMAXPLAYERS: ConfigItem(
+            name="sv_visiblemaxplayers",
+            visible_name="Visible max players",
+            type=ConfigType.INTEGER,
+            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
+            tooltip="-1 = use the Players setting",
+            value=-1,
+            range=Range(min_value=-1, max_value=64),
         ),
         # -- Bots --
         ConfigIndex.BOT_DIFFICULTY: ConfigItem(
@@ -384,7 +384,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             item_type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Maps that can be picked as the selected map",
-            value=[],  # filled in from maps() in CS2Game.config_defaults()
+            value=[],  # filled in from maps() in CSGOGame.config_defaults()
             read_only=True,
         ),
         ConfigIndex.WORKSHOP_MAPS: ConfigItem(
@@ -413,7 +413,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Game Server Login Token",
             type=ConfigType.MASKED_STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="The Game Server Login Token, identifying your game server with Valve",
+            tooltip="The Game Server Login Token, identifying your game server with Valve. "
+            "Must be a token generated specifically for CS:GO's standalone 2026 App ID.",
             value="",
         ),
         ConfigIndex.RUN_COMMAND_EDIT: ConfigItem(
@@ -446,7 +447,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
             "This can help when the update process keeps failing.",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Delete the Steam app manifest (appmanifest_730.acf) before installing/updating — use if updates get stuck or fail to detect changes",
+            tooltip="Delete the Steam app manifest before installing/updating — use if "
+            "updates get stuck or fail to detect changes",
             value=False,
         ),
         ConfigIndex.UPDATE_STEAMCMD: ConfigItem(

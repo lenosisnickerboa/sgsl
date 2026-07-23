@@ -8,19 +8,20 @@ Simple Game Server Launcher
 
 # The general idea - "One click install game server"
 
-This is a simple game server launcher suitable for people wanting to quickly setup and host a game server for some friends to join without diving into all the details of setting up and configuring a game server.
+This is a simple game server launcher suitable for people wanting to quickly setup and host a game server for some friends to join without diving into all the details.
 
-Even though the "One click install game server" vision is hard to reach due to how games are developed, this is still as close as you get. Create an empty directory for your server, drop sgsl.exe into it and start it, select game to install. Done.
+The "One click install game server" vision is hard to reach due to how games are developed, but I think this is still as close as you get. Create an empty directory for your server, drop sgsl.exe into it and start it, select game to install. Done. (Note that installing a game may take a while and will not produce continous output during the install. Just sit back and wait and let it finish.)
 
 Currently supported games:
 - [Counter-Strike 2](src/game/cs2/README.md)
+- [Counter-Strike: Global Offensive](src/game/csgo/README.md)
 - [Venice Unleashed](src/game/vu/README.md)
 
 # Preconditions
 
 For now requires Windows 11. Perhaps it works on previous Windows versions but I haven't tested it.
 
-If a linux version is in high demand I will consider porting it to linux. sgsl is mostly python but there are some linux only things to consider when dealing with the actual game servers. So, I will be collecting requests for a while before starting this journey.
+If a linux version is in high demand I will consider porting it to linux. sgsl is mostly python but there are some linux only things to consider when dealing with the actual game servers. So, I will be collecting requests for a while before starting this journey. Also, please state the linux distribution.
 
 # Troubleshooting
 

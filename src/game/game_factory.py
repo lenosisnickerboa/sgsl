@@ -2,6 +2,7 @@ from pathlib import Path
 from typing import Type, Union
 
 from game.cs2.game import CS2Game
+from game.csgo.game import CSGOGame
 from game.game import Game
 from game.null_game.game import NullGame
 from game.vu.game import VUGame
@@ -23,6 +24,9 @@ class GameFactory:
         if game.detect():
             return game
         game = CS2Game(directory, terminal)
+        if game.detect():
+            return game
+        game = CSGOGame(directory, terminal)
         if game.detect():
             return game
         game = VUGame(directory, terminal)
@@ -48,4 +52,5 @@ class GameFactory:
 # Register games
 GameFactory.register("Null Game", NullGame)
 GameFactory.register("Counter-Strike 2", CS2Game)
+GameFactory.register("Counter-Strike: Global Offensive", CSGOGame)
 GameFactory.register("Venice Unleashed", VUGame)
