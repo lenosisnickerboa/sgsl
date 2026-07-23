@@ -1,6 +1,10 @@
 # General improvements
 
-## Map groups
+## Map groups 1
+
+Pick up existing map groups, if any? And allow selection from these
+
+## Map groups 2
 
 Define custom map groups
 Host workshop collections

@@ -12,6 +12,8 @@ A note first; csgo is discontinued and my only ambition with getting it to work 
 1. Click on the shortcut and now your server should be visible in the LAN tab. Or add a favourite...
 1. Double-click on your server and the game client should start loading the correct map and now you can play.
 
+I tried connecting using the console (connect localhost) and also the in-game server browser but never got that to work.
+
 ### Simplest possible, LAN only, no workshop maps, just want to play locally with friends
 
 1. Get your original csgo client working. Since csgo is no longer searchable in Steam you have to perform a little quirk:
