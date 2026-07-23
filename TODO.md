@@ -39,6 +39,9 @@ Hard (impossibkle) to see now if a toggle is disabled.
 
 ## Introduce map <-> game mode relation
 
+## RCON support
+
+
 # CS2
 
 
