@@ -224,7 +224,6 @@ class CSGOGame(Game):
         def run_update_install(attempt: int):
             def on_result(exit_code):
                 if self.server_binary.exists():
-                    self._patch_steam_inf()
                     self._copy_steamworks_dlls()
                     result_callback(OperationResult.OK)
                     return
@@ -292,7 +291,13 @@ class CSGOGame(Game):
 
     def install(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Installing {self.get_long_name()} into {self.server_root}")
-        self._install_or_update(result_callback)
+
+        def on_result(result: OperationResult):
+            if result is OperationResult.OK:
+                self._patch_steam_inf()
+            result_callback(result)
+
+        self._install_or_update(on_result)
 
     def update(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
