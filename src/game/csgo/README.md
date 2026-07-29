@@ -77,3 +77,6 @@ Reference: https://steamcommunity.com/app/730/discussions/0/4335356354422173537/
 Or you can just try and see if it works for you. This seems to be a moving target and your mileage may vary.
 
 
+## Custom user config
+
+If there is some special tweak you want to add, not supported by sgsl.exe, it can be accomplished by adding your own config file in <install -path>\server\game\csgo\cfg and naming it gamemode_<gamemode>_append.cfg. All config from this file will be added last to the gamemode_<gamemode>.cfg file prior to starting the game allowing you to add or override whatever you like. Same format is used as in the original config file.

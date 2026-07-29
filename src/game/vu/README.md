@@ -36,3 +36,7 @@ If you want your server publically available in the VU server browser, and have 
 1. Start your server.
 1. Open up ports for VU in your router and firewall, e.g. look [here](https://docs.veniceunleashed.net/hosting/setup-win/#port-forwarding)
 1. ENJOY!
+
+## Custom user config
+
+If there is some special tweak you want to add, not supported by sgsl.exe, it can be accomplished by adding your own config file in <install -path>\server\Admin and naming it like the original config with an additional _append, e.g. Startup_append.txt. All config from this file will be added last to the original config file (e.g. Startup.txt) prior to starting the game allowing you to add or override whatever you like. Same format is used as in the original config file.
