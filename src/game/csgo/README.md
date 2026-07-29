@@ -1,3 +1,5 @@
+<img src="assets/icon.png" width="48" alt="Counter-Strike: Global Offensive icon">
+
 # Counter-Strike: Global Offensive [Read more here](https://store.steampowered.com/app/4465480/CounterStrikeGlobal_Offensive/)
 
 ## Installation [Read more here](https://developer.valvesoftware.com/wiki/Counter-Strike:_Global_Offensive/Dedicated_Servers) and [here](https://steamcommunity.com/sharedfiles/filedetails/?id=3678325098)

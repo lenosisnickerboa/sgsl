@@ -1,3 +1,5 @@
+<img src="assets/icon.png" width="48" alt="Counter-Strike 2 icon">
+
 # Counter-Strike 2 [Read more here](https://store.steampowered.com/app/730/CounterStrike_2/)
 
 ## Installation [Read more here](https://developer.valvesoftware.com/wiki/Counter-Strike_2/Dedicated_Servers)

@@ -1,3 +1,5 @@
+<img src="assets/icon.png" width="48" alt="Venice Unleashed icon">
+
 # Venice Unleashed [Read more here](https://veniceunleashed.net/)
 
 ## Installation [Read more here](https://docs.veniceunleashed.net/hosting/prereq/)
