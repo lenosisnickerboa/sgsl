@@ -279,6 +279,39 @@ class UiBuilder:
                 command=on_widget_changed,
                 compact=compact,
             )
+        elif item.type is ConfigType.STRUCT:
+            widget = ui.StructEditor(
+                master=master,
+                name=item.visible_name,
+                schema=self._python_schema(item.schema),
+                initial_value=item.value,
+                tooltip=tooltip,
+                command=on_widget_changed,
+                compact=compact,
+            )
+        elif item.type is ConfigType.STRUCT_LIST:
+            widget = ui.StructListEditor(
+                master=master,
+                name=item.visible_name,
+                schema=self._python_schema(item.schema),
+                initial_value=item.value,
+                tooltip=tooltip,
+                command=on_widget_changed,
+                compact=compact,
+            )
+        elif item.type is ConfigType.STRUCT_MAP:
+            widget = ui.StructMapEditor(
+                master=master,
+                name=item.visible_name,
+                key_type=self._python_type(item.item_type),
+                key_name=item.key_name,
+                schema=self._python_schema(item.schema),
+                initial_value=item.value,
+                tooltip=tooltip,
+                command=on_widget_changed,
+                compact=compact,
+                value_is_list=item.value_type is ConfigType.STRUCT_LIST,
+            )
         else:
             raise ValueError(
                 f"{item.name}: builder does not support ConfigType.{item.type.name} yet"
@@ -297,6 +330,16 @@ class UiBuilder:
         if config_type in (ConfigType.STRING_LIST, ConfigType.MASKED_STRING):
             return str
         return config_type.value
+
+    def _python_schema(self, schema: dict[str, ConfigType]) -> dict[str, type]:
+        """Convert a ConfigItem's STRUCT/STRUCT_LIST/STRUCT_MAP schema
+        (field name -> ConfigType) to the field name -> plain Python
+        type shape the Struct*Editor widgets expect — same reasoning
+        as _python_type(): widgets.py stays config-agnostic."""
+        return {
+            field_name: self._python_type(field_type)
+            for field_name, field_type in schema.items()
+        }
 
     def _integer_range(self, item: ConfigItem) -> list[int]:
         lo, hi = _INT_MIN, _INT_MAX

@@ -953,6 +953,587 @@ class ArrayEditor(HintedWidget):
         self._apply_state(self.remove_button, flag)
 
 
+def _build_scalar_field(master, field_type: type, initial_value, on_commit=None, width: int = 10):
+    """Build the small widget used to edit one scalar struct field —
+    a Checkbutton for bool, else a text Entry parsed via `field_type`
+    on read (the same `item_type(text)` convention ArrayEditor uses
+    for list elements). Returns (variable, widget).
+
+    If `on_commit` is given it's wired to fire on every edit that
+    commits — Return/FocusOut for the entry, immediately for the
+    checkbutton — for widgets (like StructEditor) that push a change
+    through as soon as one field is edited. Widgets that instead stage
+    edits behind an explicit Add/Update button (StructListEditor,
+    StructMapEditor) pass None and read the variable on demand."""
+    if field_type is bool:
+        var = ttk.BooleanVar(value=bool(initial_value))
+        widget = ttk.Checkbutton(master, variable=var, command=on_commit or Nop())
+    else:
+        var = ttk.StringVar(value=str(initial_value))
+        widget = ttk.Entry(master, textvariable=var, width=width)
+        if on_commit is not None:
+            widget.bind("<Return>", lambda _e: on_commit())
+            widget.bind("<FocusOut>", lambda _e: on_commit())
+    return var, widget
+
+
+def _read_scalar_field(var, field_type: type):
+    """Inverse of _build_scalar_field: parse the variable's current
+    text back to `field_type` (a BooleanVar already holds a real bool,
+    so it needs no parsing). Raises TypeError/ValueError, same as
+    ArrayEditor's item_type(text), if the text doesn't parse."""
+    return var.get() if field_type is bool else field_type(var.get())
+
+
+def _set_scalar_field(var, field_type: type, value) -> None:
+    var.set(value if field_type is bool else str(value))
+
+
+class StructEditor(HintedWidget):
+    """Edits a STRUCT-shaped dict value: one small labeled field per
+    entry in `schema` (dict[str, type] — the field's underlying Python
+    type, e.g. str/int/float/bool; a UI builder derives this from the
+    ConfigItem's ConfigType schema). Committing any single field sends
+    the *entire* current dict to `command`, since ConfigItem.set()
+    always validates/replaces a STRUCT's whole value at once."""
+
+    def __init__(
+        self,
+        master,
+        name: str,
+        schema: dict,
+        initial_value: dict,
+        tooltip: str,
+        command=Nop(),
+        compact: bool = True,
+        **kwargs,
+    ):
+        super().__init__(master, name=name, compact=compact, **kwargs)
+
+        self.command = command
+        self.schema = schema
+        self._field_vars = {}
+        # The last value every field agreed to (either the initial
+        # value, or whatever a prior commit sent to `command` before
+        # this widget heard back) — see _on_commit()'s use of it.
+        self._committed_value = dict(initial_value)
+
+        fields_frame = ttk.Frame(self.container)
+        fields_frame.pack(side=LEFT, expand=YES, fill=X, padx=5, pady=2)
+
+        for field_name, field_type in schema.items():
+            column = ttk.Frame(fields_frame)
+            column.pack(side=LEFT, padx=(0, 8))
+            ttk.Label(column, text=field_name).pack(side=TOP, anchor=W)
+            var, widget = _build_scalar_field(
+                column, field_type, initial_value[field_name], on_commit=self._on_commit
+            )
+            widget.pack(side=TOP, fill=X)
+            self._field_vars[field_name] = var
+
+        ToolTip(fields_frame, text=tooltip)
+
+    def _on_commit(self) -> None:
+        try:
+            value = self.values()
+        except (TypeError, ValueError):
+            # A field's raw text doesn't even parse (e.g. non-numeric
+            # text in an int field) -- snap every field back to the
+            # last value this widget successfully committed, the same
+            # way a command() call this ConfigItem.set() rejects gets
+            # undone via update() below. Otherwise unparseable text
+            # would sit in the field forever with nothing to fix it.
+            self.update(self._committed_value)
+            return
+        self._committed_value = value
+        if self.command is not None:
+            self.command(value)
+
+    def values(self) -> dict:
+        return {
+            field_name: _read_scalar_field(self._field_vars[field_name], field_type)
+            for field_name, field_type in self.schema.items()
+        }
+
+    def update(self, value: dict) -> None:
+        self._committed_value = dict(value)
+        for field_name, field_type in self.schema.items():
+            _set_scalar_field(
+                self._field_vars[field_name], field_type, value[field_name]
+            )
+
+
+class StructListEditor(HintedWidget):
+    """Edits a STRUCT_LIST value: a plain list of STRUCT dicts all
+    sharing `schema` (same dict[str, type] convention as
+    StructEditor). Shown as a table (one column per schema field) with
+    an entry row plus Add/Remove buttons — entries have no key, so
+    (unlike StructMapEditor) there's nothing to select-and-modify in
+    place; remove and re-add instead, the same tradeoff ArrayEditor
+    makes for a plain list of scalars."""
+
+    def __init__(
+        self,
+        master,
+        name: str,
+        schema: dict,
+        initial_value: list,
+        tooltip: str,
+        command=Nop(),
+        compact: bool = True,
+        **kwargs,
+    ):
+        super().__init__(master, name=name, compact=compact, **kwargs)
+
+        self.command = command
+        self.schema = schema
+        self.columns = list(schema.keys())
+
+        table_row = ttk.Frame(self.container)
+        table_row.pack(side=TOP, fill=BOTH, expand=YES, padx=5, pady=(2, 0))
+
+        self.tree = tkttk.Treeview(
+            table_row, columns=self.columns, show="headings", height=5
+        )
+        for column in self.columns:
+            self.tree.heading(column, text=column, anchor=W)
+            self.tree.column(column, width=80, anchor=W)
+        self.tree.pack(side=LEFT, fill=BOTH, expand=YES)
+
+        scrollbar = ttk.Scrollbar(table_row, orient=VERTICAL, command=self.tree.yview)
+        scrollbar.pack(side=LEFT, fill=Y)
+        self.tree.configure(yscrollcommand=scrollbar.set)
+
+        self._load_rows(initial_value)
+
+        entry_row = ttk.Frame(self.container)
+        entry_row.pack(side=TOP, fill=X, padx=5, pady=2)
+
+        self._field_vars = {}
+        self._field_widgets = {}
+        for field_name, field_type in schema.items():
+            ttk.Label(entry_row, text=field_name).pack(side=LEFT, padx=(4, 2))
+            initial = False if field_type is bool else ""
+            var, widget = _build_scalar_field(entry_row, field_type, initial, width=8)
+            widget.pack(side=LEFT)
+            self._field_vars[field_name] = var
+            self._field_widgets[field_name] = widget
+
+        self.add_button = ttk.Button(entry_row, text="Add", command=self._on_add)
+        self.add_button.pack(side=LEFT, padx=(5, 0))
+        self.remove_button = ttk.Button(
+            entry_row, text="Remove", command=self._on_remove
+        )
+        self.remove_button.pack(side=LEFT, padx=(5, 0))
+
+        ToolTip(self.tree, text=tooltip)
+
+    def _load_rows(self, entries: list) -> None:
+        self.tree.delete(*self.tree.get_children())
+        for entry in entries:
+            self.tree.insert("", END, values=[entry[c] for c in self.columns])
+
+    def _clear_fields(self) -> None:
+        for field_name, field_type in self.schema.items():
+            initial = False if field_type is bool else ""
+            _set_scalar_field(self._field_vars[field_name], field_type, initial)
+
+    def _read_fields(self) -> dict:
+        return {
+            field_name: _read_scalar_field(self._field_vars[field_name], field_type)
+            for field_name, field_type in self.schema.items()
+        }
+
+    def _on_add(self) -> None:
+        try:
+            entry = self._read_fields()
+        except (TypeError, ValueError):
+            return
+        self.tree.insert("", END, values=[entry[c] for c in self.columns])
+        self._clear_fields()
+        self._notify()
+
+    def _on_remove(self) -> None:
+        selection = self.tree.selection()
+        if not selection:
+            return
+        self.tree.delete(*selection)
+        self._notify()
+
+    def _notify(self) -> None:
+        if self.command is not None:
+            self.command(self.values())
+
+    def values(self) -> list:
+        result = []
+        for iid in self.tree.get_children():
+            raw = self.tree.item(iid, "values")
+            entry = {}
+            for column, value in zip(self.columns, raw):
+                field_type = self.schema[column]
+                entry[column] = value if field_type is bool else field_type(value)
+            result.append(entry)
+        return result
+
+    def update(self, value: list) -> None:
+        self._load_rows(value)
+
+    def set_read_only(self, read_only: bool) -> None:
+        # The tree stays enabled so the list is still browsable/
+        # scrollable — only the controls that add/remove entries are
+        # disabled, the same pattern ArrayEditor uses.
+        flag = "disabled" if read_only else "!disabled"
+        for widget in self._field_widgets.values():
+            self._apply_state(widget, flag)
+        self._apply_state(self.add_button, flag)
+        self._apply_state(self.remove_button, flag)
+
+
+class StructMapEditor(HintedWidget):
+    """Edits a STRUCT_MAP value: a list of {"key": ..., "value": ...}
+    entries. `key_type` is the map key's underlying Python type (str
+    or int — see ConfigType.STRUCT_MAP); `schema` is the struct's
+    fields, same dict[str, type] convention as StructEditor/
+    StructListEditor.
+
+    `key_name`, if given, is the label shown for the key everywhere in
+    the UI (column heading, tree heading, entry-row label) instead of
+    the generic "key" — purely cosmetic, matching ConfigItem.key_name;
+    it has no effect on the entry dicts' underlying "key"/"value"
+    field names.
+
+    `value_is_list` picks which of STRUCT_MAP's two value shapes this
+    editor is for (see ConfigType.STRUCT_MAP's value_type):
+
+    - False (default): each key maps to one STRUCT. Shown as a flat
+      table (a key column plus one per struct field) with
+      Add/Update/Remove controls, same as before. Selecting a row
+      loads its key and field values into the entry row so Update can
+      replace it in place.
+    - True: each key maps to a whole STRUCT_LIST. Shown as a tree —
+      one expandable row per key, with one indented child row per list
+      entry underneath showing the struct fields. The key row's Add
+      creates an empty group; the struct-field row's Add appends a
+      struct (built from the current field inputs) under whichever key
+      is selected/typed; Update/Remove act on the selected child row
+      (Remove also accepts a key row, deleting that whole group and
+      its entries).
+
+    Either way, every mutation just builds the full resulting list and
+    hands it to `command` — ConfigItem.set() (via STRUCT_MAP's own
+    validation) is what actually enforces key uniqueness etc.; a
+    rejected edit is undone by the caller via update()."""
+
+    def __init__(
+        self,
+        master,
+        name: str,
+        key_type: type,
+        schema: dict,
+        initial_value: list,
+        tooltip: str,
+        command=Nop(),
+        compact: bool = True,
+        value_is_list: bool = False,
+        key_name: str = "key",
+        **kwargs,
+    ):
+        super().__init__(master, name=name, compact=compact, **kwargs)
+
+        self.command = command
+        self.key_type = key_type
+        self.schema = schema
+        self.value_is_list = value_is_list
+        self.key_name = key_name
+        # "key" is this widget's internal Treeview column id for the
+        # map key (flat mode only — list mode puts it in the tree's
+        # own #0 column instead), kept stable regardless of key_name
+        # so the id never has to match whatever label is displayed for
+        # it.
+        self.columns = list(schema.keys()) if value_is_list else ["key"] + list(schema.keys())
+
+        table_row = ttk.Frame(self.container)
+        table_row.pack(side=TOP, fill=BOTH, expand=YES, padx=5, pady=(2, 0))
+
+        show = "tree headings" if value_is_list else "headings"
+        self.tree = tkttk.Treeview(
+            table_row, columns=self.columns, show=show, height=5
+        )
+        if value_is_list:
+            self.tree.heading("#0", text=key_name, anchor=W)
+            self.tree.column("#0", width=100, anchor=W)
+        for column in self.columns:
+            heading_text = key_name if column == "key" else column
+            self.tree.heading(column, text=heading_text, anchor=W)
+            self.tree.column(column, width=80, anchor=W)
+        self.tree.pack(side=LEFT, fill=BOTH, expand=YES)
+        self.tree.bind("<<TreeviewSelect>>", self._on_select)
+
+        scrollbar = ttk.Scrollbar(table_row, orient=VERTICAL, command=self.tree.yview)
+        scrollbar.pack(side=LEFT, fill=Y)
+        self.tree.configure(yscrollcommand=scrollbar.set)
+
+        self._load_rows(initial_value)
+
+        self._buttons = []
+        if value_is_list:
+            # A separate row for the key: "Add key" creates a new,
+            # initially-empty group, independently of the struct-field
+            # row below (which appends/updates entries within it).
+            key_row = ttk.Frame(self.container)
+            key_row.pack(side=TOP, fill=X, padx=5, pady=2)
+            ttk.Label(key_row, text=key_name).pack(side=LEFT, padx=(4, 2))
+            self.key_var, self.key_widget = _build_scalar_field(key_row, key_type, "")
+            self.key_widget.pack(side=LEFT)
+            self.add_key_button = ttk.Button(
+                key_row, text="Add", command=self._on_add_key
+            )
+            self.add_key_button.pack(side=LEFT, padx=(5, 0))
+            self._buttons.append(self.add_key_button)
+
+            entry_row = ttk.Frame(self.container)
+            entry_row.pack(side=TOP, fill=X, padx=5, pady=2)
+        else:
+            # Flat mode keeps the key field on the same row as the
+            # struct fields, since Add/Update act on both together.
+            entry_row = ttk.Frame(self.container)
+            entry_row.pack(side=TOP, fill=X, padx=5, pady=2)
+            ttk.Label(entry_row, text=key_name).pack(side=LEFT, padx=(4, 2))
+            self.key_var, self.key_widget = _build_scalar_field(
+                entry_row, key_type, ""
+            )
+            self.key_widget.pack(side=LEFT)
+
+        self._field_vars = {}
+        self._field_widgets = {}
+        for field_name, field_type in schema.items():
+            ttk.Label(entry_row, text=field_name).pack(side=LEFT, padx=(4, 2))
+            initial = False if field_type is bool else ""
+            var, widget = _build_scalar_field(entry_row, field_type, initial, width=8)
+            widget.pack(side=LEFT)
+            self._field_vars[field_name] = var
+            self._field_widgets[field_name] = widget
+        self._buttons.extend(self._field_widgets.values())
+        self._buttons.append(self.key_widget)
+
+        if value_is_list:
+            self.add_button = ttk.Button(
+                entry_row, text="Add", command=self._on_add_entry
+            )
+        else:
+            self.add_button = ttk.Button(entry_row, text="Add", command=self._on_add)
+        self.add_button.pack(side=LEFT, padx=(5, 0))
+        self.update_button = ttk.Button(
+            entry_row, text="Update", command=self._on_update
+        )
+        self.update_button.pack(side=LEFT, padx=(5, 0))
+        self.remove_button = ttk.Button(
+            entry_row, text="Remove", command=self._on_remove
+        )
+        self.remove_button.pack(side=LEFT, padx=(5, 0))
+        self._buttons.extend([self.add_button, self.update_button, self.remove_button])
+
+        ToolTip(self.tree, text=tooltip)
+
+    # -- shared -----------------------------------------------------
+
+    def _load_rows(self, entries: list) -> None:
+        self.tree.delete(*self.tree.get_children())
+        if self.value_is_list:
+            for entry in entries:
+                parent = self.tree.insert(
+                    "",
+                    END,
+                    text=str(entry["key"]),
+                    values=["" for _ in self.schema],
+                    open=True,
+                )
+                for item in entry["value"]:
+                    self.tree.insert(
+                        parent, END, values=[item[f] for f in self.schema]
+                    )
+        else:
+            for entry in entries:
+                row = [entry["key"]] + [entry["value"][f] for f in self.schema]
+                self.tree.insert("", END, values=row)
+
+    def _clear_key_field(self) -> None:
+        _set_scalar_field(self.key_var, self.key_type, "")
+
+    def _clear_struct_fields(self) -> None:
+        for field_name, field_type in self.schema.items():
+            initial = False if field_type is bool else ""
+            _set_scalar_field(self._field_vars[field_name], field_type, initial)
+
+    def _clear_fields(self) -> None:
+        self._clear_key_field()
+        self._clear_struct_fields()
+
+    def _read_struct_fields(self) -> dict:
+        return {
+            field_name: _read_scalar_field(self._field_vars[field_name], field_type)
+            for field_name, field_type in self.schema.items()
+        }
+
+    def _notify(self) -> None:
+        if self.command is not None:
+            self.command(self.values())
+
+    def values(self) -> list:
+        if self.value_is_list:
+            return self._values_list_mode()
+        return self._values_flat_mode()
+
+    def update(self, value: list) -> None:
+        self._load_rows(value)
+        self._clear_fields()
+
+    def set_read_only(self, read_only: bool) -> None:
+        flag = "disabled" if read_only else "!disabled"
+        for widget in self._buttons:
+            self._apply_state(widget, flag)
+
+    # -- flat mode (value_is_list=False) -----------------------------
+
+    def _values_flat_mode(self) -> list:
+        result = []
+        for iid in self.tree.get_children():
+            raw = self.tree.item(iid, "values")
+            key = self.key_type(raw[0])
+            fields = {}
+            for field_name, raw_value in zip(self.schema, raw[1:]):
+                field_type = self.schema[field_name]
+                fields[field_name] = (
+                    raw_value if field_type is bool else field_type(raw_value)
+                )
+            result.append({"key": key, "value": fields})
+        return result
+
+    def _on_select(self, event=None) -> None:
+        selection = self.tree.selection()
+        if not selection:
+            return
+        if self.value_is_list:
+            self._on_select_list_mode(selection[0])
+            return
+        values = self.tree.item(selection[0], "values")
+        self.key_var.set(values[0])
+        for field_name, raw in zip(self.schema, values[1:]):
+            self._field_vars[field_name].set(raw)
+
+    def _read_entry(self):
+        key = _read_scalar_field(self.key_var, self.key_type)
+        fields = self._read_struct_fields()
+        return key, fields
+
+    def _on_add(self) -> None:
+        try:
+            key, fields = self._read_entry()
+        except (TypeError, ValueError):
+            return
+        self.tree.insert("", END, values=[key] + [fields[f] for f in self.schema])
+        self._clear_fields()
+        self._notify()
+
+    def _on_update(self) -> None:
+        selection = self.tree.selection()
+        if not selection:
+            return
+        if self.value_is_list:
+            self._on_update_list_mode(selection[0])
+            return
+        try:
+            key, fields = self._read_entry()
+        except (TypeError, ValueError):
+            return
+        self.tree.item(selection[0], values=[key] + [fields[f] for f in self.schema])
+        self._notify()
+
+    def _on_remove(self) -> None:
+        selection = self.tree.selection()
+        if not selection:
+            return
+        self.tree.delete(*selection)
+        self._clear_fields()
+        self._notify()
+
+    # -- list mode (value_is_list=True) -------------------------------
+
+    def _values_list_mode(self) -> list:
+        result = []
+        for parent_iid in self.tree.get_children(""):
+            key = self.key_type(self.tree.item(parent_iid, "text"))
+            entries = []
+            for child_iid in self.tree.get_children(parent_iid):
+                raw = self.tree.item(child_iid, "values")
+                entry = {}
+                for field_name, raw_value in zip(self.schema, raw):
+                    field_type = self.schema[field_name]
+                    entry[field_name] = (
+                        raw_value if field_type is bool else field_type(raw_value)
+                    )
+                entries.append(entry)
+            result.append({"key": key, "value": entries})
+        return result
+
+    def _find_key_row(self, key) -> Optional[str]:
+        target = str(key)
+        for iid in self.tree.get_children(""):
+            if self.tree.item(iid, "text") == target:
+                return iid
+        return None
+
+    def _on_select_list_mode(self, iid: str) -> None:
+        if self.tree.parent(iid) == "":
+            # A key row -- there's no single struct to load, just the
+            # key (kept so "Add entry" defaults to this group).
+            self.key_var.set(self.tree.item(iid, "text"))
+            self._clear_struct_fields()
+        else:
+            parent_iid = self.tree.parent(iid)
+            self.key_var.set(self.tree.item(parent_iid, "text"))
+            values = self.tree.item(iid, "values")
+            for field_name, raw in zip(self.schema, values):
+                self._field_vars[field_name].set(raw)
+
+    def _on_add_key(self) -> None:
+        try:
+            key = _read_scalar_field(self.key_var, self.key_type)
+        except (TypeError, ValueError):
+            return
+        self.tree.insert(
+            "", END, text=str(key), values=["" for _ in self.schema], open=True
+        )
+        self._clear_key_field()
+        self._notify()
+
+    def _on_add_entry(self) -> None:
+        try:
+            key = _read_scalar_field(self.key_var, self.key_type)
+            fields = self._read_struct_fields()
+        except (TypeError, ValueError):
+            return
+        parent_iid = self._find_key_row(key)
+        if parent_iid is None:
+            # No such group yet -- add the key first via "Add key".
+            return
+        self.tree.item(parent_iid, open=True)
+        self.tree.insert(parent_iid, END, values=[fields[f] for f in self.schema])
+        self._clear_struct_fields()
+        self._notify()
+
+    def _on_update_list_mode(self, iid: str) -> None:
+        if self.tree.parent(iid) == "":
+            # Only an entry (child) row can be updated in place.
+            return
+        try:
+            fields = self._read_struct_fields()
+        except (TypeError, ValueError):
+            return
+        self.tree.item(iid, values=[fields[f] for f in self.schema])
+        self._notify()
+
+
 class Button(EnableDisableMixin, ttk.Frame):
     def __init__(
         self,

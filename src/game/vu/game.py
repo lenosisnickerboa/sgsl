@@ -327,6 +327,14 @@ class VUGame(Game):
                     ConfigIndex.MODS_FUN_BOTS_URL,
                 ],
             ),
+            TabSpec(
+                title="Map groups",
+                items=[
+                    ConfigIndex.ORDINARY_MAPGROUPS,
+                    ConfigIndex.ORDINARY_MAPGROUP,
+                    ConfigIndex.ORDINARY_MAPGROUP_LIST,
+                ],
+            ),
         ]
 
     def config_item_changed(self, config_item, config: Config[IndexT]) -> list[IndexT]:

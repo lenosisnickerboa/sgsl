@@ -226,4 +226,43 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Where to download mod fun-bots from",
             value="https://github.com/Joe91/fun-bots/archive/refs/tags/V3.0.0-Release.zip",
         ),
+        ConfigIndex.ORDINARY_MAPGROUPS: ConfigItem(
+            name="ordinary_mapgroups",
+            visible_name="Ordinary map groups",
+            type=ConfigType.STRUCT_MAP,
+            tooltip="User-defined map groups, each a named list of maps, modes and rounds to execute",
+            value=[],
+            item_type=ConfigType.STRING,
+            value_type=ConfigType.STRUCT_LIST,
+            key_name="map_group",
+            schema={
+                "name": ConfigType.STRING,
+                "mode": ConfigType.STRING,
+                "rounds": ConfigType.INTEGER,
+            },
+        ),
+        ConfigIndex.ORDINARY_MAPGROUP: ConfigItem(
+            name="ordinary_mapgroup",
+            visible_name="Ordinary map group",
+            type=ConfigType.STRUCT,
+            tooltip="A single map/mode/rounds entry, same shape as one ORDINARY_MAPGROUPS struct",
+            value={"name": "", "mode": "", "rounds": 0},
+            schema={
+                "name": ConfigType.STRING,
+                "mode": ConfigType.STRING,
+                "rounds": ConfigType.INTEGER,
+            },
+        ),
+        ConfigIndex.ORDINARY_MAPGROUP_LIST: ConfigItem(
+            name="ordinary_mapgroup_list",
+            visible_name="Ordinary map group list",
+            type=ConfigType.STRUCT_LIST,
+            tooltip="A plain list of map/mode/rounds entries, same struct as ORDINARY_MAPGROUP",
+            value=[],
+            schema={
+                "name": ConfigType.STRING,
+                "mode": ConfigType.STRING,
+                "rounds": ConfigType.INTEGER,
+            },
+        ),
     }

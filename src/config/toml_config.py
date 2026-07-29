@@ -89,9 +89,45 @@ class TomlConfigParser:
         # plain int, without relying on a .value attribute.
         ordered_items = sorted(config.items(), key=lambda pair: int(pair[0]))
 
+        # Each item is dumped independently (see _format_entry) and the
+        # resulting blocks are just concatenated as text, rather than
+        # dumped from one combined dict via a single tomli_w.dumps()
+        # call -- which is what makes this reordering necessary: a
+        # dict-shaped value (TABLE/STRUCT) always renders as a "[name]"
+        # table header, and a list-of-dicts value (STRUCT_MAP, ARRAY-
+        # of-TABLE-likes, ...) renders as a "[[name]]" array-of-tables
+        # header instead of an inline literal whenever an entry doesn't
+        # fit inline on one line (e.g. a STRUCT_MAP entry whose value
+        # is itself a STRUCT_LIST, or just has enough fields) -- and in
+        # TOML every bare "key = value" line belongs to whichever
+        # header most recently appeared above it. Left in index order,
+        # a plain item written after one of these would silently become
+        # a field of that header's table instead of its own top-level
+        # key. Detected empirically (does the rendered block open a
+        # header?) rather than by ConfigType, since whether tomli_w
+        # reaches for header syntax depends on the actual value's shape,
+        # not just the declared type -- e.g. the same STRUCT_MAP can
+        # render either way depending on what's currently in it. Moving
+        # every such block to the end (each still its own header, so
+        # none of them capture each other) avoids the problem regardless
+        # of how the items are indexed or what they currently contain.
         blocks = [TomlConfigParser._format_entry(item) for _, item in ordered_items]
+        header_blocks = [b for b in blocks if TomlConfigParser._opens_table_header(b)]
+        plain_blocks = [
+            b for b in blocks if not TomlConfigParser._opens_table_header(b)
+        ]
 
-        path.write_text("\n".join(blocks), encoding="utf-8")
+        path.write_text("\n".join(plain_blocks + header_blocks), encoding="utf-8")
+
+    @staticmethod
+    def _opens_table_header(block: str) -> bool:
+        """True if `block` (one item's rendered comment+value text)
+        contains a TOML table/array-of-tables header line ("[name]" or
+        "[[name]]") -- which, unlike a plain "key = value" line, stays
+        open and would swallow any bare assignment written after it.
+        Comment lines (from _format_entry) always start with "#", so
+        they can't false-positive here."""
+        return any(line.startswith("[") for line in block.splitlines())
 
     @staticmethod
     def _format_entry(item: ConfigItem) -> str:

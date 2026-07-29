@@ -28,6 +28,27 @@ class ConfigType(Enum):
     TIME = time
     ARRAY = list
     TABLE = dict
+    # A fixed set of named fields, each holding a scalar ConfigType
+    # (declared via `schema`, the same attribute TABLE uses) — e.g.
+    # {"host": ConfigType.STRING, "port": ConfigType.INTEGER}.
+    # Validated identically to TABLE; kept as a separate type so it
+    # reads as "a struct" where it's used standalone or as the payload
+    # of a STRUCT_MAP entry. Given a distinct sentinel value for the
+    # same reason as STRING_LIST — see _check_scalar().
+    STRUCT = "struct"
+    # A list mapping a scalar key (`item_type`, restricted to STRING
+    # or INTEGER) to a STRUCT (`schema` describes the struct's
+    # fields). The value is a list of {"key": ..., "value": {...}}
+    # entries with unique keys — see add_struct_map_entry(),
+    # remove_struct_map_entry(), and set_struct_map_entry(). Given a
+    # distinct sentinel value for the same reason as STRING_LIST —
+    # see _check_scalar().
+    STRUCT_MAP = "struct_map"
+    # A plain list of STRUCTs, all sharing the same fields (declared
+    # via `schema`, same as STRUCT) — unlike STRUCT_MAP, entries have
+    # no key, just position in the list. Given a distinct sentinel
+    # value for the same reason as STRING_LIST — see _check_scalar().
+    STRUCT_LIST = "struct_list"
 
 
 class ConfigDeliveryType(Enum):
@@ -90,9 +111,42 @@ class ConfigItem:
     For ARRAY items, `item_type` declares the ConfigType every element
     must match (e.g. ConfigType.INTEGER for a list of ints).
 
-    For TABLE items, `schema` declares the expected keys and their
-    ConfigType, e.g. {"x": ConfigType.INTEGER, "y": ConfigType.INTEGER}.
-    The table's keys must match the schema's keys exactly.
+    For TABLE and STRUCT items, `schema` declares the expected keys
+    and their ConfigType, e.g. {"x": ConfigType.INTEGER, "y":
+    ConfigType.INTEGER}. The table's/struct's keys must match the
+    schema's keys exactly. STRUCT is validated identically to TABLE;
+    it exists as a separate type so it reads as "a struct" where it's
+    used standalone or as the payload of a STRUCT_MAP entry.
+
+    For STRUCT_MAP items, `item_type` declares the ConfigType of the
+    map's key (must be ConfigType.STRING or ConfigType.INTEGER) and
+    `schema` declares the fields of the STRUCT each key maps to, the
+    same as for a STRUCT item. The value is a list of entries shaped
+    like {"key": <key value>, "value": <the STRUCT>}, with keys unique
+    across the list — this shape (rather than a plain dict) is what
+    lets the key be an int, since TOML/JSON table keys must be
+    strings. Use add_struct_map_entry()/remove_struct_map_entry()/
+    set_struct_map_entry() to mutate a STRUCT_MAP item rather than
+    building entry dicts by hand.
+
+    `value_type`, only valid for STRUCT_MAP items, picks the shape of
+    each entry's "value": ConfigType.STRUCT (the default — one STRUCT
+    per key, validated against `schema`) or ConfigType.STRUCT_LIST (a
+    whole list of STRUCTs per key, e.g. a named group of several
+    entries, each still validated against `schema`).
+
+    `key_name`, only valid for STRUCT_MAP items, is the human-readable
+    name a UI should show for the map's key (e.g. "map_group") instead
+    of the generic "key" — purely cosmetic, it has no effect on the
+    entry dict's actual "key"/"value" field names or on serialization.
+    Defaults to "key" if unset.
+
+    For STRUCT_LIST items, `schema` declares the fields of the STRUCT
+    every element must match, the same as for a STRUCT item. The
+    value is a plain list of struct dicts — unlike STRUCT_MAP, there's
+    no key, so use ordinary list operations on `.value` (plus `set()`
+    to have the result re-validated) rather than a dedicated mutation
+    API.
 
     `validator`, if provided, is an additional check run after the
     built-in type/item_type/schema validation passes. It's called with
@@ -145,6 +199,8 @@ class ConfigItem:
     config_type: Optional[ConfigDeliveryType] = None
     item_type: Optional[ConfigType] = None
     schema: Optional[dict[str, ConfigType]] = None
+    value_type: Optional[ConfigType] = None
+    key_name: Optional[str] = None
     validator: Optional[Callable[[Any], bool]] = None
     transform: Optional[Callable[[Any], Any]] = None
     allowed_values: Optional[list[Any]] = None
@@ -158,6 +214,32 @@ class ConfigItem:
             raise ValueError(f"{self.name}: ARRAY items require item_type")
         if self.type is ConfigType.TABLE and self.schema is None:
             raise ValueError(f"{self.name}: TABLE items require schema")
+        if self.type is ConfigType.STRUCT and self.schema is None:
+            raise ValueError(f"{self.name}: STRUCT items require schema")
+        if self.type is ConfigType.STRUCT_LIST and self.schema is None:
+            raise ValueError(f"{self.name}: STRUCT_LIST items require schema")
+        if self.type is ConfigType.STRUCT_MAP:
+            if self.schema is None:
+                raise ValueError(
+                    f"{self.name}: STRUCT_MAP items require schema (the struct's fields)"
+                )
+            if self.item_type not in (ConfigType.STRING, ConfigType.INTEGER):
+                raise ValueError(
+                    f"{self.name}: STRUCT_MAP items require item_type of STRING or "
+                    "INTEGER (the map's key type)"
+                )
+            if self.value_type is None:
+                self.value_type = ConfigType.STRUCT
+            elif self.value_type not in (ConfigType.STRUCT, ConfigType.STRUCT_LIST):
+                raise ValueError(
+                    f"{self.name}: STRUCT_MAP value_type must be STRUCT or STRUCT_LIST"
+                )
+            if self.key_name is None:
+                self.key_name = "key"
+        elif self.value_type is not None:
+            raise ValueError(f"{self.name}: value_type only applies to STRUCT_MAP items")
+        elif self.key_name is not None:
+            raise ValueError(f"{self.name}: key_name only applies to STRUCT_MAP items")
         if self.range is not None and self.type not in (
             ConfigType.INTEGER,
             ConfigType.FLOAT,
@@ -174,8 +256,12 @@ class ConfigItem:
     def _validate(self) -> None:
         if self.type is ConfigType.ARRAY:
             self._validate_array()
-        elif self.type is ConfigType.TABLE:
+        elif self.type in (ConfigType.TABLE, ConfigType.STRUCT):
             self._validate_table()
+        elif self.type is ConfigType.STRUCT_MAP:
+            self._validate_struct_map()
+        elif self.type is ConfigType.STRUCT_LIST:
+            self._validate_struct_list()
         else:
             _check_scalar(self.name, self.value, self.type)
 
@@ -231,13 +317,23 @@ class ConfigItem:
                 raise TypeError(f"{self.name}[{i}]: {e}") from e
 
     def _validate_table(self) -> None:
-        if not isinstance(self.value, dict):
+        self._validate_struct_fields(self.name, self.value, self.schema)
+
+    def _validate_struct_fields(
+        self, context: str, value: Any, schema: dict[str, ConfigType]
+    ) -> None:
+        """Shared by TABLE/STRUCT (validating self.value against
+        self.schema) and STRUCT_MAP (validating each entry's "value"
+        against self.schema) — `context` is the name to prefix errors
+        with, since STRUCT_MAP needs a per-entry context rather than
+        just self.name."""
+        if not isinstance(value, dict):
             raise TypeError(
-                f"{self.name}: expected TABLE (dict), got {type(self.value).__name__}"
+                f"{context}: expected {self.type.name} (dict), got {type(value).__name__}"
             )
 
-        expected_keys = set(self.schema.keys())
-        actual_keys = set(self.value.keys())
+        expected_keys = set(schema.keys())
+        actual_keys = set(value.keys())
         if expected_keys != actual_keys:
             missing = expected_keys - actual_keys
             extra = actual_keys - expected_keys
@@ -246,13 +342,64 @@ class ConfigItem:
                 details.append(f"missing {sorted(missing)}")
             if extra:
                 details.append(f"unexpected {sorted(extra)}")
-            raise TypeError(f"{self.name}: table keys mismatch ({', '.join(details)})")
+            raise TypeError(f"{context}: keys mismatch ({', '.join(details)})")
 
-        for key, expected_type in self.schema.items():
+        for key, expected_type in schema.items():
             try:
-                _check_scalar(self.name, self.value[key], expected_type)
+                _check_scalar(context, value[key], expected_type)
             except TypeError as e:
-                raise TypeError(f"{self.name}.{key}: {e}") from e
+                raise TypeError(f"{context}.{key}: {e}") from e
+
+    def _validate_struct_map(self) -> None:
+        if not isinstance(self.value, list):
+            raise TypeError(
+                f"{self.name}: expected STRUCT_MAP (list), got {type(self.value).__name__}"
+            )
+
+        seen_keys = []
+        for i, entry in enumerate(self.value):
+            if not isinstance(entry, dict) or set(entry.keys()) != {"key", "value"}:
+                raise TypeError(
+                    f"{self.name}[{i}]: expected a dict with exactly 'key' and "
+                    f"'value' entries, got {entry!r}"
+                )
+
+            try:
+                _check_scalar(f"{self.name}[{i}].key", entry["key"], self.item_type)
+            except TypeError as e:
+                raise TypeError(str(e)) from e
+
+            if entry["key"] in seen_keys:
+                raise ValueError(
+                    f"{self.name}: duplicate key {entry['key']!r} in STRUCT_MAP"
+                )
+            seen_keys.append(entry["key"])
+
+            if self.value_type is ConfigType.STRUCT_LIST:
+                self._validate_struct_list_fields(
+                    f"{self.name}[{i}].value", entry["value"], self.schema
+                )
+            else:
+                self._validate_struct_fields(
+                    f"{self.name}[{i}].value", entry["value"], self.schema
+                )
+
+    def _validate_struct_list(self) -> None:
+        self._validate_struct_list_fields(self.name, self.value, self.schema)
+
+    def _validate_struct_list_fields(
+        self, context: str, value: Any, schema: dict[str, ConfigType]
+    ) -> None:
+        """Shared by STRUCT_LIST (validating self.value against
+        self.schema) and a STRUCT_MAP whose value_type is STRUCT_LIST
+        (validating each entry's "value" against self.schema) — same
+        context-prefixing reasoning as _validate_struct_fields()."""
+        if not isinstance(value, list):
+            raise TypeError(
+                f"{context}: expected STRUCT_LIST (list), got {type(value).__name__}"
+            )
+        for i, element in enumerate(value):
+            self._validate_struct_fields(f"{context}[{i}]", element, schema)
 
     def set(self, value: Any) -> None:
         """Update the value, re-validating against the declared type,
@@ -271,9 +418,53 @@ class ConfigItem:
             raise
 
     def _apply_transform(self, value: Any) -> Any:
-        if self.type is ConfigType.ARRAY:
+        if self.type in (ConfigType.ARRAY, ConfigType.STRUCT_LIST):
             return [self.transform(element) for element in value]
         return self.transform(value)
+
+    def _require_struct_map(self, method_name: str) -> None:
+        if self.type is not ConfigType.STRUCT_MAP:
+            raise TypeError(
+                f"{self.name}: {method_name} only applies to STRUCT_MAP items "
+                f"(this item is {self.type.name})"
+            )
+
+    def add_struct_map_entry(self, key: Any, struct_value: Any) -> None:
+        """Add a new key -> value entry (`struct_value` is a dict if
+        this item's value_type is STRUCT, or a list of dicts if it's
+        STRUCT_LIST). Goes through set() so the result is validated
+        (and the item left unchanged if it isn't) the same way a plain
+        set() call is.
+
+        Raises ValueError if `key` already exists — use
+        set_struct_map_entry() to modify an existing entry instead."""
+        self._require_struct_map("add_struct_map_entry")
+        if any(entry["key"] == key for entry in self.value):
+            raise ValueError(f"{self.name}: key {key!r} already exists")
+        self.set(self.value + [{"key": key, "value": struct_value}])
+
+    def remove_struct_map_entry(self, key: Any) -> None:
+        """Remove the entry for `key`. Raises KeyError if `key` isn't
+        present."""
+        self._require_struct_map("remove_struct_map_entry")
+        if not any(entry["key"] == key for entry in self.value):
+            raise KeyError(f"{self.name}: key {key!r} not found")
+        self.set([entry for entry in self.value if entry["key"] != key])
+
+    def set_struct_map_entry(self, key: Any, struct_value: Any) -> None:
+        """Replace the value stored for an existing `key` (a dict or a
+        list of dicts — see add_struct_map_entry()). Raises KeyError
+        if `key` isn't present — use add_struct_map_entry() to create
+        a new entry instead."""
+        self._require_struct_map("set_struct_map_entry")
+        if not any(entry["key"] == key for entry in self.value):
+            raise KeyError(f"{self.name}: key {key!r} not found")
+        self.set(
+            [
+                {"key": key, "value": struct_value} if entry["key"] == key else entry
+                for entry in self.value
+            ]
+        )
 
     def values(self) -> Optional[list[Any]]:
         """Return the possible values for this item, or None if it's
