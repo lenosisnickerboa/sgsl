@@ -300,18 +300,18 @@ class CS2Game(Game):
             "-maxplayers",
             "<number>",
         ]
-        # A map group's engine-level limitations (see _active_map_group())
-        # mean only its first entry's mode/rounds can actually take
-        # effect for the whole rotation -- every entry's map still gets
-        # cycled through via mapcyclefile, just not its mode/rounds.
-        map_group = self._active_map_group(config)
-        game_mode = map_group[0]["mode"] if map_group else config[ConfigIndex.GAME_MODE].value
+        game_mode = config[ConfigIndex.GAME_MODE].value
         args[2], args[4] = self._game_type_and_mode_codes(game_mode)
         args[6] = str(config[ConfigIndex.PLAYER_COUNT].value)
         if config[ConfigIndex.STEAM_GSLT].value:  # possibly required when hosting?
             args.append("+sv_setsteamaccount")
             args.append(config[ConfigIndex.STEAM_GSLT].value)
 
+        # A map group only ever supplies which maps to cycle through —
+        # CS2 only supports one game mode/round limit per running
+        # server, so those still come from Game mode/Max rounds as
+        # usual and apply to the whole rotation.
+        map_group = self._active_map_group(config)
         cvar_overrides = None
         if map_group:
             self._write_map_cycle(map_group)
@@ -319,7 +319,6 @@ class CS2Game(Game):
             args.append(self._MapCycleFileName)
             launch_map = map_group[0]["name"]
             cvar_overrides = {
-                "mp_maxrounds": str(map_group[0]["rounds"]),
                 # Without these the engine just restarts the same map
                 # at match end instead of advancing through
                 # mapcyclefile — see _update_gamemode_cfg().
@@ -343,7 +342,7 @@ class CS2Game(Game):
             args.append("+map")
             args.append(launch_map)
         # TODO: add "-usercon",
-        self._update_gamemode_cfg(config, game_mode, cvar_overrides)
+        self._update_gamemode_cfg(config, cvar_overrides)
         args = (
             shlex.split(config[ConfigIndex.CUSTOM_RUN_COMMAND_PRE].value)
             + args
@@ -374,9 +373,9 @@ class CS2Game(Game):
         self._map_cycle_path().write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     def _active_map_group(self, config: Config[IndexT]) -> Optional[list[dict]]:
-        """The list of {"name", "mode", "rounds"} entries for the
-        currently selected map group, or None if SELECTED_MAP_GROUP is
-        "ALL"/empty/not a real group."""
+        """The list of {"name"} entries for the currently selected map
+        group, or None if SELECTED_MAP_GROUP is "ALL"/empty/not a real
+        group."""
         selected_map_group = config[ConfigIndex.SELECTED_MAP_GROUP].value
         if not selected_map_group or selected_map_group == "ALL":
             return None
@@ -385,24 +384,26 @@ class CS2Game(Game):
     def _find_map_group(
         self, config: Config[IndexT], key: str
     ) -> Optional[list[dict]]:
-        """The list of {"name", "mode", "rounds"} entries stored under
-        `key` in ORDINARY_MAPGROUPS, or None if no such group exists."""
+        """The list of {"name"} entries stored under `key` in
+        ORDINARY_MAPGROUPS, or None if no such group exists."""
         for entry in config[ConfigIndex.ORDINARY_MAPGROUPS].value:
             if entry["key"] == key:
                 return entry["value"]
         return None
 
-    def _gamemode_cfg_path(self, game_mode: str) -> Path:
+    def _gamemode_cfg_path(self, config: Config[IndexT]) -> Path:
         cfg_dir = self.server_root / "game" / "csgo" / "cfg"
-        return cfg_dir / f"gamemode_{game_mode.lower()}.cfg"
+        gamemode = config[ConfigIndex.GAME_MODE].value.lower()
+        return cfg_dir / f"gamemode_{gamemode}.cfg"
 
     # A sibling, user-maintained file sgsl never writes to itself: if
     # present, its cvars are appended after sgsl's own config-item
     # cvars, giving users an escape hatch for cvars sgsl has no config
     # item for. Purely optional -- most gamemodes won't have one.
-    def _gamemode_append_cfg_path(self, game_mode: str) -> Path:
+    def _gamemode_append_cfg_path(self, config: Config[IndexT]) -> Path:
         cfg_dir = self.server_root / "game" / "csgo" / "cfg"
-        return cfg_dir / f"gamemode_{game_mode.lower()}_append.cfg"
+        gamemode = config[ConfigIndex.GAME_MODE].value.lower()
+        return cfg_dir / f"gamemode_{gamemode}_append.cfg"
 
     # Marks a line as sgsl's own, so a later run can find and drop it
     # again before appending a fresh copy -- see _update_gamemode_cfg().
@@ -411,7 +412,6 @@ class CS2Game(Game):
     def _update_gamemode_cfg(
         self,
         config: Config[IndexT],
-        game_mode: str,
         cvar_overrides: Optional[dict[str, str]] = None,
     ) -> None:
         """Strip any cvar lines sgsl previously appended to this game
@@ -424,19 +424,13 @@ class CS2Game(Game):
         cvars are appended last, tagged the same way (plus "from
         append") so they too get replaced cleanly on the next run.
 
-        `game_mode` is whichever mode is actually being launched (see
-        run()) — a map group's first entry's mode, if one is active,
-        rather than always GAME_MODE's own value, so a map group whose
-        mode differs from GAME_MODE still lands in the right
-        gamemode_<mode>.cfg.
-
         `cvar_overrides`, if given, replaces (or adds, for cvars with
         no matching config item, e.g. mp_match_end_changelevel) specific
         cvar values on top of the usual SERVER_CFG_FILE items — used
-        when a map group is active, since its rounds/rotation cvars
-        need to win over an item's own separately-configured value."""
+        when a map group is active, since its rotation cvars need to
+        win over an item's own separately-configured value."""
         cvar_overrides = cvar_overrides or {}
-        path = self._gamemode_cfg_path(game_mode)
+        path = self._gamemode_cfg_path(config)
         entries = ValveGamemodeConfigParser.read(path)
         entries = [
             entry
@@ -462,7 +456,7 @@ class CS2Game(Game):
         # mp_match_end_changelevel/mp_match_end_restart) still need to
         # be written -- the loop above only covers ones that do.
         for name, value in cvar_overrides.items():
-            if name == "game_mode_name" or name in written_names:
+            if name in written_names:
                 continue
             entries.append(
                 ConfigEntry(
@@ -470,7 +464,7 @@ class CS2Game(Game):
                 )
             )
 
-        append_path = self._gamemode_append_cfg_path(game_mode)
+        append_path = self._gamemode_append_cfg_path(config)
         if append_path.exists():
             append_entries = ValveGamemodeConfigParser.read(append_path)
             entries.extend(

@@ -468,18 +468,16 @@ def build_game_defaults() -> Config[ConfigIndex]:
             name="ordinary_mapgroups",
             visible_name="Ordinary map groups",
             type=ConfigType.STRUCT_MAP,
-            tooltip="User-defined map groups, each a named list of maps/mode/rounds to cycle "
-            "through via CS2's mapcyclefile. Note: CS2 only supports one game mode and one "
-            "round limit per running server, so only the first entry's mode/rounds take "
-            "effect for the whole rotation — every entry's map is still cycled through",
+            tooltip="User-defined map groups, each a named list of maps to cycle through via "
+            "CS2's mapcyclefile. The game mode and round limit come from Game mode/Max rounds "
+            "as usual — CS2 only supports one of each per running server, so they apply to "
+            "the whole rotation rather than being set per map",
             value=[],
             item_type=ConfigType.STRING,
             value_type=ConfigType.STRUCT_LIST,
             key_name="map_group",
             schema={
                 "name": ConfigType.STRING,
-                "mode": ConfigType.STRING,
-                "rounds": ConfigType.INTEGER,
             },
         ),
     }
@@ -488,20 +486,16 @@ def build_game_defaults() -> Config[ConfigIndex]:
 
 
 def _link_map_group_schema_fields(defaults: Config[ConfigIndex]) -> None:
-    """Point ORDINARY_MAPGROUPS' struct "name"/"mode" fields at
-    SELECTED_MAP's/GAME_MODE's allowed_values (rather than leaving
-    them free text), so its editor offers the same choices as those
-    items — done as a separate pass after the dict above is fully
-    built, since a schema built inline within that dict can't yet
-    refer to a sibling entry defined elsewhere in the same literal.
-    SELECTED_MAP's allowed_values is populated later, by
-    CS2Game.config_defaults()/config_loaded() — this holds a live
-    reference to that ConfigItem, so it stays correct once that
-    happens (see SchemaField)."""
+    """Point ORDINARY_MAPGROUPS' struct "name" field at SELECTED_MAP's
+    allowed_values (rather than leaving it free text), so its editor
+    offers the same choices as that item — done as a separate pass
+    after the dict above is fully built, since a schema built inline
+    within that dict can't yet refer to a sibling entry defined
+    elsewhere in the same literal. SELECTED_MAP's allowed_values is
+    populated later, by CS2Game.config_defaults()/config_loaded() —
+    this holds a live reference to that ConfigItem, so it stays
+    correct once that happens (see SchemaField)."""
     schema = defaults[ConfigIndex.ORDINARY_MAPGROUPS].schema
     schema["name"] = SchemaField(
         ConfigType.STRING_LIST, allowed_values_from=defaults[ConfigIndex.SELECTED_MAP]
-    )
-    schema["mode"] = SchemaField(
-        ConfigType.STRING_LIST, allowed_values_from=defaults[ConfigIndex.GAME_MODE]
     )
