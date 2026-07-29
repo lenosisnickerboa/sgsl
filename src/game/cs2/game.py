@@ -277,6 +277,19 @@ class CS2Game(Game):
             return None
         return line
 
+    def _game_type_and_mode_codes(self, game_mode: str) -> tuple[str, str]:
+        if game_mode == "Casual":
+            return "0", "0"  # game_type, game_mode
+        if game_mode == "Competitive":
+            return "0", "1"
+        if game_mode == "ArmsRace":
+            return "1", "0"
+        if game_mode == "DeathMatch":
+            return "1", "2"
+        if game_mode == "Demolition":
+            return "1", "1"
+        exit(1)
+
     def run(self, config: Config[IndexT]) -> bool:
         args = [
             "-dedicated",
@@ -287,29 +300,36 @@ class CS2Game(Game):
             "-maxplayers",
             "<number>",
         ]
-        game_mode = config[ConfigIndex.GAME_MODE].value
-        if game_mode == "Casual":
-            args[2] = "0"  # game_type
-            args[4] = "0"  # gamne_mode
-        elif game_mode == "Competitive":
-            args[2] = "0"  # game_type
-            args[4] = "1"  # gamne_mode
-        elif game_mode == "ArmsRace":
-            args[2] = "1"  # game_type
-            args[4] = "0"  # gamne_mode
-        elif game_mode == "DeathMatch":
-            args[2] = "1"  # game_type
-            args[4] = "2"  # gamne_mode
-        elif game_mode == "Demolition":
-            args[2] = "1"  # game_type
-            args[4] = "1"  # gamne_mode
-        else:
-            exit(1)
+        # A map group's engine-level limitations (see _active_map_group())
+        # mean only its first entry's mode/rounds can actually take
+        # effect for the whole rotation -- every entry's map still gets
+        # cycled through via mapcyclefile, just not its mode/rounds.
+        map_group = self._active_map_group(config)
+        game_mode = map_group[0]["mode"] if map_group else config[ConfigIndex.GAME_MODE].value
+        args[2], args[4] = self._game_type_and_mode_codes(game_mode)
         args[6] = str(config[ConfigIndex.PLAYER_COUNT].value)
         if config[ConfigIndex.STEAM_GSLT].value:  # possibly required when hosting?
             args.append("+sv_setsteamaccount")
             args.append(config[ConfigIndex.STEAM_GSLT].value)
-        if self._is_workshop_map(config[ConfigIndex.SELECTED_MAP].value):
+
+        cvar_overrides = None
+        if map_group:
+            self._write_map_cycle(map_group)
+            args.append("+mapcyclefile")
+            args.append(self._MapCycleFileName)
+            launch_map = map_group[0]["name"]
+            cvar_overrides = {
+                "mp_maxrounds": str(map_group[0]["rounds"]),
+                # Without these the engine just restarts the same map
+                # at match end instead of advancing through
+                # mapcyclefile — see _update_gamemode_cfg().
+                "mp_match_end_changelevel": "1",
+                "mp_match_end_restart": "0",
+            }
+        else:
+            launch_map = config[ConfigIndex.SELECTED_MAP].value
+
+        if self._is_workshop_map(launch_map):
             args.append(
                 "+map"  # dummy map seems to be needed when hosting a workshop map
             )
@@ -318,13 +338,12 @@ class CS2Game(Game):
                 args.append("-authkey")
                 args.append(config[ConfigIndex.STEAM_API_AUTH_KEY].value)
             args.append("+host_workshop_map")
-            id = self._get_workshop_id(config[ConfigIndex.SELECTED_MAP].value)
-            args.append(str(id))
+            args.append(str(self._get_workshop_id(launch_map)))
         else:
             args.append("+map")
-            args.append(config[ConfigIndex.SELECTED_MAP].value)
+            args.append(launch_map)
         # TODO: add "-usercon",
-        self._update_gamemode_cfg(config)
+        self._update_gamemode_cfg(config, game_mode, cvar_overrides)
         args = (
             shlex.split(config[ConfigIndex.CUSTOM_RUN_COMMAND_PRE].value)
             + args
@@ -338,25 +357,63 @@ class CS2Game(Game):
         super().start_server(args, self._filter_stdout)
         return True
 
-    def _gamemode_cfg_path(self, config: Config[IndexT]) -> Path:
+    _MapCycleFileName = "mapcycle.txt"
+
+    def _map_cycle_path(self) -> Path:
+        return self.server_root / "game" / "csgo" / self._MapCycleFileName
+
+    def _write_map_cycle(self, group: list[dict]) -> None:
+        """CS2's mapcyclefile format: one token per line — a map name,
+        or a bare workshop id for a workshop map."""
+        lines = [
+            str(self._get_workshop_id(entry["name"]))
+            if self._is_workshop_map(entry["name"])
+            else entry["name"]
+            for entry in group
+        ]
+        self._map_cycle_path().write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    def _active_map_group(self, config: Config[IndexT]) -> Optional[list[dict]]:
+        """The list of {"name", "mode", "rounds"} entries for the
+        currently selected map group, or None if SELECTED_MAP_GROUP is
+        "ALL"/empty/not a real group."""
+        selected_map_group = config[ConfigIndex.SELECTED_MAP_GROUP].value
+        if not selected_map_group or selected_map_group == "ALL":
+            return None
+        return self._find_map_group(config, selected_map_group)
+
+    def _find_map_group(
+        self, config: Config[IndexT], key: str
+    ) -> Optional[list[dict]]:
+        """The list of {"name", "mode", "rounds"} entries stored under
+        `key` in ORDINARY_MAPGROUPS, or None if no such group exists."""
+        for entry in config[ConfigIndex.ORDINARY_MAPGROUPS].value:
+            if entry["key"] == key:
+                return entry["value"]
+        return None
+
+    def _gamemode_cfg_path(self, game_mode: str) -> Path:
         cfg_dir = self.server_root / "game" / "csgo" / "cfg"
-        gamemode = config[ConfigIndex.GAME_MODE].value.lower()
-        return cfg_dir / f"gamemode_{gamemode}.cfg"
+        return cfg_dir / f"gamemode_{game_mode.lower()}.cfg"
 
     # A sibling, user-maintained file sgsl never writes to itself: if
     # present, its cvars are appended after sgsl's own config-item
     # cvars, giving users an escape hatch for cvars sgsl has no config
     # item for. Purely optional -- most gamemodes won't have one.
-    def _gamemode_append_cfg_path(self, config: Config[IndexT]) -> Path:
+    def _gamemode_append_cfg_path(self, game_mode: str) -> Path:
         cfg_dir = self.server_root / "game" / "csgo" / "cfg"
-        gamemode = config[ConfigIndex.GAME_MODE].value.lower()
-        return cfg_dir / f"gamemode_{gamemode}_append.cfg"
+        return cfg_dir / f"gamemode_{game_mode.lower()}_append.cfg"
 
     # Marks a line as sgsl's own, so a later run can find and drop it
     # again before appending a fresh copy -- see _update_gamemode_cfg().
     _AddedByComment = "added by sgsl.exe"
 
-    def _update_gamemode_cfg(self, config: Config[IndexT]) -> None:
+    def _update_gamemode_cfg(
+        self,
+        config: Config[IndexT],
+        game_mode: str,
+        cvar_overrides: Optional[dict[str, str]] = None,
+    ) -> None:
         """Strip any cvar lines sgsl previously appended to this game
         mode's Valve-provided override cfg, then append the current
         config's SERVER_CFG_FILE items back on, each tagged with when
@@ -365,8 +422,21 @@ class CS2Game(Game):
         game's own defaults, comments, formatting) is left alone.
         Finally, if a gamemode_<mode>_append.cfg sits next to it, its
         cvars are appended last, tagged the same way (plus "from
-        append") so they too get replaced cleanly on the next run."""
-        path = self._gamemode_cfg_path(config)
+        append") so they too get replaced cleanly on the next run.
+
+        `game_mode` is whichever mode is actually being launched (see
+        run()) — a map group's first entry's mode, if one is active,
+        rather than always GAME_MODE's own value, so a map group whose
+        mode differs from GAME_MODE still lands in the right
+        gamemode_<mode>.cfg.
+
+        `cvar_overrides`, if given, replaces (or adds, for cvars with
+        no matching config item, e.g. mp_match_end_changelevel) specific
+        cvar values on top of the usual SERVER_CFG_FILE items — used
+        when a map group is active, since its rounds/rotation cvars
+        need to win over an item's own separately-configured value."""
+        cvar_overrides = cvar_overrides or {}
+        path = self._gamemode_cfg_path(game_mode)
         entries = ValveGamemodeConfigParser.read(path)
         entries = [
             entry
@@ -377,17 +447,30 @@ class CS2Game(Game):
         ]
 
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        entries.extend(
-            ConfigEntry(
-                name=item.name,
-                value=self._cvar_value(item),
-                comment=f"{self._AddedByComment} {timestamp}",
+        written_names = set()
+        for item in config.values():
+            if item.config_type is not ConfigDeliveryType.SERVER_CFG_FILE:
+                continue
+            value = cvar_overrides.get(item.name, self._cvar_value(item))
+            entries.append(
+                ConfigEntry(
+                    name=item.name, value=value, comment=f"{self._AddedByComment} {timestamp}"
+                )
             )
-            for item in config.values()
-            if item.config_type is ConfigDeliveryType.SERVER_CFG_FILE
-        )
+            written_names.add(item.name)
+        # Overrides with no matching SERVER_CFG_FILE item (e.g.
+        # mp_match_end_changelevel/mp_match_end_restart) still need to
+        # be written -- the loop above only covers ones that do.
+        for name, value in cvar_overrides.items():
+            if name == "game_mode_name" or name in written_names:
+                continue
+            entries.append(
+                ConfigEntry(
+                    name=name, value=value, comment=f"{self._AddedByComment} {timestamp}"
+                )
+            )
 
-        append_path = self._gamemode_append_cfg_path(config)
+        append_path = self._gamemode_append_cfg_path(game_mode)
         if append_path.exists():
             append_entries = ValveGamemodeConfigParser.read(append_path)
             entries.extend(
@@ -521,6 +604,37 @@ class CS2Game(Game):
         config[ConfigIndex.SELECTED_MAP].allowed_values += (
             installed_ws_maps + not_installed_ws_maps
         )
+        # Picks up whatever map groups were just loaded from the saved
+        # config, since config_defaults() alone only ever sees an
+        # empty ORDINARY_MAPGROUPS (the TOML values haven't been
+        # merged in yet at that point).
+        self._refresh_map_group_choices(config)
+        # Likewise for SELECTED_MAP's enabled state, which depends on
+        # whatever SELECTED_MAP_GROUP was just loaded.
+        self._sync_selected_map_state(config)
+
+    def _refresh_map_group_choices(self, config: Config[IndexT]) -> None:
+        """Keep the selected-map-group dropdown's choices in sync with
+        the user-defined map groups (plus the built-in "ALL"); if the
+        currently selected group was renamed/removed, fall back to
+        "ALL"."""
+        group_keys = [
+            entry["key"] for entry in config[ConfigIndex.ORDINARY_MAPGROUPS].value
+        ]
+        choices = ["ALL"] + group_keys
+        config[ConfigIndex.SELECTED_MAP_GROUP].allowed_values = choices
+        if config[ConfigIndex.SELECTED_MAP_GROUP].value not in choices:
+            config[ConfigIndex.SELECTED_MAP_GROUP].set("ALL")
+
+    def _sync_selected_map_state(self, config: Config[IndexT]) -> None:
+        """SELECTED_MAP only means anything when every map is in play
+        ("ALL") — once a custom map group is selected, the maps to
+        play come from that group's own list instead (see
+        _active_map_group()/run()), so disable SELECTED_MAP rather
+        than leave an edit sitting there with no effect."""
+        config[ConfigIndex.SELECTED_MAP].read_only = (
+            config[ConfigIndex.SELECTED_MAP_GROUP].value != "ALL"
+        )
 
     def config_shortcuts(self) -> list[IndexT]:
         return [
@@ -620,6 +734,10 @@ class CS2Game(Game):
                 items=[ConfigIndex.ORDINARY_MAPS, ConfigIndex.WORKSHOP_MAPS],
             ),
             TabSpec(
+                title="Map groups",
+                items=[ConfigIndex.ORDINARY_MAPGROUPS],
+            ),
+            TabSpec(
                 title="Troubleshooting",
                 items=[
                     ConfigIndex.REMOVE_MANIFEST_FILE,
@@ -639,6 +757,17 @@ class CS2Game(Game):
             config[ConfigIndex.SELECTED_MAP].allowed_values = maps
             if maps and config[ConfigIndex.SELECTED_MAP].value not in maps:
                 config[ConfigIndex.SELECTED_MAP].set(maps[0])
+            return [ConfigIndex.SELECTED_MAP]
+        elif config_item is config[ConfigIndex.ORDINARY_MAPGROUPS]:
+            self._refresh_map_group_choices(config)
+            # Covers the case where the removed/renamed group was the
+            # selected one: _refresh_map_group_choices() just fell
+            # SELECTED_MAP_GROUP back to "ALL", so SELECTED_MAP needs
+            # to be re-enabled to match.
+            self._sync_selected_map_state(config)
+            return [ConfigIndex.SELECTED_MAP_GROUP, ConfigIndex.SELECTED_MAP]
+        elif config_item is config[ConfigIndex.SELECTED_MAP_GROUP]:
+            self._sync_selected_map_state(config)
             return [ConfigIndex.SELECTED_MAP]
         elif config_item is config[ConfigIndex.PLAYER_COUNT]:
             config[ConfigIndex.SV_VISIBLEMAXPLAYERS].set(

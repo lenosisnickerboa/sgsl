@@ -81,6 +81,8 @@ class ConfigIndex(IntEnum):
     CUSTOM_RUN_COMMAND_POST = 48
     MP_DO_WARMUP_OFFLINE = 49
 
+    ORDINARY_MAPGROUPS = 50
+
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"
