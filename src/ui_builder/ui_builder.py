@@ -162,6 +162,10 @@ class UiBuilder:
         (e.g. StringCombobox.set_values()), their current
         allowed_values too, e.g. when one item's edit narrows or
         widens another item's choices (see Game.config_item_changed).
+        Also re-applies read_only, so a Game can dynamically
+        enable/disable an item's widget (e.g. in response to another
+        item's edit) by toggling ConfigItem.read_only and listing the
+        item as affected, the same way it would change allowed_values.
         Indexes with no built widget are skipped."""
         for index in changed:
             item = config[index]
@@ -169,6 +173,7 @@ class UiBuilder:
                 if item.allowed_values is not None and hasattr(widget, "set_values"):
                     widget.set_values(item.allowed_values)
                 widget.update(item.value)
+                widget.set_read_only(item.read_only)
 
     def _register(self, index: IndexT, widget: object) -> None:
         self._widgets.setdefault(index, []).append(widget)

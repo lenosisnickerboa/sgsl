@@ -304,6 +304,9 @@ class VUGame(Game):
         # empty ORDINARY_MAPGROUPS (the TOML values haven't been
         # merged in yet at that point).
         self._refresh_map_group_choices(config)
+        # Likewise for SELECTED_MAP's enabled/allowed_values state,
+        # which depends on whatever SELECTED_MAP_GROUP was just loaded.
+        self._sync_selected_map_state(config)
 
     def _refresh_map_group_choices(self, config: Config[IndexT]) -> None:
         """Keep the selected-map-group dropdown's choices in sync with
@@ -317,6 +320,18 @@ class VUGame(Game):
         config[ConfigIndex.SELECTED_MAP_GROUP].allowed_values = choices
         if config[ConfigIndex.SELECTED_MAP_GROUP].value not in choices:
             config[ConfigIndex.SELECTED_MAP_GROUP].set("ALL")
+
+    def _sync_selected_map_state(self, config: Config[IndexT]) -> None:
+        """SELECTED_MAP only means anything when every map is in play
+        ("ALL") — once a custom map group is selected, the maps to
+        play come from that group's own list instead (see
+        _map_list_lines()), so disable SELECTED_MAP rather than leave
+        an edit sitting there with no effect. Re-enables it (with the
+        full map list restored) when back on "ALL"."""
+        select_all = config[ConfigIndex.SELECTED_MAP_GROUP].value == "ALL"
+        config[ConfigIndex.SELECTED_MAP].read_only = not select_all
+        if select_all:
+            config[ConfigIndex.SELECTED_MAP].allowed_values = self.maps.all_names()
 
     def config_shortcuts(self) -> list[IndexT]:
         return [
@@ -393,5 +408,13 @@ class VUGame(Game):
     def config_item_changed(self, config_item, config: Config[IndexT]) -> list[IndexT]:
         if config_item is config[ConfigIndex.ORDINARY_MAPGROUPS]:
             self._refresh_map_group_choices(config)
-            return [ConfigIndex.SELECTED_MAP_GROUP]
+            # Covers the case where the removed/renamed group was the
+            # selected one: _refresh_map_group_choices() just fell
+            # SELECTED_MAP_GROUP back to "ALL", so SELECTED_MAP needs
+            # to be re-enabled to match.
+            self._sync_selected_map_state(config)
+            return [ConfigIndex.SELECTED_MAP_GROUP, ConfigIndex.SELECTED_MAP]
+        if config_item is config[ConfigIndex.SELECTED_MAP_GROUP]:
+            self._sync_selected_map_state(config)
+            return [ConfigIndex.SELECTED_MAP]
         return []
