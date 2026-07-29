@@ -1079,9 +1079,7 @@ class StructEditor(HintedWidget):
         for field_name, field_type in schema.items():
             column = ttk.Frame(fields_frame)
             column.pack(side=LEFT, padx=(0, 8))
-            ttk.Label(column, text=field_name, bootstyle="secondary").pack(
-                side=TOP, anchor=W
-            )
+            ttk.Label(column, text=field_name).pack(side=TOP, anchor=W)
             var, widget = _build_scalar_field(
                 column,
                 field_type,
@@ -1181,9 +1179,7 @@ class StructListEditor(HintedWidget):
         self._field_vars = {}
         self._field_widgets = {}
         for field_name, field_type in schema.items():
-            ttk.Label(entry_row, text=field_name, bootstyle="secondary").pack(
-                side=LEFT, padx=(4, 2)
-            )
+            ttk.Label(entry_row, text=field_name).pack(side=LEFT, padx=(4, 2))
             initial = False if field_type is bool else ""
             var, widget = _build_scalar_field(
                 entry_row,
@@ -1404,9 +1400,7 @@ class StructMapEditor(HintedWidget):
         self._field_vars = {}
         self._field_widgets = {}
         for field_name, field_type in schema.items():
-            ttk.Label(entry_row, text=field_name, bootstyle="secondary").pack(
-                side=LEFT, padx=(4, 2)
-            )
+            ttk.Label(entry_row, text=field_name).pack(side=LEFT, padx=(4, 2))
             initial = False if field_type is bool else ""
             var, widget = _build_scalar_field(
                 entry_row,
