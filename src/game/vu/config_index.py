@@ -40,6 +40,7 @@ class ConfigIndex(IntEnum):
     ORDINARY_MAPGROUPS = 27
     ORDINARY_MAPGROUP = 28
     ORDINARY_MAPGROUP_LIST = 29
+    ORDINARY_MAPS = 30
 
 
 _values = [item.value for item in ConfigIndex]

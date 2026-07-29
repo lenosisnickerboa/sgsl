@@ -265,4 +265,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
                 "rounds": ConfigType.INTEGER,
             },
         ),
+        # -- Maps --
+        ConfigIndex.ORDINARY_MAPS: ConfigItem(
+            name="ordinary_maps",
+            visible_name="Ordinary maps",
+            type=ConfigType.ARRAY,
+            item_type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Maps that can be picked as the selected map",
+            value=[],  # filled in, along with allowed_values, by VUGame.config_defaults()
+            read_only=True,
+        ),
     }

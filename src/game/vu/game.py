@@ -257,6 +257,12 @@ class VUGame(Game):
         all_maps = self.maps.all_names()
         defaults[ConfigIndex.SELECTED_MAP].allowed_values = all_maps
         defaults[ConfigIndex.SELECTED_MAP].value = all_maps[0]
+        # Separate list copies, not the same object as SELECTED_MAP's —
+        # ORDINARY_MAPS is user-editable, so it shouldn't share a
+        # mutable list with (and risk silently altering) another
+        # item's allowed_values/value.
+        defaults[ConfigIndex.ORDINARY_MAPS].allowed_values = list(all_maps)
+        defaults[ConfigIndex.ORDINARY_MAPS].value = list(all_maps)
         all_game_modes = self.modes.all_names()
         defaults[ConfigIndex.GAME_MODE].allowed_values = all_game_modes
         defaults[ConfigIndex.GAME_MODE].value = all_game_modes[0]
@@ -326,6 +332,10 @@ class VUGame(Game):
                     ConfigIndex.MODS_FUN_BOTS_ENABLED,
                     ConfigIndex.MODS_FUN_BOTS_URL,
                 ],
+            ),
+            TabSpec(
+                title="Maps",
+                items=[ConfigIndex.ORDINARY_MAPS],
             ),
             TabSpec(
                 title="Map groups",
