@@ -30,6 +30,13 @@ class TomlConfigParser:
     Config always has an entry for every index present in `defaults`,
     even if the TOML file is empty, partial, or missing.
 
+    A read_only item (e.g. one a Game recomputes fresh on every
+    config_defaults() call, like a list of maps detected from disk) is
+    never written to the file and, symmetrically, any stored value for
+    one is ignored on read — it always reflects whatever config_defaults()
+    just computed for it, not a stale or hand-edited value left over
+    from before.
+
     An entry that no longer validates against its default (e.g. a
     saved file from before that item's declared type or constraints
     changed) is treated like an unknown key: it's skipped and the
@@ -69,6 +76,12 @@ class TomlConfigParser:
                 continue
 
             item = config[idx]
+            if item.read_only:
+                # Never loaded from file -- always whatever
+                # config_defaults() just computed for it (see class
+                # docstring). A stray entry here is most likely left
+                # over from before the item became read_only.
+                continue
             try:
                 # set() re-validates against the item's declared type,
                 # item_type (ARRAY), or schema (TABLE).
@@ -88,6 +101,13 @@ class TomlConfigParser:
         # file. int(idx) works whether idx is an IntEnum member or a
         # plain int, without relying on a .value attribute.
         ordered_items = sorted(config.items(), key=lambda pair: int(pair[0]))
+        # read_only items aren't stored at all (see class docstring) —
+        # config_defaults() recomputes them fresh every run, so a
+        # written copy would just be redundant at best and stale at
+        # worst.
+        ordered_items = [
+            (idx, item) for idx, item in ordered_items if not item.read_only
+        ]
 
         # Each item is dumped independently (see _format_entry) and the
         # resulting blocks are just concatenated as text, rather than

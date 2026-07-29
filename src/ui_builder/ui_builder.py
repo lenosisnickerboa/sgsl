@@ -1,6 +1,6 @@
-from typing import Callable, Optional
+from typing import Callable, Optional, Union
 
-from config.config_item import ConfigItem, ConfigType
+from config.config_item import ConfigItem, ConfigType, SchemaField
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 import ui.widgets as ui
@@ -284,6 +284,7 @@ class UiBuilder:
                 master=master,
                 name=item.visible_name,
                 schema=self._python_schema(item.schema),
+                field_choices=self._field_choices(item.schema),
                 initial_value=item.value,
                 tooltip=tooltip,
                 command=on_widget_changed,
@@ -294,6 +295,7 @@ class UiBuilder:
                 master=master,
                 name=item.visible_name,
                 schema=self._python_schema(item.schema),
+                field_choices=self._field_choices(item.schema),
                 initial_value=item.value,
                 tooltip=tooltip,
                 command=on_widget_changed,
@@ -306,6 +308,7 @@ class UiBuilder:
                 key_type=self._python_type(item.item_type),
                 key_name=item.key_name,
                 schema=self._python_schema(item.schema),
+                field_choices=self._field_choices(item.schema),
                 initial_value=item.value,
                 tooltip=tooltip,
                 command=on_widget_changed,
@@ -331,15 +334,40 @@ class UiBuilder:
             return str
         return config_type.value
 
-    def _python_schema(self, schema: dict[str, ConfigType]) -> dict[str, type]:
+    def _python_schema(
+        self, schema: dict[str, Union[ConfigType, SchemaField]]
+    ) -> dict[str, type]:
         """Convert a ConfigItem's STRUCT/STRUCT_LIST/STRUCT_MAP schema
-        (field name -> ConfigType) to the field name -> plain Python
-        type shape the Struct*Editor widgets expect — same reasoning
-        as _python_type(): widgets.py stays config-agnostic."""
+        (field name -> ConfigType, or SchemaField wrapping one) to the
+        field name -> plain Python type shape the Struct*Editor widgets
+        expect — same reasoning as _python_type(): widgets.py stays
+        config-agnostic."""
         return {
-            field_name: self._python_type(field_type)
-            for field_name, field_type in schema.items()
+            field_name: self._python_type(self._field_type(field))
+            for field_name, field in schema.items()
         }
+
+    def _field_type(self, field: Union[ConfigType, SchemaField]) -> ConfigType:
+        return field.type if isinstance(field, SchemaField) else field
+
+    def _field_choices(
+        self, schema: dict[str, Union[ConfigType, SchemaField]]
+    ) -> dict[str, list]:
+        """For each schema field associated with another ConfigItem
+        (via SchemaField.allowed_values_from) that currently has
+        allowed_values populated, snapshot those choices — passed to
+        a Struct*Editor so it renders that field as a dropdown instead
+        of free text. Fields with no association, or whose associated
+        item's allowed_values isn't populated (yet), are omitted, so
+        the widget falls back to its normal free-text field for them."""
+        choices = {}
+        for field_name, field in schema.items():
+            if not isinstance(field, SchemaField) or field.allowed_values_from is None:
+                continue
+            candidates = field.allowed_values_from.allowed_values
+            if candidates is not None:
+                choices[field_name] = list(candidates)
+        return choices
 
     def _integer_range(self, item: ConfigItem) -> list[int]:
         lo, hi = _INT_MIN, _INT_MAX

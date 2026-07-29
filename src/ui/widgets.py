@@ -953,21 +953,39 @@ class ArrayEditor(HintedWidget):
         self._apply_state(self.remove_button, flag)
 
 
-def _build_scalar_field(master, field_type: type, initial_value, on_commit=None, width: int = 10):
+def _build_scalar_field(
+    master,
+    field_type: type,
+    initial_value,
+    on_commit=None,
+    width: int = 10,
+    choices: Optional[list] = None,
+):
     """Build the small widget used to edit one scalar struct field —
-    a Checkbutton for bool, else a text Entry parsed via `field_type`
+    a Checkbutton for bool, a readonly Combobox if `choices` is given
+    (a non-empty list of allowed values, e.g. from a schema field
+    associated with another ConfigItem's allowed_values — see
+    ConfigItem.SchemaField), else a text Entry parsed via `field_type`
     on read (the same `item_type(text)` convention ArrayEditor uses
     for list elements). Returns (variable, widget).
 
     If `on_commit` is given it's wired to fire on every edit that
-    commits — Return/FocusOut for the entry, immediately for the
-    checkbutton — for widgets (like StructEditor) that push a change
-    through as soon as one field is edited. Widgets that instead stage
-    edits behind an explicit Add/Update button (StructListEditor,
-    StructMapEditor) pass None and read the variable on demand."""
+    commits — Return/FocusOut for the entry, a selection for the
+    combobox, immediately for the checkbutton — for widgets (like
+    StructEditor) that push a change through as soon as one field is
+    edited. Widgets that instead stage edits behind an explicit
+    Add/Update button (StructListEditor, StructMapEditor) pass None
+    and read the variable on demand."""
     if field_type is bool:
         var = ttk.BooleanVar(value=bool(initial_value))
         widget = ttk.Checkbutton(master, variable=var, command=on_commit or Nop())
+    elif choices:
+        var = ttk.StringVar(value=str(initial_value))
+        widget = ttk.Combobox(
+            master, textvariable=var, values=choices, state="readonly", width=width
+        )
+        if on_commit is not None:
+            widget.bind("<<ComboboxSelected>>", lambda _e: on_commit())
     else:
         var = ttk.StringVar(value=str(initial_value))
         widget = ttk.Entry(master, textvariable=var, width=width)
@@ -995,7 +1013,12 @@ class StructEditor(HintedWidget):
     type, e.g. str/int/float/bool; a UI builder derives this from the
     ConfigItem's ConfigType schema). Committing any single field sends
     the *entire* current dict to `command`, since ConfigItem.set()
-    always validates/replaces a STRUCT's whole value at once."""
+    always validates/replaces a STRUCT's whole value at once.
+
+    `field_choices`, if given, maps a field name to a list of allowed
+    values — that field renders as a readonly dropdown instead of free
+    text (see _build_scalar_field). Fields absent from it fall back to
+    free text."""
 
     def __init__(
         self,
@@ -1006,6 +1029,7 @@ class StructEditor(HintedWidget):
         tooltip: str,
         command=Nop(),
         compact: bool = True,
+        field_choices: Optional[dict] = None,
         **kwargs,
     ):
         super().__init__(master, name=name, compact=compact, **kwargs)
@@ -1013,6 +1037,7 @@ class StructEditor(HintedWidget):
         self.command = command
         self.schema = schema
         self._field_vars = {}
+        field_choices = field_choices or {}
         # The last value every field agreed to (either the initial
         # value, or whatever a prior commit sent to `command` before
         # this widget heard back) — see _on_commit()'s use of it.
@@ -1026,7 +1051,11 @@ class StructEditor(HintedWidget):
             column.pack(side=LEFT, padx=(0, 8))
             ttk.Label(column, text=field_name).pack(side=TOP, anchor=W)
             var, widget = _build_scalar_field(
-                column, field_type, initial_value[field_name], on_commit=self._on_commit
+                column,
+                field_type,
+                initial_value[field_name],
+                on_commit=self._on_commit,
+                choices=field_choices.get(field_name),
             )
             widget.pack(side=TOP, fill=X)
             self._field_vars[field_name] = var
@@ -1070,7 +1099,12 @@ class StructListEditor(HintedWidget):
     an entry row plus Add/Remove buttons — entries have no key, so
     (unlike StructMapEditor) there's nothing to select-and-modify in
     place; remove and re-add instead, the same tradeoff ArrayEditor
-    makes for a plain list of scalars."""
+    makes for a plain list of scalars.
+
+    `field_choices`, if given, maps a field name to a list of allowed
+    values — that field's entry-row input renders as a readonly
+    dropdown instead of free text (see _build_scalar_field). Fields
+    absent from it fall back to free text."""
 
     def __init__(
         self,
@@ -1081,6 +1115,7 @@ class StructListEditor(HintedWidget):
         tooltip: str,
         command=Nop(),
         compact: bool = True,
+        field_choices: Optional[dict] = None,
         **kwargs,
     ):
         super().__init__(master, name=name, compact=compact, **kwargs)
@@ -1088,6 +1123,7 @@ class StructListEditor(HintedWidget):
         self.command = command
         self.schema = schema
         self.columns = list(schema.keys())
+        field_choices = field_choices or {}
 
         table_row = ttk.Frame(self.container)
         table_row.pack(side=TOP, fill=BOTH, expand=YES, padx=5, pady=(2, 0))
@@ -1114,7 +1150,13 @@ class StructListEditor(HintedWidget):
         for field_name, field_type in schema.items():
             ttk.Label(entry_row, text=field_name).pack(side=LEFT, padx=(4, 2))
             initial = False if field_type is bool else ""
-            var, widget = _build_scalar_field(entry_row, field_type, initial, width=8)
+            var, widget = _build_scalar_field(
+                entry_row,
+                field_type,
+                initial,
+                width=8,
+                choices=field_choices.get(field_name),
+            )
             widget.pack(side=LEFT)
             self._field_vars[field_name] = var
             self._field_widgets[field_name] = widget
@@ -1212,17 +1254,25 @@ class StructMapEditor(HintedWidget):
       replace it in place.
     - True: each key maps to a whole STRUCT_LIST. Shown as a tree —
       one expandable row per key, with one indented child row per list
-      entry underneath showing the struct fields. The key row's Add
-      creates an empty group; the struct-field row's Add appends a
-      struct (built from the current field inputs) under whichever key
-      is selected/typed; Update/Remove act on the selected child row
+      entry underneath showing the struct fields. The key row's
+      Add/Remove add or delete a whole group (Return in the key field
+      also adds it); the struct-field row's Add appends a struct
+      (built from the current field inputs) under whichever key is
+      selected/typed, without losing that selection, so adding several
+      entries to the same group in a row doesn't require reselecting
+      it each time; Update/Remove act on the selected child row
       (Remove also accepts a key row, deleting that whole group and
       its entries).
 
     Either way, every mutation just builds the full resulting list and
     hands it to `command` — ConfigItem.set() (via STRUCT_MAP's own
     validation) is what actually enforces key uniqueness etc.; a
-    rejected edit is undone by the caller via update()."""
+    rejected edit is undone by the caller via update().
+
+    `field_choices`, if given, maps a struct field name to a list of
+    allowed values — that field's input renders as a readonly dropdown
+    instead of free text (see _build_scalar_field). Fields absent from
+    it fall back to free text. Doesn't apply to the key field itself."""
 
     def __init__(
         self,
@@ -1236,6 +1286,7 @@ class StructMapEditor(HintedWidget):
         compact: bool = True,
         value_is_list: bool = False,
         key_name: str = "key",
+        field_choices: Optional[dict] = None,
         **kwargs,
     ):
         super().__init__(master, name=name, compact=compact, **kwargs)
@@ -1245,6 +1296,7 @@ class StructMapEditor(HintedWidget):
         self.schema = schema
         self.value_is_list = value_is_list
         self.key_name = key_name
+        field_choices = field_choices or {}
         # "key" is this widget's internal Treeview column id for the
         # map key (flat mode only — list mode puts it in the tree's
         # own #0 column instead), kept stable regardless of key_name
@@ -1285,11 +1337,20 @@ class StructMapEditor(HintedWidget):
             ttk.Label(key_row, text=key_name).pack(side=LEFT, padx=(4, 2))
             self.key_var, self.key_widget = _build_scalar_field(key_row, key_type, "")
             self.key_widget.pack(side=LEFT)
+            # Return in the key field adds it, same as clicking Add —
+            # not routed through _build_scalar_field's on_commit, which
+            # would also fire on focus-out (e.g. just tabbing away),
+            # not wanted here.
+            self.key_widget.bind("<Return>", self._on_add_key)
             self.add_key_button = ttk.Button(
                 key_row, text="Add", command=self._on_add_key
             )
             self.add_key_button.pack(side=LEFT, padx=(5, 0))
-            self._buttons.append(self.add_key_button)
+            self.remove_key_button = ttk.Button(
+                key_row, text="Remove", command=self._on_remove
+            )
+            self.remove_key_button.pack(side=LEFT, padx=(5, 0))
+            self._buttons.extend([self.add_key_button, self.remove_key_button])
 
             entry_row = ttk.Frame(self.container)
             entry_row.pack(side=TOP, fill=X, padx=5, pady=2)
@@ -1309,7 +1370,13 @@ class StructMapEditor(HintedWidget):
         for field_name, field_type in schema.items():
             ttk.Label(entry_row, text=field_name).pack(side=LEFT, padx=(4, 2))
             initial = False if field_type is bool else ""
-            var, widget = _build_scalar_field(entry_row, field_type, initial, width=8)
+            var, widget = _build_scalar_field(
+                entry_row,
+                field_type,
+                initial,
+                width=8,
+                choices=field_choices.get(field_name),
+            )
             widget.pack(side=LEFT)
             self._field_vars[field_name] = var
             self._field_widgets[field_name] = widget
@@ -1386,7 +1453,29 @@ class StructMapEditor(HintedWidget):
 
     def update(self, value: list) -> None:
         self._load_rows(value)
-        self._clear_fields()
+        if self.value_is_list:
+            # Re-select whichever group's key is currently in the key
+            # field (e.g. after adding an entry to it — see
+            # _on_add_entry, which deliberately leaves the key field
+            # alone) rather than always clearing everything: without
+            # this, every successful edit round-trips through here
+            # (config_changed() always calls update() with the item's
+            # new value, success or not) and would otherwise drop the
+            # tree's selection on every single add.
+            self._reselect_current_key()
+        else:
+            self._clear_fields()
+
+    def _reselect_current_key(self) -> None:
+        try:
+            key = _read_scalar_field(self.key_var, self.key_type)
+        except (TypeError, ValueError):
+            return
+        parent_iid = self._find_key_row(key)
+        if parent_iid is not None:
+            self.tree.item(parent_iid, open=True)
+            self.tree.selection_set(parent_iid)
+            self.tree.see(parent_iid)
 
     def set_read_only(self, read_only: bool) -> None:
         flag = "disabled" if read_only else "!disabled"
@@ -1496,7 +1585,7 @@ class StructMapEditor(HintedWidget):
             for field_name, raw in zip(self.schema, values):
                 self._field_vars[field_name].set(raw)
 
-    def _on_add_key(self) -> None:
+    def _on_add_key(self, event=None) -> None:
         try:
             key = _read_scalar_field(self.key_var, self.key_type)
         except (TypeError, ValueError):

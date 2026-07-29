@@ -81,6 +81,42 @@ class Range:
             )
 
 
+@dataclass
+class SchemaField:
+    """One field of a TABLE/STRUCT/STRUCT_LIST/STRUCT_MAP `schema`.
+    Usually a bare ConfigType is enough (e.g. schema={"x":
+    ConfigType.INTEGER}); wrap it in a SchemaField instead when a
+    STRING_LIST field's set of valid choices should be taken from
+    another ConfigItem's `allowed_values` rather than a fixed list —
+    e.g. a struct field for a map name that should always offer
+    whatever's currently in some other "list of maps" item. This holds
+    a live reference to that ConfigItem (not a snapshot of its
+    allowed_values), so it stays correct even if that item's
+    allowed_values is populated or changed after this SchemaField is
+    created — see _validate_struct_fields().
+
+    `allowed_values_from` only applies to STRING_LIST fields; setting
+    it on any other type raises ValueError immediately."""
+
+    type: ConfigType
+    allowed_values_from: Optional["ConfigItem"] = None
+
+    def __post_init__(self) -> None:
+        if (
+            self.allowed_values_from is not None
+            and self.type is not ConfigType.STRING_LIST
+        ):
+            raise ValueError(
+                "SchemaField: allowed_values_from only applies to STRING_LIST fields"
+            )
+
+
+def _resolve_schema_field(field: Union[ConfigType, SchemaField]) -> SchemaField:
+    """Normalize one schema dict entry -- a bare ConfigType (the common
+    case) or an explicit SchemaField -- into a SchemaField."""
+    return field if isinstance(field, SchemaField) else SchemaField(type=field)
+
+
 def _check_scalar(name: str, value: Any, expected_type: ConfigType) -> None:
     """Validate a single scalar value against a ConfigType, with the
     bool/int special case handled explicitly."""
@@ -116,7 +152,10 @@ class ConfigItem:
     ConfigType.INTEGER}. The table's/struct's keys must match the
     schema's keys exactly. STRUCT is validated identically to TABLE;
     it exists as a separate type so it reads as "a struct" where it's
-    used standalone or as the payload of a STRUCT_MAP entry.
+    used standalone or as the payload of a STRUCT_MAP entry. A schema
+    value can also be a SchemaField instead of a bare ConfigType —
+    see its docstring — to associate a STRING_LIST field with another
+    ConfigItem's allowed_values.
 
     For STRUCT_MAP items, `item_type` declares the ConfigType of the
     map's key (must be ConfigType.STRING or ConfigType.INTEGER) and
@@ -198,7 +237,7 @@ class ConfigItem:
     value: Any
     config_type: Optional[ConfigDeliveryType] = None
     item_type: Optional[ConfigType] = None
-    schema: Optional[dict[str, ConfigType]] = None
+    schema: Optional[dict[str, Union[ConfigType, SchemaField]]] = None
     value_type: Optional[ConfigType] = None
     key_name: Optional[str] = None
     validator: Optional[Callable[[Any], bool]] = None
@@ -287,11 +326,22 @@ class ConfigItem:
                 f"{self.name}: value {self.value!r} exceeds max_length {self.max_length}"
             )
 
-        if self.allowed_values is not None and self.value not in self.allowed_values:
-            raise ValueError(
-                f"{self.name}: value {self.value!r} not in allowed_values "
-                f"{self.allowed_values!r}"
-            )
+        if self.allowed_values is not None:
+            if self.type is ConfigType.ARRAY:
+                # allowed_values constrains each element of the list,
+                # not the list itself -- the list as a whole could
+                # never be "in" a list of individual valid elements.
+                invalid = [v for v in self.value if v not in self.allowed_values]
+                if invalid:
+                    raise ValueError(
+                        f"{self.name}: value(s) {invalid!r} not in allowed_values "
+                        f"{self.allowed_values!r}"
+                    )
+            elif self.value not in self.allowed_values:
+                raise ValueError(
+                    f"{self.name}: value {self.value!r} not in allowed_values "
+                    f"{self.allowed_values!r}"
+                )
 
         if self.validator is not None:
             self._run_validator(self.value)
@@ -320,7 +370,7 @@ class ConfigItem:
         self._validate_struct_fields(self.name, self.value, self.schema)
 
     def _validate_struct_fields(
-        self, context: str, value: Any, schema: dict[str, ConfigType]
+        self, context: str, value: Any, schema: dict[str, Union[ConfigType, SchemaField]]
     ) -> None:
         """Shared by TABLE/STRUCT (validating self.value against
         self.schema) and STRUCT_MAP (validating each entry's "value"
@@ -344,11 +394,24 @@ class ConfigItem:
                 details.append(f"unexpected {sorted(extra)}")
             raise TypeError(f"{context}: keys mismatch ({', '.join(details)})")
 
-        for key, expected_type in schema.items():
+        for key, raw_field in schema.items():
+            field = _resolve_schema_field(raw_field)
             try:
-                _check_scalar(context, value[key], expected_type)
+                _check_scalar(context, value[key], field.type)
             except TypeError as e:
                 raise TypeError(f"{context}.{key}: {e}") from e
+
+            if field.allowed_values_from is not None:
+                candidates = field.allowed_values_from.allowed_values
+                # None means "not populated (yet)" — same convention as
+                # ConfigItem's own allowed_values: unset means
+                # unconstrained rather than "nothing is allowed".
+                if candidates is not None and value[key] not in candidates:
+                    raise ValueError(
+                        f"{context}.{key}: value {value[key]!r} not in "
+                        f"{field.allowed_values_from.name}'s allowed_values "
+                        f"{candidates!r}"
+                    )
 
     def _validate_struct_map(self) -> None:
         if not isinstance(self.value, list):
@@ -388,7 +451,7 @@ class ConfigItem:
         self._validate_struct_list_fields(self.name, self.value, self.schema)
 
     def _validate_struct_list_fields(
-        self, context: str, value: Any, schema: dict[str, ConfigType]
+        self, context: str, value: Any, schema: dict[str, Union[ConfigType, SchemaField]]
     ) -> None:
         """Shared by STRUCT_LIST (validating self.value against
         self.schema) and a STRUCT_MAP whose value_type is STRUCT_LIST

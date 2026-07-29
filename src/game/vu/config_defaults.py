@@ -1,12 +1,18 @@
 import re
 
-from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType, Range
+from config.config_item import (
+    ConfigDeliveryType,
+    ConfigItem,
+    ConfigType,
+    Range,
+    SchemaField,
+)
 from config.toml_config import Config
 from game.vu.config_index import ConfigIndex
 
 
 def build_game_defaults() -> Config[ConfigIndex]:
-    return {
+    defaults = {
         ConfigIndex.SELECTED_MAP: ConfigItem(
             name="selected_map",
             visible_name="Selected map",
@@ -277,3 +283,31 @@ def build_game_defaults() -> Config[ConfigIndex]:
             read_only=True,
         ),
     }
+    _link_map_group_schema_fields(defaults)
+    return defaults
+
+
+def _link_map_group_schema_fields(defaults: Config[ConfigIndex]) -> None:
+    """Point every map-group struct's "name"/"mode" fields at
+    ORDINARY_MAPS'/GAME_MODE's allowed_values (rather than leaving
+    them free text), so their editors offer the same choices as those
+    items — done as a separate pass after the dict above is fully
+    built, since a schema built inline within that dict can't yet
+    refer to a sibling entry defined elsewhere in the same literal.
+    ORDINARY_MAPS/GAME_MODE's allowed_values is populated later, by
+    VUGame.config_defaults() — this holds a live reference to those
+    ConfigItems, so it stays correct once that happens (see
+    SchemaField)."""
+    name_field = SchemaField(
+        ConfigType.STRING_LIST, allowed_values_from=defaults[ConfigIndex.ORDINARY_MAPS]
+    )
+    mode_field = SchemaField(
+        ConfigType.STRING_LIST, allowed_values_from=defaults[ConfigIndex.GAME_MODE]
+    )
+    for index in (
+        ConfigIndex.ORDINARY_MAPGROUPS,
+        ConfigIndex.ORDINARY_MAPGROUP,
+        ConfigIndex.ORDINARY_MAPGROUP_LIST,
+    ):
+        defaults[index].schema["name"] = name_field
+        defaults[index].schema["mode"] = mode_field
