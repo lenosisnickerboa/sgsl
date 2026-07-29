@@ -142,6 +142,22 @@ class VUGame(Game):
     _StartupFileName = Path("Admin") / "Startup.txt"
     _ModListFileName = Path("Admin") / "ModList.txt"
 
+    def _read_append_lines(self, path: Path) -> list[str]:
+        """If a sibling <stem>_append<suffix> file exists next to path
+        (e.g. Startup_append.txt next to Startup.txt), return its
+        non-blank lines to be appended after sgsl's own generated
+        content -- an optional escape hatch for lines sgsl has no
+        config item for, mirroring the CS2/CSGO gamemode append cfg
+        files. Purely optional -- most setups won't have one."""
+        append_path = path.with_name(f"{path.stem}_append{path.suffix}")
+        if not append_path.exists():
+            return []
+        return [
+            line
+            for line in append_path.read_text(encoding="utf-8").splitlines()
+            if line.strip()
+        ]
+
     def _write_server_cfg(self, config: Config[IndexT]) -> None:
 
         admin_dir = self.server_root / self._MapListFileName.parent
@@ -151,18 +167,19 @@ class VUGame(Game):
         selected_game_mode_id = self.modes.id_from_name(
             config[ConfigIndex.GAME_MODE].value
         )
-        (self.server_root / self._MapListFileName).write_text(
-            f'"{selected_map_id}" "{selected_game_mode_id}" "1"\n', encoding="utf-8"
-        )
+        map_list_path = self.server_root / self._MapListFileName
+        map_list_lines = [
+            f'"{selected_map_id}" "{selected_game_mode_id}" "1"'
+        ] + self._read_append_lines(map_list_path)
+        map_list_path.write_text("\n".join(map_list_lines) + "\n", encoding="utf-8")
 
+        startup_path = self.server_root / self._StartupFileName
         startup_lines = [
             self._format_cvar_line(item)
             for item in config.values()
             if item.config_type is ConfigDeliveryType.SERVER_CFG_FILE
-        ]
-        (self.server_root / self._StartupFileName).write_text(
-            "\n".join(startup_lines) + "\n", encoding="utf-8"
-        )
+        ] + self._read_append_lines(startup_path)
+        startup_path.write_text("\n".join(startup_lines) + "\n", encoding="utf-8")
 
         self._write_mod_list(config)
 
@@ -184,6 +201,7 @@ class VUGame(Game):
 
     def _write_mod_list(self, config: Config[IndexT]) -> None:
         mod_list_path = self.server_root / self._ModListFileName
+        append_lines = self._read_append_lines(mod_list_path)
 
         existing_lines = []
         if mod_list_path.exists():
@@ -193,12 +211,18 @@ class VUGame(Game):
                 if line.strip()
                 and line.strip() != self._NoModsPlaceholder
                 and not line.strip().startswith(self._FunBotsRepoName)
+                # Otherwise, since this file's own previous output is
+                # what feeds existing_lines, re-appending append_lines
+                # below would duplicate them on every subsequent run.
+                and line not in append_lines
             ]
 
         if config[ConfigIndex.MODS_FUN_BOTS_ENABLED].value:
             fun_bots_dir_name = self._find_fun_bots_mod_dir_name()
             if fun_bots_dir_name is not None:
                 existing_lines.append(fun_bots_dir_name)
+
+        existing_lines += append_lines
 
         if not existing_lines:
             existing_lines = [self._NoModsPlaceholder]
