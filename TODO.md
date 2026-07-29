@@ -1,5 +1,11 @@
 # General improvements
 
+## Disable / remove the null game when building for release
+
+## Align server/network settings
+- add listen port
+- set server name and stuff in the same tabs.l
+
 ## Map groups 1
 
 Pick up existing map groups, if any? And allow selection from these

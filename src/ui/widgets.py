@@ -135,17 +135,23 @@ class SnapWindow:
         anchor = self._snap_anchor() if self._snap_anchor is not None else self.master
         if anchor is None:
             return
-        # update_idletasks() alone isn't enough for an anchor that was
-        # just deiconified for the first time: its final decorated size
-        # isn't known until the window manager actually maps it, which
-        # only a full update() (processing that Map/Configure event,
-        # not just idle tasks) guarantees — otherwise winfo_width() can
-        # still read a stale/default value (e.g. 1px), landing this
-        # window right on top of the anchor instead of beside it.
-        anchor.update()
-        x = anchor.winfo_x() + anchor.winfo_width()
-        y = anchor.winfo_y()
-        self.geometry(f"+{x}+{y}")
+        try:
+            # update_idletasks() alone isn't enough for an anchor that was
+            # just deiconified for the first time: its final decorated size
+            # isn't known until the window manager actually maps it, which
+            # only a full update() (processing that Map/Configure event,
+            # not just idle tasks) guarantees — otherwise winfo_width() can
+            # still read a stale/default value (e.g. 1px), landing this
+            # window right on top of the anchor instead of beside it.
+            anchor.update()
+            x = anchor.winfo_x() + anchor.winfo_width()
+            y = anchor.winfo_y()
+            self.geometry(f"+{x}+{y}")
+        except tk.TclError:
+            # Anchor (or the whole app) is mid-teardown, e.g. the main
+            # window being destroyed while this one is still open —
+            # nothing sensible left to snap to.
+            return
         # Set synchronously rather than waiting for the resulting
         # <Configure> event (which Tk may deliver later, or not fire
         # at all if we were already exactly at this position).
@@ -156,10 +162,13 @@ class SnapWindow:
         anchor = self._snap_anchor() if self._snap_anchor is not None else self.master
         if anchor is None:
             return False
-        return (
-            self.winfo_x() == anchor.winfo_x() + anchor.winfo_width()
-            and self.winfo_y() == anchor.winfo_y()
-        )
+        try:
+            return (
+                self.winfo_x() == anchor.winfo_x() + anchor.winfo_width()
+                and self.winfo_y() == anchor.winfo_y()
+            )
+        except tk.TclError:
+            return False
 
     def _try_drag_snap(self) -> None:
         """Called while this window is loose (not snapped to its
@@ -167,43 +176,53 @@ class SnapWindow:
         right edge, snap flush against it and make that window this
         one's new anchor from now on, detaching from whatever anchor
         it had before."""
-        x, y = self.winfo_x(), self.winfo_y()
-        for other in SnapWindow._all_windows:
-            if other is self or other in self._snap_followers:
-                continue
-            if not other.is_visible():
-                continue
-            other_right_edge = other.winfo_x() + other.winfo_width()
-            if (
-                abs(x - other_right_edge) <= self._DragSnapThreshold
-                and abs(y - other.winfo_y()) <= self._DragSnapThreshold
-            ):
+        try:
+            x, y = self.winfo_x(), self.winfo_y()
+            for other in SnapWindow._all_windows:
+                if other is self or other in self._snap_followers:
+                    continue
+                if not other.is_visible():
+                    continue
+                other_right_edge = other.winfo_x() + other.winfo_width()
                 if (
-                    self._current_anchor is not None
-                    and self in self._current_anchor._snap_followers
+                    abs(x - other_right_edge) <= self._DragSnapThreshold
+                    and abs(y - other.winfo_y()) <= self._DragSnapThreshold
                 ):
-                    self._current_anchor._snap_followers.remove(self)
-                self._snap_anchor = lambda anchor=other: anchor
-                other.add_snap_follower(self)
-                self._snap_to_anchor()
-                return
+                    if (
+                        self._current_anchor is not None
+                        and self in self._current_anchor._snap_followers
+                    ):
+                        self._current_anchor._snap_followers.remove(self)
+                    self._snap_anchor = lambda anchor=other: anchor
+                    other.add_snap_follower(self)
+                    self._snap_to_anchor()
+                    return
+        except tk.TclError:
+            # Some window in the chain is mid-teardown (e.g. app
+            # shutting down) — nothing sensible left to snap to.
+            return
 
     def _on_snap_configure(self, event=None) -> None:
         if not SnapWindow.enabled:
             return
-        # Recomputed from live geometry (not a "did I cause this"
-        # flag) so a direct user drag away from the anchor is detected
-        # reliably regardless of event timing/ordering.
-        self._is_snapped = self._is_at_anchor_position()
-        # Only a *visible* window can plausibly be the target of a user
-        # drag — without this guard, the geometry churn a window goes
-        # through while still withdrawn (initial construction, widgets
-        # being packed, its very first _snap_to_anchor() before
-        # deiconify()) can spuriously land it within the threshold of
-        # some other window and permanently hijack its snap_anchor
-        # before it's ever actually shown.
-        if not self._is_snapped and self.is_visible():
-            self._try_drag_snap()
+        try:
+            # Recomputed from live geometry (not a "did I cause this"
+            # flag) so a direct user drag away from the anchor is detected
+            # reliably regardless of event timing/ordering.
+            self._is_snapped = self._is_at_anchor_position()
+            # Only a *visible* window can plausibly be the target of a user
+            # drag — without this guard, the geometry churn a window goes
+            # through while still withdrawn (initial construction, widgets
+            # being packed, its very first _snap_to_anchor() before
+            # deiconify()) can spuriously land it within the threshold of
+            # some other window and permanently hijack its snap_anchor
+            # before it's ever actually shown.
+            if not self._is_snapped and self.is_visible():
+                self._try_drag_snap()
+        except tk.TclError:
+            # This window (or the app) is mid-teardown — still try to
+            # notify followers below in case any of them are unaffected.
+            pass
         self.notify_snap_followers()
 
     def notify_snap_followers(self) -> None:
@@ -214,8 +233,13 @@ class SnapWindow:
         or a follower dynamically anchored to "me, if visible, else
         something else" would never learn it should fall back."""
         for follower in self._snap_followers:
-            if follower.is_visible() and follower._is_snapped:
-                follower.reposition()
+            try:
+                if follower.is_visible() and follower._is_snapped:
+                    follower.reposition()
+            except tk.TclError:
+                # That follower (or the app) is mid-teardown — the
+                # rest of the chain may still be fine, keep going.
+                continue
 
 
 class Window(SnapWindow, EnableDisableMixin, ttk.Window):
