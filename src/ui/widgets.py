@@ -953,6 +953,28 @@ class ArrayEditor(HintedWidget):
         self._apply_state(self.remove_button, flag)
 
 
+# Name of the ttk style applied to StructListEditor/StructMapEditor's
+# table — see _style_struct_table(). A dedicated name (rather than
+# reconfiguring the base "Treeview" style) so unrelated Treeviews
+# elsewhere in the app, if any, aren't affected; ttk resolves whatever
+# it doesn't override (row colors, borders, ...) from the base
+# "Treeview"/"Treeview.Heading" styles it's named after.
+_STRUCT_TABLE_STYLE = "Struct.Treeview"
+
+
+def _style_struct_table(tree) -> None:
+    """Invert the header row's ("map_group"/"name"/"mode"/"rounds")
+    colors relative to the data rows below it, so it reads clearly as
+    a header rather than just another (same-colored) row."""
+    style = ttk.Style()
+    row_bg = style.lookup("Treeview", "background")
+    row_fg = style.lookup("Treeview", "foreground")
+    style.configure(
+        f"{_STRUCT_TABLE_STYLE}.Heading", background=row_fg, foreground=row_bg
+    )
+    tree.configure(style=_STRUCT_TABLE_STYLE)
+
+
 def _build_scalar_field(
     master,
     field_type: type,
@@ -981,8 +1003,16 @@ def _build_scalar_field(
         widget = ttk.Checkbutton(master, variable=var, command=on_commit or Nop())
     elif choices:
         var = ttk.StringVar(value=str(initial_value))
+        # Sized to the widest choice (ignoring `width`) rather than a
+        # fixed/caller-supplied width, so the dropdown never truncates
+        # its own longest option.
+        combo_width = max(len(str(choice)) for choice in choices)
         widget = ttk.Combobox(
-            master, textvariable=var, values=choices, state="readonly", width=width
+            master,
+            textvariable=var,
+            values=choices,
+            state="readonly",
+            width=combo_width,
         )
         if on_commit is not None:
             widget.bind("<<ComboboxSelected>>", lambda _e: on_commit())
@@ -1049,7 +1079,9 @@ class StructEditor(HintedWidget):
         for field_name, field_type in schema.items():
             column = ttk.Frame(fields_frame)
             column.pack(side=LEFT, padx=(0, 8))
-            ttk.Label(column, text=field_name).pack(side=TOP, anchor=W)
+            ttk.Label(column, text=field_name, bootstyle="secondary").pack(
+                side=TOP, anchor=W
+            )
             var, widget = _build_scalar_field(
                 column,
                 field_type,
@@ -1129,8 +1161,9 @@ class StructListEditor(HintedWidget):
         table_row.pack(side=TOP, fill=BOTH, expand=YES, padx=5, pady=(2, 0))
 
         self.tree = tkttk.Treeview(
-            table_row, columns=self.columns, show="headings", height=5
+            table_row, columns=self.columns, show="headings", height=10
         )
+        _style_struct_table(self.tree)
         for column in self.columns:
             self.tree.heading(column, text=column, anchor=W)
             self.tree.column(column, width=80, anchor=W)
@@ -1148,7 +1181,9 @@ class StructListEditor(HintedWidget):
         self._field_vars = {}
         self._field_widgets = {}
         for field_name, field_type in schema.items():
-            ttk.Label(entry_row, text=field_name).pack(side=LEFT, padx=(4, 2))
+            ttk.Label(entry_row, text=field_name, bootstyle="secondary").pack(
+                side=LEFT, padx=(4, 2)
+            )
             initial = False if field_type is bool else ""
             var, widget = _build_scalar_field(
                 entry_row,
@@ -1309,8 +1344,9 @@ class StructMapEditor(HintedWidget):
 
         show = "tree headings" if value_is_list else "headings"
         self.tree = tkttk.Treeview(
-            table_row, columns=self.columns, show=show, height=5
+            table_row, columns=self.columns, show=show, height=10
         )
+        _style_struct_table(self.tree)
         if value_is_list:
             self.tree.heading("#0", text=key_name, anchor=W)
             self.tree.column("#0", width=100, anchor=W)
@@ -1368,7 +1404,9 @@ class StructMapEditor(HintedWidget):
         self._field_vars = {}
         self._field_widgets = {}
         for field_name, field_type in schema.items():
-            ttk.Label(entry_row, text=field_name).pack(side=LEFT, padx=(4, 2))
+            ttk.Label(entry_row, text=field_name, bootstyle="secondary").pack(
+                side=LEFT, padx=(4, 2)
+            )
             initial = False if field_type is bool else ""
             var, widget = _build_scalar_field(
                 entry_row,

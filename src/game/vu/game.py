@@ -339,11 +339,7 @@ class VUGame(Game):
             ),
             TabSpec(
                 title="Map groups",
-                items=[
-                    ConfigIndex.ORDINARY_MAPGROUPS,
-                    ConfigIndex.ORDINARY_MAPGROUP,
-                    ConfigIndex.ORDINARY_MAPGROUP_LIST,
-                ],
+                items=[ConfigIndex.ORDINARY_MAPGROUPS],
             ),
         ]
 
