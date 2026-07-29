@@ -190,9 +190,9 @@ class VUGame(Game):
             group = self._find_map_group(config, selected_map_group)
             if group is not None:
                 return [
-                    f'"{self.maps.id_from_name(entry["name"])}" '
-                    f'"{self.modes.id_from_name(entry["mode"])}" '
-                    f'"{entry["rounds"]}"'
+                    f'{self.maps.id_from_name(entry["name"])} '
+                    f'{self.modes.id_from_name(entry["mode"])} '
+                    f'{entry["rounds"]}'
                     for entry in group
                 ]
 
@@ -200,7 +200,7 @@ class VUGame(Game):
         selected_game_mode_id = self.modes.id_from_name(
             config[ConfigIndex.GAME_MODE].value
         )
-        return [f'"{selected_map_id}" "{selected_game_mode_id}" "1"']
+        return [f"{selected_map_id} {selected_game_mode_id} 1"]
 
     def _find_map_group(
         self, config: Config[IndexT], key: str
