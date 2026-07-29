@@ -163,14 +163,10 @@ class VUGame(Game):
         admin_dir = self.server_root / self._MapListFileName.parent
         admin_dir.mkdir(parents=True, exist_ok=True)
 
-        selected_map_id = self.maps.id_from_name(config[ConfigIndex.SELECTED_MAP].value)
-        selected_game_mode_id = self.modes.id_from_name(
-            config[ConfigIndex.GAME_MODE].value
-        )
         map_list_path = self.server_root / self._MapListFileName
-        map_list_lines = [
-            f'"{selected_map_id}" "{selected_game_mode_id}" "1"'
-        ] + self._read_append_lines(map_list_path)
+        map_list_lines = self._map_list_lines(config) + self._read_append_lines(
+            map_list_path
+        )
         map_list_path.write_text("\n".join(map_list_lines) + "\n", encoding="utf-8")
 
         startup_path = self.server_root / self._StartupFileName
@@ -182,6 +178,39 @@ class VUGame(Game):
         startup_path.write_text("\n".join(startup_lines) + "\n", encoding="utf-8")
 
         self._write_mod_list(config)
+
+    def _map_list_lines(self, config: Config[IndexT]) -> list[str]:
+        """The generated (pre-append) lines for MapList.txt: one line
+        per map/mode/rounds entry of the selected map group, if
+        SELECTED_MAP_GROUP names a real group in ORDINARY_MAPGROUPS —
+        otherwise just the single selected map/mode, rounds hardcoded
+        to 1, same as before ORDINARY_MAPGROUPS existed."""
+        selected_map_group = config[ConfigIndex.SELECTED_MAP_GROUP].value
+        if selected_map_group and selected_map_group != "ALL":
+            group = self._find_map_group(config, selected_map_group)
+            if group is not None:
+                return [
+                    f'"{self.maps.id_from_name(entry["name"])}" '
+                    f'"{self.modes.id_from_name(entry["mode"])}" '
+                    f'"{entry["rounds"]}"'
+                    for entry in group
+                ]
+
+        selected_map_id = self.maps.id_from_name(config[ConfigIndex.SELECTED_MAP].value)
+        selected_game_mode_id = self.modes.id_from_name(
+            config[ConfigIndex.GAME_MODE].value
+        )
+        return [f'"{selected_map_id}" "{selected_game_mode_id}" "1"']
+
+    def _find_map_group(
+        self, config: Config[IndexT], key: str
+    ) -> Optional[list[dict]]:
+        """The list of {"name", "mode", "rounds"} entries stored under
+        `key` in ORDINARY_MAPGROUPS, or None if no such group exists."""
+        for entry in config[ConfigIndex.ORDINARY_MAPGROUPS].value:
+            if entry["key"] == key:
+                return entry["value"]
+        return None
 
     _FunBotsRepoName = "fun-bots"
     _NoModsPlaceholder = "# No mods yet"
@@ -270,6 +299,24 @@ class VUGame(Game):
 
     def config_loaded(self, config: Config[IndexT]) -> None:
         self.config = config
+        # Picks up whatever map groups were just loaded from the saved
+        # config, since config_defaults() alone only ever sees an
+        # empty ORDINARY_MAPGROUPS (the TOML values haven't been
+        # merged in yet at that point).
+        self._refresh_map_group_choices(config)
+
+    def _refresh_map_group_choices(self, config: Config[IndexT]) -> None:
+        """Keep the selected-map-group dropdown's choices in sync with
+        the user-defined map groups (plus the built-in "ALL"); if the
+        currently selected group was renamed/removed, fall back to
+        "ALL"."""
+        group_keys = [
+            entry["key"] for entry in config[ConfigIndex.ORDINARY_MAPGROUPS].value
+        ]
+        choices = ["ALL"] + group_keys
+        config[ConfigIndex.SELECTED_MAP_GROUP].allowed_values = choices
+        if config[ConfigIndex.SELECTED_MAP_GROUP].value not in choices:
+            config[ConfigIndex.SELECTED_MAP_GROUP].set("ALL")
 
     def config_shortcuts(self) -> list[IndexT]:
         return [
@@ -344,4 +391,7 @@ class VUGame(Game):
         ]
 
     def config_item_changed(self, config_item, config: Config[IndexT]) -> list[IndexT]:
+        if config_item is config[ConfigIndex.ORDINARY_MAPGROUPS]:
+            self._refresh_map_group_choices(config)
+            return [ConfigIndex.SELECTED_MAP_GROUP]
         return []
