@@ -343,6 +343,15 @@ class CS2Game(Game):
         gamemode = config[ConfigIndex.GAME_MODE].value.lower()
         return cfg_dir / f"gamemode_{gamemode}.cfg"
 
+    # A sibling, user-maintained file sgsl never writes to itself: if
+    # present, its cvars are appended after sgsl's own config-item
+    # cvars, giving users an escape hatch for cvars sgsl has no config
+    # item for. Purely optional -- most gamemodes won't have one.
+    def _gamemode_append_cfg_path(self, config: Config[IndexT]) -> Path:
+        cfg_dir = self.server_root / "game" / "csgo" / "cfg"
+        gamemode = config[ConfigIndex.GAME_MODE].value.lower()
+        return cfg_dir / f"gamemode_{gamemode}_append.cfg"
+
     # Marks a line as sgsl's own, so a later run can find and drop it
     # again before appending a fresh copy -- see _update_gamemode_cfg().
     _AddedByComment = "added by sgsl.exe"
@@ -353,7 +362,10 @@ class CS2Game(Game):
         config's SERVER_CFG_FILE items back on, each tagged with when
         it was written -- so repeated runs update in place instead of
         piling up duplicates, while everything else in the file (the
-        game's own defaults, comments, formatting) is left alone."""
+        game's own defaults, comments, formatting) is left alone.
+        Finally, if a gamemode_<mode>_append.cfg sits next to it, its
+        cvars are appended last, tagged the same way (plus "from
+        append") so they too get replaced cleanly on the next run."""
         path = self._gamemode_cfg_path(config)
         entries = ValveGamemodeConfigParser.read(path)
         entries = [
@@ -374,6 +386,19 @@ class CS2Game(Game):
             for item in config.values()
             if item.config_type is ConfigDeliveryType.SERVER_CFG_FILE
         )
+
+        append_path = self._gamemode_append_cfg_path(config)
+        if append_path.exists():
+            append_entries = ValveGamemodeConfigParser.read(append_path)
+            entries.extend(
+                ConfigEntry(
+                    name=entry.name,
+                    value=entry.value,
+                    comment=f"{self._AddedByComment} appended from user config file {timestamp}",
+                )
+                for entry in append_entries
+                if isinstance(entry, ConfigEntry)
+            )
 
         ValveGamemodeConfigParser.write(path, entries)
 
