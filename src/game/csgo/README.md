@@ -1,4 +1,4 @@
-<img src="assets/icon.png" width="48" alt="Counter-Strike: Global Offensive icon">
+<img src="assets/icon.png" width="96" alt="Counter-Strike: Global Offensive icon">
 
 # Counter-Strike: Global Offensive [Read more here](https://store.steampowered.com/app/4465480/CounterStrikeGlobal_Offensive/)
 

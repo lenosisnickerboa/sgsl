@@ -1,4 +1,4 @@
-<img src="assets/icon.png" width="48" alt="Counter-Strike 2 icon">
+<img src="assets/icon.png" width="96" alt="Counter-Strike 2 icon">
 
 # Counter-Strike 2 [Read more here](https://store.steampowered.com/app/730/CounterStrike_2/)
 

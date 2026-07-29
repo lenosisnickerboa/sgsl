@@ -1,4 +1,4 @@
-<img src="assets/icon.png" width="48" alt="Venice Unleashed icon">
+<img src="assets/icon.png" width="96" alt="Venice Unleashed icon">
 
 # Venice Unleashed [Read more here](https://veniceunleashed.net/)
 
