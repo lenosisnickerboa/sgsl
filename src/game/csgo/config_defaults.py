@@ -1,34 +1,63 @@
 import re
 
-from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType, Range
+from config.config_item import (
+    ConfigDeliveryType,
+    ConfigItem,
+    ConfigType,
+    Range,
+    SchemaField,
+)
 from config.toml_config import Config
 from game.csgo.config_index import ConfigIndex
+from support.steam_workshop import fetch_published_file_title
 
 WorkshopMapPattern = re.compile(r"(\d+)(?:\\([^\\]+))?\s*$")
 WorkshopUrlIdPattern = re.compile(r"^https?://\S*[?&]id=(\d+)", re.IGNORECASE)
 
 
-def _normalize_workshop_map(value: str) -> str:
-    """Normalize a workshop map entry down to "workshop\\<id>\\<name>" —
-    the form the map name is stored in — whether the user typed just the
-    id (123), "workshop\\123", the full "workshop\\123\\<name>", or a
+def _parse_workshop_entry(value: str) -> tuple[str, "str | None"]:
+    """Extract the workshop id and, if one was already given, the name
+    from a raw workshop entry — whether the user typed just the id
+    (123), "workshop\\123", the full "workshop\\123\\<name>", or a
     Steam Workshop URL (e.g. "https://steamcommunity.com/sharedfiles/
     filedetails/?id=123"), in which case only the id is extracted from
-    it. The name defaults to "unknown" unless one was already given."""
+    it."""
     url_match = WorkshopUrlIdPattern.search(value)
     if url_match is not None:
         value = url_match.group(1)
     match = WorkshopMapPattern.search(value)
     if match is None:
         raise ValueError(
-            f"workshop map entry must contain a numeric workshop id, got {value!r}"
+            f"workshop entry must contain a numeric workshop id, got {value!r}"
         )
-    workshop_id, name = match.group(1), match.group(2)
+    return match.group(1), match.group(2)
+
+
+def _normalize_workshop_map(value: str) -> str:
+    """Normalize a workshop entry (an individual map or a collection
+    used as a map group) down to "workshop\\<id>\\<name>" — the form
+    the name is stored in. If no explicit name was given, the title is
+    looked up directly from Valve's public GetPublishedFileDetails API;
+    if that lookup fails too (offline, bad id, Steam API hiccup, ...),
+    it falls back to "unknown" — re-entering the same id/URL later,
+    once reachable, will resolve it.
+
+    For an individual map (WORKSHOP_MAPS), this is only a first guess:
+    once the map is actually downloaded, config_loaded() overwrites it
+    with the real title read from the server's own publish_data.txt
+    (see CSGOGame._workshop_maps()), regardless of what's stored here.
+    A map group (WORKSHOP_MAPGROUPS) is a Steam Workshop *collection*
+    id, which is never itself downloaded to the server (only the maps
+    it contains are, once it's actually hosted), so this lookup is the
+    only source for its name."""
+    workshop_id, name = _parse_workshop_entry(value)
+    if name is None:
+        name = fetch_published_file_title(int(workshop_id))
     return f"workshop\\{workshop_id}\\{name or 'unknown'}"
 
 
 def build_game_defaults() -> Config[ConfigIndex]:
-    return {
+    defaults = {
         ConfigIndex.SELECTED_MAP: ConfigItem(
             name="selected_map",
             visible_name="Selected map",
@@ -460,4 +489,54 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Re-download and extract the latest steamcmd before installing/updating; disable to reuse the existing steamcmd install",
             value=True,
         ),
+        ConfigIndex.ORDINARY_MAPGROUPS: ConfigItem(
+            name="ordinary_mapgroups",
+            visible_name="Ordinary map groups",
+            type=ConfigType.STRUCT_MAP,
+            tooltip="User-defined map groups, each a named list of maps to cycle through via "
+            "CS:GO's mapcyclefile. The game mode and round limit come from Game mode/Max rounds "
+            "as usual — CS:GO only supports one of each per running server, so they apply to "
+            "the whole rotation rather than being set per map",
+            value=[],
+            item_type=ConfigType.STRING,
+            value_type=ConfigType.STRUCT_LIST,
+            key_name="map_group",
+            schema={
+                "name": ConfigType.STRING,
+            },
+        ),
+        ConfigIndex.WORKSHOP_MAPGROUPS: ConfigItem(
+            name="workshop_mapgroups",
+            visible_name="Workshop map groups",
+            type=ConfigType.ARRAY,
+            item_type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Steam Workshop collection IDs to offer as map groups. When one is "
+            "selected as the active map group, the server is launched with "
+            "+host_workshop_collection instead, and Steam itself resolves and rotates "
+            "through the collection's maps — so unlike Workshop maps, these aren't "
+            "downloaded/detected up front; only the individual maps a collection "
+            "actually contains get downloaded and show up under Workshop maps. "
+            "When adding new entries either the full url or just the collection id can be entered.",
+            value=[],
+            transform=_normalize_workshop_map,
+        ),
     }
+    _link_map_group_schema_fields(defaults)
+    return defaults
+
+
+def _link_map_group_schema_fields(defaults: Config[ConfigIndex]) -> None:
+    """Point ORDINARY_MAPGROUPS' struct "name" field at SELECTED_MAP's
+    allowed_values (rather than leaving it free text), so its editor
+    offers the same choices as that item — done as a separate pass
+    after the dict above is fully built, since a schema built inline
+    within that dict can't yet refer to a sibling entry defined
+    elsewhere in the same literal. SELECTED_MAP's allowed_values is
+    populated later, by CSGOGame.config_defaults()/config_loaded() —
+    this holds a live reference to that ConfigItem, so it stays
+    correct once that happens (see SchemaField)."""
+    schema = defaults[ConfigIndex.ORDINARY_MAPGROUPS].schema
+    schema["name"] = SchemaField(
+        ConfigType.STRING_LIST, allowed_values_from=defaults[ConfigIndex.SELECTED_MAP]
+    )
