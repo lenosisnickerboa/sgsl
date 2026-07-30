@@ -1,7 +1,5 @@
 # General improvements
 
-## Disable / remove the null game when building for release
-
 ## Improve how toggles are shown disabled
 
 Hard (impossible) to see now if a toggle is disabled.

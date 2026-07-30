@@ -31,13 +31,13 @@ In a terminal:
 
 ## Support scripts, in folder support
 
-### build-for-release.bat
+### build-all.bat
 
-Builds sgsl.exe for release. sgsl is developed in python and converted into an .exe file by [pyInstaller](https://pyinstaller.org/en/stable/)
+Builds sgsl.exe for release and for test. sgsl is developed in python and converted into an .exe file by [pyInstaller](https://pyinstaller.org/en/stable/)
 
-### build-for-test.bat
+### build-for-test.bat, build-for-release.bat
 
-Builds sgsl.exe for test, then named sgsl-for-test.exe, i.e. with a console showing any python related errors. This is accomplished by not using the pyinstaller option --noconsole.
+Just helpers, don't run directly, run build-all.bat instead.
 
 ### install-python-stuff.bat
 
@@ -45,4 +45,4 @@ Installs all the python dependencies
 
 ### sgsl-show-what-failed.bat
 
-A wrapper running sgsl-for-test.exe or sgsl.exe adding a pause at the end allowing the developer to see any python output.
+A wrapper running sgsl-for-test.exe (if found) or sgsl.exe (if not running sgsl-for-test.exe) adding a pause at the end allowing the developer to see any python output.

@@ -1,8 +1,5 @@
+@echo "### Building for test"
 @echo off
-cd ..
-if exist "dist" (
-    rmdir /s /q "dist"
-)
 rem Marker bundled into this build only, so GameFactory hides the Null
 rem Game from testers -- see game_factory.py's _ExcludeNullGameMarker.
 type nul > "src\app\assets\exclude_null_game.marker"
@@ -10,5 +7,3 @@ py -m PyInstaller --onefile --icon=src/app/assets/icon.ico --add-data "src/app/a
 del /q "src\app\assets\exclude_null_game.marker"
 if exist "sgsl-for-test.exe" del /q "sgsl-for-test.exe"
 copy .\dist\sgsl.exe sgsl-for-test.exe
-echo Done
-pause
