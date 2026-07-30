@@ -40,6 +40,11 @@ g_start_stop_server = None
 # yet stopped/crashed) -- checked by poll_game_running() against
 # game.is_running() to notice a crash.
 g_server_should_be_running = False
+# after() id of the next poll_game_running() call, so it can be
+# cancelled before root is destroyed -- otherwise Tk can still try to
+# fire it against an already-torn-down interpreter right as the app
+# closes, raising a bgerror ("invalid command name ...poll_game_running").
+g_poll_game_running_job = None
 g_config_default = None
 g_app_config = None
 g_app_config_file = None
@@ -155,6 +160,7 @@ def on_install_game_server(name: str):
                 # this file.
                 global g_restart_requested
                 g_restart_requested = True
+                _cancel_poll_game_running()
                 root.destroy()
 
         root.after(0, finish)
@@ -230,6 +236,12 @@ def on_restart_application():
     # the same way a successful install triggers a restart.
     global g_restart_requested
     g_restart_requested = True
+    _cancel_poll_game_running()
+    root.destroy()
+
+
+def on_close_main_window():
+    _cancel_poll_game_running()
     root.destroy()
 
 
@@ -399,9 +411,21 @@ def poll_game_running():
     """Periodically check whether the current game is still running
     when it's expected to be, so a crash (the process disappearing on
     its own) is noticed even though nothing told us about it directly."""
+    global g_poll_game_running_job
     if game is not None and g_server_should_be_running and not game.is_running():
         on_game_server_crashed(game)
-    root.after(_PollGameRunningIntervalMs, poll_game_running)
+    g_poll_game_running_job = root.after(_PollGameRunningIntervalMs, poll_game_running)
+
+
+def _cancel_poll_game_running():
+    """Cancel the pending poll_game_running() call, if any -- must
+    happen before root.destroy(), or Tk can still try to fire it
+    against an already-torn-down interpreter (see the comment on
+    g_poll_game_running_job)."""
+    global g_poll_game_running_job
+    if g_poll_game_running_job is not None:
+        root.after_cancel(g_poll_game_running_job)
+        g_poll_game_running_job = None
 
 
 def on_toggle_terminal_window():
@@ -679,6 +703,7 @@ def on_close_app_configure_window():
 # main
 
 root = ui.Window(title="Simple Game Server Launcher" + " " + VERSION)
+root.protocol("WM_DELETE_WINDOW", on_close_main_window)
 
 current_dir = os.getcwd()
 
@@ -748,7 +773,7 @@ else:
 
 root.center_on_screen()
 
-root.after(_PollGameRunningIntervalMs, poll_game_running)
+g_poll_game_running_job = root.after(_PollGameRunningIntervalMs, poll_game_running)
 
 print_to_terminal(f"sgsl.exe {VERSION} entering mainloop...")
 root.mainloop()
