@@ -25,6 +25,18 @@ For now requires Windows 11. Perhaps it works on previous Windows versions but I
 
 If a linux version is in high demand I will consider porting it to linux. sgsl is mostly python but there are some linux only things to consider when dealing with the actual game servers. So, I will be collecting requests for a while before starting this journey. Also, please state the linux distribution.
 
+# Firewalls
+
+The first time you start your server you will get questions from the Windows firewall. Simply accept all questions to allow access to your game server.
+
+# Customization
+
+On top of the already implemented game options, every game support the following levels of customization:
+
+1. In the 'General' config tab of your game, select 'Edit run command' which will let you edit the command before it is used to start the game server. This edit will only apply to this game server start.
+1. In the 'General' config tab of your game, there are options 'Custom run command (pre)' and 'Custom run command (post)' where you can add any options you want prepended or appended to the command line every time the server starts.
+1. You can write config game specific config files named as the particular games config files, but with '_append' in the end of the config filename. The contents of this file will be appended to the game specific config file. Read more in the game specific README.md.
+
 # Known limitations
 
 [No game mode <-> map relation](https://github.com/lenosisnickerboa/sgsl/issues/1)
