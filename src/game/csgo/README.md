@@ -82,3 +82,7 @@ Or you can just try and see if it works for you. This seems to be a moving targe
 ## Custom user config
 
 If there is some special tweak you want to add, not supported by sgsl.exe, it can be accomplished by adding your own config file in <install -path>\server\game\csgo\cfg and naming it gamemode_<gamemode>_append.cfg. All config from this file will be added last to the gamemode_<gamemode>.cfg file prior to starting the game allowing you to add or override whatever you like. Same format is used as in the original config file.
+
+## Finding workshop content
+
+In short; it's a mess, but most of the time you should be fine with using the same workshop items/ids as for [cs2](https://steamcommunity.com/workshop/browse/?appid=730). You can google it or ask your favourite AI companion about more details.
