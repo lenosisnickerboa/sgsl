@@ -311,36 +311,40 @@ class CS2Game(Game):
         # CS2 only supports one game mode/round limit per running
         # server, so those still come from Game mode/Max rounds as
         # usual and apply to the whole rotation.
-        map_group = self._active_map_group(config)
         cvar_overrides = None
-        if map_group:
-            self._write_map_cycle(map_group)
-            args.append("+mapcyclefile")
-            args.append(self._MapCycleFileName)
-            launch_map = map_group[0]["name"]
-            cvar_overrides = {
-                # Without these the engine just restarts the same map
-                # at match end instead of advancing through
-                # mapcyclefile — see _update_gamemode_cfg().
-                "mp_match_end_changelevel": "1",
-                "mp_match_end_restart": "0",
-            }
-        else:
-            launch_map = config[ConfigIndex.SELECTED_MAP].value
-
-        if self._is_workshop_map(launch_map):
-            args.append(
-                "+map"  # dummy map seems to be needed when hosting a workshop map
+        workshop_collection_id = self._active_workshop_collection(config)
+        if workshop_collection_id is not None:
+            # A workshop map group is a Steam Workshop collection id,
+            # not a locally-defined map list — Steam itself resolves
+            # and rotates through the collection's maps, so there's no
+            # mapcyclefile to write here, unlike an ordinary map group.
+            self._append_workshop_host_args(
+                args, config, "host_workshop_collection", workshop_collection_id
             )
-            args.append("de_dust2")
-            if config[ConfigIndex.STEAM_API_AUTH_KEY].value:  # required when hosting
-                args.append("-authkey")
-                args.append(config[ConfigIndex.STEAM_API_AUTH_KEY].value)
-            args.append("+host_workshop_map")
-            args.append(str(self._get_workshop_id(launch_map)))
         else:
-            args.append("+map")
-            args.append(launch_map)
+            map_group = self._active_map_group(config)
+            if map_group:
+                self._write_map_cycle(map_group)
+                args.append("+mapcyclefile")
+                args.append(self._MapCycleFileName)
+                launch_map = map_group[0]["name"]
+                cvar_overrides = {
+                    # Without these the engine just restarts the same map
+                    # at match end instead of advancing through
+                    # mapcyclefile — see _update_gamemode_cfg().
+                    "mp_match_end_changelevel": "1",
+                    "mp_match_end_restart": "0",
+                }
+            else:
+                launch_map = config[ConfigIndex.SELECTED_MAP].value
+
+            if self._is_workshop_map(launch_map):
+                self._append_workshop_host_args(
+                    args, config, "host_workshop_map", self._get_workshop_id(launch_map)
+                )
+            else:
+                args.append("+map")
+                args.append(launch_map)
         # TODO: add "-usercon",
         self._update_gamemode_cfg(config, cvar_overrides)
         args = (
@@ -371,6 +375,32 @@ class CS2Game(Game):
             for entry in group
         ]
         self._map_cycle_path().write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    def _append_workshop_host_args(
+        self,
+        args: list[str],
+        config: Config[IndexT],
+        host_cvar: str,
+        workshop_id: int,
+    ) -> None:
+        args.append("+map")  # dummy map seems to be needed when hosting from workshop
+        args.append("de_dust2")
+        if config[ConfigIndex.STEAM_API_AUTH_KEY].value:  # required when hosting
+            args.append("-authkey")
+            args.append(config[ConfigIndex.STEAM_API_AUTH_KEY].value)
+        args.append(f"+{host_cvar}")
+        args.append(str(workshop_id))
+
+    def _active_workshop_collection(self, config: Config[IndexT]) -> Optional[int]:
+        """The Steam Workshop collection id if the currently selected
+        map group is one of WORKSHOP_MAPGROUPS' entries, or None
+        otherwise (an ordinary map group, "ALL", or empty)."""
+        selected_map_group = config[ConfigIndex.SELECTED_MAP_GROUP].value
+        if not selected_map_group or selected_map_group == "ALL":
+            return None
+        if selected_map_group not in config[ConfigIndex.WORKSHOP_MAPGROUPS].value:
+            return None
+        return self._get_workshop_id(selected_map_group)
 
     def _active_map_group(self, config: Config[IndexT]) -> Optional[list[dict]]:
         """The list of {"name"} entries for the currently selected map
@@ -609,13 +639,14 @@ class CS2Game(Game):
 
     def _refresh_map_group_choices(self, config: Config[IndexT]) -> None:
         """Keep the selected-map-group dropdown's choices in sync with
-        the user-defined map groups (plus the built-in "ALL"); if the
-        currently selected group was renamed/removed, fall back to
-        "ALL"."""
+        the user-defined map groups (plus the built-in "ALL") and the
+        workshop collection map groups; if the currently selected group
+        was renamed/removed, fall back to "ALL"."""
         group_keys = [
             entry["key"] for entry in config[ConfigIndex.ORDINARY_MAPGROUPS].value
         ]
-        choices = ["ALL"] + group_keys
+        workshop_group_keys = list(config[ConfigIndex.WORKSHOP_MAPGROUPS].value)
+        choices = ["ALL"] + group_keys + workshop_group_keys
         config[ConfigIndex.SELECTED_MAP_GROUP].allowed_values = choices
         if config[ConfigIndex.SELECTED_MAP_GROUP].value not in choices:
             config[ConfigIndex.SELECTED_MAP_GROUP].set("ALL")
@@ -729,7 +760,7 @@ class CS2Game(Game):
             ),
             TabSpec(
                 title="Map groups",
-                items=[ConfigIndex.ORDINARY_MAPGROUPS],
+                items=[ConfigIndex.ORDINARY_MAPGROUPS, ConfigIndex.WORKSHOP_MAPGROUPS],
             ),
             TabSpec(
                 title="Troubleshooting",
@@ -758,6 +789,10 @@ class CS2Game(Game):
             # selected one: _refresh_map_group_choices() just fell
             # SELECTED_MAP_GROUP back to "ALL", so SELECTED_MAP needs
             # to be re-enabled to match.
+            self._sync_selected_map_state(config)
+            return [ConfigIndex.SELECTED_MAP_GROUP, ConfigIndex.SELECTED_MAP]
+        elif config_item is config[ConfigIndex.WORKSHOP_MAPGROUPS]:
+            self._refresh_map_group_choices(config)
             self._sync_selected_map_state(config)
             return [ConfigIndex.SELECTED_MAP_GROUP, ConfigIndex.SELECTED_MAP]
         elif config_item is config[ConfigIndex.SELECTED_MAP_GROUP]:

@@ -82,6 +82,7 @@ class ConfigIndex(IntEnum):
     MP_DO_WARMUP_OFFLINE = 49
 
     ORDINARY_MAPGROUPS = 50
+    WORKSHOP_MAPGROUPS = 51
 
 
 _values = [item.value for item in ConfigIndex]

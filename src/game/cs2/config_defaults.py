@@ -480,6 +480,22 @@ def build_game_defaults() -> Config[ConfigIndex]:
                 "name": ConfigType.STRING,
             },
         ),
+        ConfigIndex.WORKSHOP_MAPGROUPS: ConfigItem(
+            name="workshop_mapgroups",
+            visible_name="Workshop map groups",
+            type=ConfigType.ARRAY,
+            item_type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Steam Workshop collection IDs to offer as map groups. When one is "
+            "selected as the active map group, the server is launched with "
+            "+host_workshop_collection instead, and Steam itself resolves and rotates "
+            "through the collection's maps — so unlike Workshop maps, these aren't "
+            "downloaded/detected up front; only the individual maps a collection "
+            "actually contains get downloaded and show up under Workshop maps. "
+            "When adding new entries either the full url or just the collection id can be entered.",
+            value=[],
+            transform=_normalize_workshop_map,
+        ),
     }
     _link_map_group_schema_fields(defaults)
     return defaults
