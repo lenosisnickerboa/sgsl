@@ -65,6 +65,20 @@ class Game(ABC):
     def handle_done(self, pid: int, returncode: int):
         self.print(f"Process tree {pid} finished with exit code {returncode}")
 
+    def _ensure_process_handler(self) -> process_handler.ProcessHandler:
+        """Lazily create process_handler if this is the first thing to
+        need it this session -- it's only ever built once, here, but
+        this must not be start_server()'s job alone: sgsl.exe may have
+        been closed and reopened while the server it started kept
+        running, so stop_server()/is_server_running() need to be able
+        to find that already-running process too, without a start_server()
+        call in this session to have created it first."""
+        if not self.process_handler:
+            self.process_handler = process_handler.ProcessHandler(
+                self.get_server_binary_path()
+            )
+        return self.process_handler
+
     def start_server(
         self,
         args,
@@ -73,14 +87,11 @@ class Game(ABC):
     ) -> None:
         self.filter_stdout = filter_stdout
         self.filter_stderr = filter_stderr
-        if not self.process_handler:
-            self.process_handler = process_handler.ProcessHandler(
-                self.get_server_binary_path()
-            )
+        handler = self._ensure_process_handler()
         self.print(
             f'Starting game server {self.get_long_name()} with executable "{self.get_server_binary_path()}" and arguments "{args}"...'
         )
-        pid = self.process_handler.start(
+        pid = handler.start(
             args,
             no_window=True,
             stdout_callback=self.handle_stdout_output,
@@ -93,11 +104,10 @@ class Game(ABC):
         self.print(
             f'Stopping game server {self.get_long_name()} with executable "{self.get_server_binary_path()}" ...'
         )
-        if not self.process_handler:
-            return True
-        server_pids = self.process_handler.list_pids()
+        handler = self._ensure_process_handler()
+        server_pids = handler.list_pids()
         failed_pids = (
-            self.process_handler.kill_pids(server_pids, timeout=10.0, force=True)
+            handler.kill_pids(server_pids, timeout=10.0, force=True)
             if server_pids
             else []
         )
@@ -115,9 +125,7 @@ class Game(ABC):
         """Check if the game is running. No logging -- called
         periodically (e.g. to poll for a crash), so it must stay
         quiet."""
-        if not self.process_handler:
-            return False
-        pids = self.process_handler.list_pids()
+        pids = self._ensure_process_handler().list_pids()
         return len(pids) > 0
 
     @abstractmethod
