@@ -34,27 +34,22 @@ def _parse_workshop_entry(value: str) -> tuple[str, "str | None"]:
 
 
 def _normalize_workshop_map(value: str) -> str:
-    """Normalize a workshop map entry down to "workshop\\<id>\\<name>" —
-    the form the map name is stored in. The name defaults to "unknown"
-    unless one was already given — once the map is actually downloaded,
-    config_loaded() replaces it with the real title read from the
-    server's own publish_data.txt (see CS2Game._workshop_maps())."""
-    workshop_id, name = _parse_workshop_entry(value)
-    return f"workshop\\{workshop_id}\\{name or 'unknown'}"
+    """Normalize a workshop entry (an individual map or a collection
+    used as a map group) down to "workshop\\<id>\\<name>" — the form
+    the name is stored in. If no explicit name was given, the title is
+    looked up directly from Valve's public GetPublishedFileDetails API;
+    if that lookup fails too (offline, bad id, Steam API hiccup, ...),
+    it falls back to "unknown" — re-entering the same id/URL later,
+    once reachable, will resolve it.
 
-
-def _normalize_workshop_mapgroup(value: str) -> str:
-    """Normalize a workshop map group entry the same way
-    _normalize_workshop_map() does, except a map group is a Steam
-    Workshop *collection* id — it's never itself downloaded to the
-    server (only the individual maps it contains are, once it's
-    actually hosted), so there's no local file to later read a real
-    name from the way individual maps get one. Instead, if no explicit
-    name was given, the collection's title is looked up directly from
-    Valve's public GetPublishedFileDetails API. Falls back to "unknown"
-    the same way if that lookup fails (offline, bad id, Steam API
-    hiccup, ...) — re-entering the same id/URL later, once reachable,
-    will resolve it."""
+    For an individual map (WORKSHOP_MAPS), this is only a first guess:
+    once the map is actually downloaded, config_loaded() overwrites it
+    with the real title read from the server's own publish_data.txt
+    (see CS2Game._workshop_maps()), regardless of what's stored here.
+    A map group (WORKSHOP_MAPGROUPS) is a Steam Workshop *collection*
+    id, which is never itself downloaded to the server (only the maps
+    it contains are, once it's actually hosted), so this lookup is the
+    only source for its name."""
     workshop_id, name = _parse_workshop_entry(value)
     if name is None:
         name = fetch_published_file_title(int(workshop_id))
@@ -522,7 +517,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             "actually contains get downloaded and show up under Workshop maps. "
             "When adding new entries either the full url or just the collection id can be entered.",
             value=[],
-            transform=_normalize_workshop_mapgroup,
+            transform=_normalize_workshop_map,
         ),
     }
     _link_map_group_schema_fields(defaults)
