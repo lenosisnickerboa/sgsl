@@ -27,7 +27,7 @@ If a linux version is in high demand I will consider porting it to linux. sgsl i
 
 # Troubleshooting
 
-As a a first hint, if something doesn't work, have a look in the terminal log to see more details of what failed. There is also the possibility to create an error report and file an issue. I will do my best to analyze it. As always, the more time you put into the issue text, the less time I need to fix the issue.
+As a a first hint, if something doesn't work, have a look in the terminal log to see more details of what failed. There is also the possibility to create an error report and file an [issue](issues). I will do my best to analyze it. As always, the more time you put into the issue text, the less time I need to fix the issue.
 
 ## Developer information
 
