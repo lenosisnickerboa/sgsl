@@ -1,4 +1,3 @@
-import shlex
 from pathlib import Path
 from typing import Callable, Optional, Union
 from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType
@@ -11,6 +10,7 @@ from game.vu.config_index import ConfigIndex
 from game.game import Game, OperationResult, TerminalLineResult
 from support import bat_runner
 from support.dialog import edit_string_dialog_box
+from support.run_command import split_run_command
 
 GameExe = "vu.exe"
 
@@ -126,15 +126,15 @@ class VUGame(Game):
             args.append("-high120")
         self._write_server_cfg(config)
         args = (
-            shlex.split(config[ConfigIndex.CUSTOM_RUN_COMMAND_PRE].value)
+            split_run_command(config[ConfigIndex.CUSTOM_RUN_COMMAND_PRE].value)
             + args
-            + shlex.split(config[ConfigIndex.CUSTOM_RUN_COMMAND_POST].value)
+            + split_run_command(config[ConfigIndex.CUSTOM_RUN_COMMAND_POST].value)
         )
         if config[ConfigIndex.RUN_COMMAND_EDIT].value:
             edited = edit_string_dialog_box("Edit run command", " ".join(args))
             if edited is None:
                 return False
-            args = shlex.split(edited)
+            args = split_run_command(edited)
         super().start_server(args)
         return True
 
@@ -202,9 +202,7 @@ class VUGame(Game):
         )
         return [f"{selected_map_id} {selected_game_mode_id} 1"]
 
-    def _find_map_group(
-        self, config: Config[IndexT], key: str
-    ) -> Optional[list[dict]]:
+    def _find_map_group(self, config: Config[IndexT], key: str) -> Optional[list[dict]]:
         """The list of {"name", "mode", "rounds"} entries stored under
         `key` in ORDINARY_MAPGROUPS, or None if no such group exists."""
         for entry in config[ConfigIndex.ORDINARY_MAPGROUPS].value:

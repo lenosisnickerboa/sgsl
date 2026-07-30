@@ -1,5 +1,4 @@
 import re
-import shlex
 import shutil
 import winreg
 from datetime import datetime
@@ -18,6 +17,7 @@ from game.cs2.config_parser.valve_gamemode_config_parser import (
 from game.game import Game, OperationResult, TerminalLineResult
 from support import bat_runner
 from support.dialog import edit_string_dialog_box
+from support.run_command import split_run_command
 
 GameExe = "srcds.exe"
 
@@ -412,15 +412,15 @@ class CSGOGame(Game):
                 args.append(launch_map)
         self._update_gamemode_cfg(config, cvar_overrides)
         args = (
-            shlex.split(config[ConfigIndex.CUSTOM_RUN_COMMAND_PRE].value)
+            split_run_command(config[ConfigIndex.CUSTOM_RUN_COMMAND_PRE].value)
             + args
-            + shlex.split(config[ConfigIndex.CUSTOM_RUN_COMMAND_POST].value)
+            + split_run_command(config[ConfigIndex.CUSTOM_RUN_COMMAND_POST].value)
         )
         if config[ConfigIndex.RUN_COMMAND_EDIT].value:
             edited = edit_string_dialog_box("Edit run command", " ".join(args))
             if edited is None:
                 return False
-            args = shlex.split(edited)
+            args = split_run_command(edited)
         super().start_server(args, self._filter_stdout)
         return True
 
