@@ -84,6 +84,13 @@ class ConfigIndex(IntEnum):
     ORDINARY_MAPGROUPS = 50
     WORKSHOP_MAPGROUPS = 51
 
+    # -- Server / network --
+    SERVER_FREQUENCY = 52
+    LISTEN_HOST = 53
+    LISTEN_PORT = 54
+    RCON_ENABLE = 55
+    RCON_PASSWORD = 56
+
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"

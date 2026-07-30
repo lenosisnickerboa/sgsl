@@ -519,6 +519,50 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value=[],
             transform=_normalize_workshop_map,
         ),
+        # -- Server / network --
+        ConfigIndex.SERVER_FREQUENCY: ConfigItem(
+            name="server_frequency",
+            visible_name="Server frequency",
+            type=ConfigType.STRING_LIST,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="The server tickrate (simulation updates per second)",
+            value="64",
+            allowed_values=["64", "128"],
+        ),
+        ConfigIndex.LISTEN_HOST: ConfigItem(
+            name="listen_host",
+            visible_name="Listen host address",
+            type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Listen on this host IP address (0.0.0.0 == all interfaces)",
+            value="0.0.0.0",
+        ),
+        ConfigIndex.LISTEN_PORT: ConfigItem(
+            name="listen_port",
+            visible_name="Listen port",
+            type=ConfigType.INTEGER,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="The game server's listen port",
+            value=27015,
+            range=Range(min_value=1, max_value=65535),
+        ),
+        ConfigIndex.RCON_ENABLE: ConfigItem(
+            name="rcon_enable",
+            visible_name="RCON",
+            type=ConfigType.BOOLEAN,
+            tooltip="Enable remote administration, RCON — over the game's own port, "
+            "authenticated with RCON password below",
+            value=False,
+        ),
+        ConfigIndex.RCON_PASSWORD: ConfigItem(
+            name="rcon_password",
+            visible_name="RCON password",
+            type=ConfigType.MASKED_STRING,
+            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
+            tooltip="The RCON password for remote administration; only takes effect while "
+            "RCON is enabled above (see CS2Game.run())",
+            value="",
+        ),
     }
     _link_map_group_schema_fields(defaults)
     return defaults

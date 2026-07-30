@@ -352,12 +352,27 @@ class CSGOGame(Game):
         if config[ConfigIndex.STEAM_GSLT].value:  # possibly required when hosting?
             args.append("+sv_setsteamaccount")
             args.append(config[ConfigIndex.STEAM_GSLT].value)
+        args.append("-ip")
+        args.append(config[ConfigIndex.LISTEN_HOST].value)
+        args.append("+hostport")
+        args.append(str(config[ConfigIndex.LISTEN_PORT].value))
+        args.append("-tickrate")
+        args.append(config[ConfigIndex.SERVER_FREQUENCY].value)
+
+        # RCON has no port of its own on Source engine servers — it
+        # authenticates over the game's own port via rcon_password
+        # (a SERVER_CFG_FILE item, so it's written by
+        # _update_gamemode_cfg() like any other cvar) — forced to
+        # empty here when disabled, which is how Source servers turn
+        # RCON off, regardless of whatever password is configured.
+        cvar_overrides = (
+            {} if config[ConfigIndex.RCON_ENABLE].value else {"rcon_password": ""}
+        )
 
         # A map group only ever supplies which maps to cycle through —
         # CS:GO only supports one game mode/round limit per running
         # server, so those still come from Game mode/Max rounds as
         # usual and apply to the whole rotation.
-        cvar_overrides = None
         workshop_collection_id = self._active_workshop_collection(config)
         if workshop_collection_id is not None:
             # A workshop map group is a Steam Workshop collection id,
@@ -374,13 +389,15 @@ class CSGOGame(Game):
                 args.append("+mapcyclefile")
                 args.append(self._MapCycleFileName)
                 launch_map = map_group[0]["name"]
-                cvar_overrides = {
-                    # Without these the engine just restarts the same map
-                    # at match end instead of advancing through
-                    # mapcyclefile — see _update_gamemode_cfg().
-                    "mp_match_end_changelevel": "1",
-                    "mp_match_end_restart": "0",
-                }
+                cvar_overrides.update(
+                    {
+                        # Without these the engine just restarts the same map
+                        # at match end instead of advancing through
+                        # mapcyclefile — see _update_gamemode_cfg().
+                        "mp_match_end_changelevel": "1",
+                        "mp_match_end_restart": "0",
+                    }
+                )
             else:
                 launch_map = config[ConfigIndex.SELECTED_MAP].value
 
@@ -729,11 +746,21 @@ class CSGOGame(Game):
                 ],
             ),
             TabSpec(
-                title="Network",
+                title="Server",
                 items=[
                     ConfigIndex.HOSTNAME,
                     ConfigIndex.SV_LAN,
                     ConfigIndex.SV_PASSWORD,
+                    ConfigIndex.SERVER_FREQUENCY,
+                ],
+            ),
+            TabSpec(
+                title="Network",
+                items=[
+                    ConfigIndex.LISTEN_HOST,
+                    ConfigIndex.LISTEN_PORT,
+                    ConfigIndex.RCON_ENABLE,
+                    ConfigIndex.RCON_PASSWORD,
                 ],
             ),
             TabSpec(
