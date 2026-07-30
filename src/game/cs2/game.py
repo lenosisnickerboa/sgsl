@@ -308,7 +308,7 @@ class CS2Game(Game):
             args.append(config[ConfigIndex.STEAM_GSLT].value)
         args.append("-ip")
         args.append(config[ConfigIndex.LISTEN_HOST].value)
-        args.append("+hostport")
+        args.append("-port")
         args.append(str(config[ConfigIndex.LISTEN_PORT].value))
         args.append("-tickrate")
         args.append(config[ConfigIndex.SERVER_FREQUENCY].value)
@@ -362,7 +362,6 @@ class CS2Game(Game):
             else:
                 args.append("+map")
                 args.append(launch_map)
-        # TODO: add "-usercon",
         self._update_gamemode_cfg(config, cvar_overrides)
         args = (
             shlex.split(config[ConfigIndex.CUSTOM_RUN_COMMAND_PRE].value)
@@ -386,9 +385,11 @@ class CS2Game(Game):
         """CS2's mapcyclefile format: one token per line — a map name,
         or a bare workshop id for a workshop map."""
         lines = [
-            str(self._get_workshop_id(entry["name"]))
-            if self._is_workshop_map(entry["name"])
-            else entry["name"]
+            (
+                str(self._get_workshop_id(entry["name"]))
+                if self._is_workshop_map(entry["name"])
+                else entry["name"]
+            )
             for entry in group
         ]
         self._map_cycle_path().write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -428,9 +429,7 @@ class CS2Game(Game):
             return None
         return self._find_map_group(config, selected_map_group)
 
-    def _find_map_group(
-        self, config: Config[IndexT], key: str
-    ) -> Optional[list[dict]]:
+    def _find_map_group(self, config: Config[IndexT], key: str) -> Optional[list[dict]]:
         """The list of {"name"} entries stored under `key` in
         ORDINARY_MAPGROUPS, or None if no such group exists."""
         for entry in config[ConfigIndex.ORDINARY_MAPGROUPS].value:
@@ -495,7 +494,9 @@ class CS2Game(Game):
             value = cvar_overrides.get(item.name, self._cvar_value(item))
             entries.append(
                 ConfigEntry(
-                    name=item.name, value=value, comment=f"{self._AddedByComment} {timestamp}"
+                    name=item.name,
+                    value=value,
+                    comment=f"{self._AddedByComment} {timestamp}",
                 )
             )
             written_names.add(item.name)
@@ -507,7 +508,9 @@ class CS2Game(Game):
                 continue
             entries.append(
                 ConfigEntry(
-                    name=name, value=value, comment=f"{self._AddedByComment} {timestamp}"
+                    name=name,
+                    value=value,
+                    comment=f"{self._AddedByComment} {timestamp}",
                 )
             )
 
@@ -653,6 +656,17 @@ class CS2Game(Game):
         # Likewise for SELECTED_MAP's enabled state, which depends on
         # whatever SELECTED_MAP_GROUP was just loaded.
         self._sync_selected_map_state(config)
+        # And for RCON_PASSWORD's enabled state, which depends on
+        # whatever RCON_ENABLE was just loaded.
+        self._sync_rcon_password_state(config)
+
+    def _sync_rcon_password_state(self, config: Config[IndexT]) -> None:
+        """RCON_PASSWORD only takes effect while RCON is enabled (see
+        run()'s rcon_password cvar_override) -- disable the field
+        rather than leave an edit sitting there with no effect."""
+        config[ConfigIndex.RCON_PASSWORD].read_only = not config[
+            ConfigIndex.RCON_ENABLE
+        ].value
 
     def _refresh_map_group_choices(self, config: Config[IndexT]) -> None:
         """Keep the selected-map-group dropdown's choices in sync with
@@ -825,6 +839,9 @@ class CS2Game(Game):
         elif config_item is config[ConfigIndex.SELECTED_MAP_GROUP]:
             self._sync_selected_map_state(config)
             return [ConfigIndex.SELECTED_MAP]
+        elif config_item is config[ConfigIndex.RCON_ENABLE]:
+            self._sync_rcon_password_state(config)
+            return [ConfigIndex.RCON_PASSWORD]
         elif config_item is config[ConfigIndex.PLAYER_COUNT]:
             config[ConfigIndex.SV_VISIBLEMAXPLAYERS].set(
                 config[ConfigIndex.PLAYER_COUNT].value
