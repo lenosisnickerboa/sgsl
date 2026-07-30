@@ -565,6 +565,13 @@ def build_game_defaults() -> Config[ConfigIndex]:
             "RCON is enabled above (see CSGOGame.run())",
             value="",
         ),
+        ConfigIndex.CONSOLE_ENABLED: ConfigItem(
+            name="console_enabled",
+            visible_name="Console",
+            type=ConfigType.BOOLEAN,
+            tooltip="Show the server's console window (-console); disable to run headless",
+            value=True,
+        ),
     }
     _link_map_group_schema_fields(defaults)
     return defaults

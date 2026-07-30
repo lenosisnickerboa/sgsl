@@ -303,6 +303,13 @@ class CS2Game(Game):
         game_mode = config[ConfigIndex.GAME_MODE].value
         args[2], args[4] = self._game_type_and_mode_codes(game_mode)
         args[6] = str(config[ConfigIndex.PLAYER_COUNT].value)
+        if config[ConfigIndex.CONSOLE_ENABLED].value:
+            args.append("-console")
+        if config[ConfigIndex.RCON_ENABLE].value:
+            # -usercon lets a client "connect" to RCON via the in-game
+            # console rather than a raw socket -- no reason to enable
+            # it while RCON itself is off.
+            args.append("-usercon")
         if config[ConfigIndex.STEAM_GSLT].value:  # possibly required when hosting?
             args.append("+sv_setsteamaccount")
             args.append(config[ConfigIndex.STEAM_GSLT].value)
@@ -735,6 +742,7 @@ class CS2Game(Game):
                 items=[
                     ConfigIndex.LISTEN_HOST,
                     ConfigIndex.LISTEN_PORT,
+                    ConfigIndex.CONSOLE_ENABLED,
                     ConfigIndex.RCON_ENABLE,
                     ConfigIndex.RCON_PASSWORD,
                 ],

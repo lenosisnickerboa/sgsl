@@ -321,8 +321,6 @@ class CSGOGame(Game):
         args = [
             "-game",
             "csgo",
-            "-console",
-            "-usercon",
             "+game_type",
             "TYPE",
             "+game_mode",
@@ -330,25 +328,32 @@ class CSGOGame(Game):
             "-maxplayers",
             "<number>",
         ]
+        if config[ConfigIndex.CONSOLE_ENABLED].value:
+            args.append("-console")
+        if config[ConfigIndex.RCON_ENABLE].value:
+            # -usercon lets a client "connect" to RCON via the in-game
+            # console rather than a raw socket -- no reason to enable
+            # it while RCON itself is off.
+            args.append("-usercon")
         game_mode = config[ConfigIndex.GAME_MODE].value
         if game_mode == "Casual":
-            args[5] = "0"  # game_type
-            args[7] = "0"  # gamne_mode
+            args[3] = "0"  # game_type
+            args[5] = "0"  # gamne_mode
         elif game_mode == "Competitive":
-            args[5] = "0"  # game_type
-            args[7] = "1"  # gamne_mode
+            args[3] = "0"  # game_type
+            args[5] = "1"  # gamne_mode
         elif game_mode == "ArmsRace":
-            args[5] = "1"  # game_type
-            args[7] = "0"  # gamne_mode
+            args[3] = "1"  # game_type
+            args[5] = "0"  # gamne_mode
         elif game_mode == "DeathMatch":
-            args[5] = "1"  # game_type
-            args[7] = "2"  # gamne_mode
+            args[3] = "1"  # game_type
+            args[5] = "2"  # gamne_mode
         elif game_mode == "Demolition":
-            args[5] = "1"  # game_type
-            args[7] = "1"  # gamne_mode
+            args[3] = "1"  # game_type
+            args[5] = "1"  # gamne_mode
         else:
             exit(1)
-        args[9] = str(config[ConfigIndex.PLAYER_COUNT].value)
+        args[7] = str(config[ConfigIndex.PLAYER_COUNT].value)
         if config[ConfigIndex.STEAM_GSLT].value:  # possibly required when hosting?
             args.append("+sv_setsteamaccount")
             args.append(config[ConfigIndex.STEAM_GSLT].value)
@@ -774,6 +779,7 @@ class CSGOGame(Game):
                 items=[
                     ConfigIndex.LISTEN_HOST,
                     ConfigIndex.LISTEN_PORT,
+                    ConfigIndex.CONSOLE_ENABLED,
                     ConfigIndex.RCON_ENABLE,
                     ConfigIndex.RCON_PASSWORD,
                 ],

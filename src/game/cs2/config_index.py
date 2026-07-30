@@ -90,6 +90,7 @@ class ConfigIndex(IntEnum):
     LISTEN_PORT = 54
     RCON_ENABLE = 55
     RCON_PASSWORD = 56
+    CONSOLE_ENABLED = 57
 
 
 _values = [item.value for item in ConfigIndex]
