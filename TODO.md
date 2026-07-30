@@ -37,6 +37,9 @@ Current filtering should be moved as defaults for filtering stdout
 # CS2
 
 
+# CSGO
+
+
 # VU
 
 ## General mods support?

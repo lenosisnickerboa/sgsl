@@ -1,8 +1,4 @@
 
-# VU/CS2 Start server, stop/start again doesn't work
-
-When I start sgsl.exe again it doesn't pick up current server state anymore. Seems not started.
-
 # UI stuff
 
 ## UI widgets not centered vertically
