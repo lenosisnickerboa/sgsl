@@ -9,27 +9,55 @@ from config.config_item import (
 )
 from config.toml_config import Config
 from game.cs2.config_index import ConfigIndex
+from support.steam_workshop import fetch_published_file_title
 
 WorkshopMapPattern = re.compile(r"(\d+)(?:\\([^\\]+))?\s*$")
 WorkshopUrlIdPattern = re.compile(r"^https?://\S*[?&]id=(\d+)", re.IGNORECASE)
 
 
-def _normalize_workshop_map(value: str) -> str:
-    """Normalize a workshop map entry down to "workshop\\<id>\\<name>" —
-    the form the map name is stored in — whether the user typed just the
-    id (123), "workshop\\123", the full "workshop\\123\\<name>", or a
+def _parse_workshop_entry(value: str) -> tuple[str, "str | None"]:
+    """Extract the workshop id and, if one was already given, the name
+    from a raw workshop entry — whether the user typed just the id
+    (123), "workshop\\123", the full "workshop\\123\\<name>", or a
     Steam Workshop URL (e.g. "https://steamcommunity.com/sharedfiles/
     filedetails/?id=123"), in which case only the id is extracted from
-    it. The name defaults to "unknown" unless one was already given."""
+    it."""
     url_match = WorkshopUrlIdPattern.search(value)
     if url_match is not None:
         value = url_match.group(1)
     match = WorkshopMapPattern.search(value)
     if match is None:
         raise ValueError(
-            f"workshop map entry must contain a numeric workshop id, got {value!r}"
+            f"workshop entry must contain a numeric workshop id, got {value!r}"
         )
-    workshop_id, name = match.group(1), match.group(2)
+    return match.group(1), match.group(2)
+
+
+def _normalize_workshop_map(value: str) -> str:
+    """Normalize a workshop map entry down to "workshop\\<id>\\<name>" —
+    the form the map name is stored in. The name defaults to "unknown"
+    unless one was already given — once the map is actually downloaded,
+    config_loaded() replaces it with the real title read from the
+    server's own publish_data.txt (see CS2Game._workshop_maps())."""
+    workshop_id, name = _parse_workshop_entry(value)
+    return f"workshop\\{workshop_id}\\{name or 'unknown'}"
+
+
+def _normalize_workshop_mapgroup(value: str) -> str:
+    """Normalize a workshop map group entry the same way
+    _normalize_workshop_map() does, except a map group is a Steam
+    Workshop *collection* id — it's never itself downloaded to the
+    server (only the individual maps it contains are, once it's
+    actually hosted), so there's no local file to later read a real
+    name from the way individual maps get one. Instead, if no explicit
+    name was given, the collection's title is looked up directly from
+    Valve's public GetPublishedFileDetails API. Falls back to "unknown"
+    the same way if that lookup fails (offline, bad id, Steam API
+    hiccup, ...) — re-entering the same id/URL later, once reachable,
+    will resolve it."""
+    workshop_id, name = _parse_workshop_entry(value)
+    if name is None:
+        name = fetch_published_file_title(int(workshop_id))
     return f"workshop\\{workshop_id}\\{name or 'unknown'}"
 
 
@@ -494,7 +522,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             "actually contains get downloaded and show up under Workshop maps. "
             "When adding new entries either the full url or just the collection id can be entered.",
             value=[],
-            transform=_normalize_workshop_map,
+            transform=_normalize_workshop_mapgroup,
         ),
     }
     _link_map_group_schema_fields(defaults)
