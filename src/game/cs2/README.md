@@ -1,8 +1,8 @@
 <img src="assets/icon.png" width="96" alt="Counter-Strike 2 icon">
 
-# Counter-Strike 2 [Read more here](https://store.steampowered.com/app/730/CounterStrike_2/)
+# Counter-Strike 2 [Publisher docs](https://store.steampowered.com/app/730/CounterStrike_2/)
 
-## Installation [Read more here](https://developer.valvesoftware.com/wiki/Counter-Strike_2/Dedicated_Servers)
+## Installation [Publisher docs](https://developer.valvesoftware.com/wiki/Counter-Strike_2/Dedicated_Servers)
 
 Depending on how you want to run your server, here comes some scenarios.
 

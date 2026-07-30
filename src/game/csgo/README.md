@@ -1,8 +1,8 @@
 <img src="assets/icon.png" width="96" alt="Counter-Strike: Global Offensive icon">
 
-# Counter-Strike: Global Offensive [Read more here](https://store.steampowered.com/app/4465480/CounterStrikeGlobal_Offensive/)
+# Counter-Strike: Global Offensive [Publisher docs](https://store.steampowered.com/app/4465480/CounterStrikeGlobal_Offensive/)
 
-## Installation [Read more here](https://developer.valvesoftware.com/wiki/Counter-Strike:_Global_Offensive/Dedicated_Servers) and [here](https://steamcommunity.com/sharedfiles/filedetails/?id=3678325098)
+## Installation [Publisher docs](https://developer.valvesoftware.com/wiki/Counter-Strike:_Global_Offensive/Dedicated_Servers) and [here](https://steamcommunity.com/sharedfiles/filedetails/?id=3678325098)
 
 Depending on how you want to run your server, here comes some scenarios.
 

@@ -1,8 +1,8 @@
 <img src="assets/icon.png" width="96" alt="Venice Unleashed icon">
 
-# Venice Unleashed [Read more here](https://veniceunleashed.net/)
+# Venice Unleashed [Publisher docs](https://veniceunleashed.net/)
 
-## Installation [Read more here](https://docs.veniceunleashed.net/hosting/prereq/)
+## Installation [Publisher docs](https://docs.veniceunleashed.net/hosting/prereq/)
 
 Depending on how you want to run your server, here comes some scenarios.
 
