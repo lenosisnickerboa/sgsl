@@ -317,6 +317,19 @@ class CSGOGame(Game):
             return None
         return line
 
+    def _game_type_and_mode_codes(self, game_mode: str) -> tuple[str, str]:
+        if game_mode == "Casual":
+            return "0", "0"  # game_type, game_mode
+        if game_mode == "Competitive":
+            return "0", "1"
+        if game_mode == "ArmsRace":
+            return "1", "0"
+        if game_mode == "DeathMatch":
+            return "1", "2"
+        if game_mode == "Demolition":
+            return "1", "1"
+        exit(1)
+
     def run(self, config: Config[IndexT]) -> bool:
         args = [
             "-game",
@@ -336,23 +349,7 @@ class CSGOGame(Game):
             # it while RCON itself is off.
             args.append("-usercon")
         game_mode = config[ConfigIndex.GAME_MODE].value
-        if game_mode == "Casual":
-            args[3] = "0"  # game_type
-            args[5] = "0"  # gamne_mode
-        elif game_mode == "Competitive":
-            args[3] = "0"  # game_type
-            args[5] = "1"  # gamne_mode
-        elif game_mode == "ArmsRace":
-            args[3] = "1"  # game_type
-            args[5] = "0"  # gamne_mode
-        elif game_mode == "DeathMatch":
-            args[3] = "1"  # game_type
-            args[5] = "2"  # gamne_mode
-        elif game_mode == "Demolition":
-            args[3] = "1"  # game_type
-            args[5] = "1"  # gamne_mode
-        else:
-            exit(1)
+        args[3], args[5] = self._game_type_and_mode_codes(game_mode)
         args[7] = str(config[ConfigIndex.PLAYER_COUNT].value)
         if config[ConfigIndex.STEAM_GSLT].value:  # possibly required when hosting?
             args.append("+sv_setsteamaccount")
