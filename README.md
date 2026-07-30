@@ -25,6 +25,10 @@ For now requires Windows 11. Perhaps it works on previous Windows versions but I
 
 If a linux version is in high demand I will consider porting it to linux. sgsl is mostly python but there are some linux only things to consider when dealing with the actual game servers. So, I will be collecting requests for a while before starting this journey. Also, please state the linux distribution.
 
+# Known limitations
+
+[No game mode <-> map relation](https://github.com/lenosisnickerboa/sgsl/issues/1)
+
 # Troubleshooting
 
 As a a first hint, if something doesn't work, have a look in the terminal log to see more details of what failed. There is also the possibility to create an error report and file an [issue](https://github.com/lenosisnickerboa/sgsl/issues). I will do my best to analyze it. As always, the more time you put into the issue text, the less time I need to fix the issue.

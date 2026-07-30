@@ -4,19 +4,7 @@
 
 Hard (impossible) to see now if a toggle is disabled.
 
-## Align server/network settings
-- add listen port
-- set server name and stuff in the same tabs.l
-
-## Map groups 1
-
-Pick up existing map groups, if any? And allow selection from these
-
-## Map groups 2
-
-Define custom map groups
-Host workshop collections
-Map vote
+## Map vote ?
 
 ## General code review
 
