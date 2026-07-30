@@ -2,6 +2,12 @@
 
 ## Disable / remove the null game when building for release
 
+## Add a donate button
+
+## Improve how toggles are shown disabled
+
+Hard (impossible) to see now if a toggle is disabled.
+
 ## Align server/network settings
 - add listen port
 - set server name and stuff in the same tabs.l
@@ -41,15 +47,7 @@ Allow filtering of stdout/stderr
 
 Current filtering should be moved as defaults for filtering stdout
 
-## Add a donate button
-
-## Improve how toggles are shown disabled
-
-Hard (impossible) to see now if a toggle is disabled.
-
 ## Introduce map <-> game mode relation
-
-## RCON support
 
 
 # CS2
@@ -60,9 +58,3 @@ Hard (impossible) to see now if a toggle is disabled.
 ## General mods support?
 
 Or just hardcode some more mods?
-
-
-# Add support for more games?
-
-## csgo?
-

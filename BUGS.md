@@ -3,15 +3,13 @@
 
 When I start sgsl.exe again it doesn't pick up current server state anymore. Seems not started.
 
-# UI widgets not centered vertically
+# UI stuff
 
-Simon-tjat
+## UI widgets not centered vertically
 
-# UI window movement, closing/opening/dragging
+## UI window movement, closing/opening/dragging
 
-Overhaul
-
-# UI window management, minimize breaks snapping
+## UI window management, minimize breaks snapping
 
 minimize, close config, open config -> not snapped
 
