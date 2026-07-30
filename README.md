@@ -35,6 +35,6 @@ If you want to develop sgsl on your own, [here](src/develop/README.md) are some 
 
 # Some notes on my setup
 
-I am currently only running local servers and invite external players via the free [tailscale](https://tailscale.com/) but there is nothing stopping you from going public with your server. I have provided the necessary options and briefly described what is required in the game description above. 
+I am currently only running local game servers and invite external players via the free [tailscale](https://tailscale.com/) but there is nothing stopping you from going public with your server. I have provided the necessary options and briefly described what is required in the game descriptions. 
 
-I have a limited amount of people connecting to my servers and hence I find tailscale a simple and practical solution for this. It solves all problems for all kinds of game servers, not just the ones controlled by sgsl.exe.
+I have a limited amount of people connecting to my servers and hence I find tailscale a simple and practical solution for this. It solves all problems for all kinds of game servers, not just the ones controlled by sgsl.exe, i.e. tailscale makes my game server host available to all invited as if they where directly connected to my LAN.
