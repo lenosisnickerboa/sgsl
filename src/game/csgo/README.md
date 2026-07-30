@@ -86,3 +86,7 @@ If there is some special tweak you want to add, not supported by sgsl.exe, it ca
 ## Finding workshop content
 
 In short; it's a mess, but most of the time you should be fine with using the same workshop items/ids as for [cs2](https://steamcommunity.com/workshop/browse/?appid=730). You can google it or ask your favourite AI companion about more details.
+
+## Notes
+
+When you start the server an extra terminal window will appear. I haven't found away to make it disappear, just minimize it if it bothers you.

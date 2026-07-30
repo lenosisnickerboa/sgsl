@@ -12,7 +12,7 @@ from support import bat_runner
 from support.dialog import edit_string_dialog_box
 from support.run_command import split_run_command
 
-GameExe = "vu.exe"
+GameExe = "vu.com"
 
 # All relative to server root directory
 GameExeWithPath = Path(GameExe)
@@ -115,7 +115,6 @@ class VUGame(Game):
             "-mHarmonyPort" f"{config[ConfigIndex.LISTEN_PORT_HARMONY].value}",
             "-server",
             "-dedicated",
-            "-headless",
         ]
         if config[ConfigIndex.RCON_ENABLE].value == True:
             args.append("-RemoteAdminPort")
