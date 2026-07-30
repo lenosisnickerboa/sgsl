@@ -121,11 +121,14 @@ def on_install_game_server(name: str):
         root.after(0, g_install_open_close.off)
         return
 
+    g_install_open_close.disable()
+
     def on_install_result(result):
         print_to_terminal(f"Install for {game.get_long_name()} finished: {result}")
 
         def finish():
             g_install_open_close.off()
+            g_install_open_close.enable()
             if result == OperationResult.OK and auto_opened_terminal:
                 g_terminal_window.hide()
             if result == OperationResult.FAIL:
