@@ -8,10 +8,10 @@ from game.game import Game
 from game.null_game.game import NullGame
 from game.vu.game import VUGame
 
-# Bundled by build-for-test.bat only (via a PyInstaller --add-data
-# entry), so a plain from-source run and a build-for-release.bat build
-# both keep the Null Game -- it's just excluded from the test exe,
-# whose testers shouldn't see a fake game in the list.
+# Bundled by build-for-release.bat only (via a PyInstaller --add-data
+# entry), so a plain from-source run and a build-for-test.bat build
+# both keep the Null Game -- it's just excluded from the release exe,
+# whose real users shouldn't see a fake game in the list.
 _ExcludeNullGameMarker = "app/assets/exclude_null_game.marker"
 
 
