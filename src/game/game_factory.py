@@ -1,11 +1,18 @@
 from pathlib import Path
 from typing import Type, Union
 
+from app.resources import resource_path
 from game.cs2.game import CS2Game
 from game.csgo.game import CSGOGame
 from game.game import Game
 from game.null_game.game import NullGame
 from game.vu.game import VUGame
+
+# Bundled by build-for-test.bat only (via a PyInstaller --add-data
+# entry), so a plain from-source run and a build-for-release.bat build
+# both keep the Null Game -- it's just excluded from the test exe,
+# whose testers shouldn't see a fake game in the list.
+_ExcludeNullGameMarker = "app/assets/exclude_null_game.marker"
 
 
 class GameFactory:
@@ -20,9 +27,10 @@ class GameFactory:
 
     @classmethod
     def create(cls, directory: Union[str, Path], terminal) -> Game:
-        game = NullGame(directory, terminal)
-        if game.detect():
-            return game
+        if "Null Game" in cls._registry:
+            game = NullGame(directory, terminal)
+            if game.detect():
+                return game
         game = CS2Game(directory, terminal)
         if game.detect():
             return game
@@ -50,7 +58,8 @@ class GameFactory:
 
 
 # Register games
-GameFactory.register("Null Game", NullGame)
+if not resource_path(_ExcludeNullGameMarker).exists():
+    GameFactory.register("Null Game", NullGame)
 GameFactory.register("Counter-Strike 2", CS2Game)
 GameFactory.register("Counter-Strike: Global Offensive", CSGOGame)
 GameFactory.register("Venice Unleashed", VUGame)
