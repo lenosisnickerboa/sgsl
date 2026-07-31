@@ -143,6 +143,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Friendly fire, i.e. when you shoot at your team mates they take damage",
             value=False,
         ),
+        ConfigIndex.ROUND_TIME: ConfigItem(
+            name="vars.roundTimeLimit",
+            visible_name="Round time (min)",
+            type=ConfigType.INTEGER,
+            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
+            tooltip="Round time in minutes",
+            value=5,
+            range=Range(min_value=1, max_value=60),
+        ),
         ConfigIndex.DOWNLOAD_URL: ConfigItem(
             name="downloadURL",
             visible_name="Download URL",

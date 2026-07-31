@@ -41,6 +41,7 @@ class ConfigIndex(IntEnum):
     ORDINARY_MAPS = 30
     MODS_VOTEMAP_ENABLED = 31
     MODS_VOTEMAP_URL = 32
+    ROUND_TIME = 33
 
 
 _values = [item.value for item in ConfigIndex]

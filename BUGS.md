@@ -1,4 +1,8 @@
 
+# VU: (maybe all?) empty log line when game server logs
+
+Always remove trailing end of line?
+
 # UI stuff
 
 ## UI widgets not centered vertically

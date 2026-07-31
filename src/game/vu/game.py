@@ -280,6 +280,12 @@ class VUGame(Game):
         mod_list_path.write_text("\n".join(existing_lines) + "\n", encoding="utf-8")
 
     def _format_cvar_line(self, item: ConfigItem) -> str:
+        if item.name == "vars.roundTimeLimit":
+            # Stored/edited in minutes (ROUND_TIME, matching cs2's
+            # "Round time (min)"), but the cvar itself takes a
+            # percentage of a 30-minute baseline round length.
+            percentage = round(item.value / 30 * 100)
+            return f"{item.name} {percentage}"
         if item.type in (
             ConfigType.STRING,
             ConfigType.STRING_LIST,
@@ -382,6 +388,7 @@ class VUGame(Game):
                     ConfigIndex.PLAYER_COUNT_START_ROUND,
                     ConfigIndex.PLAYER_COUNT_RESTART_ROUND,
                     ConfigIndex.FRIENDLY_FIRE,
+                    ConfigIndex.ROUND_TIME,
                     ConfigIndex.RUN_COMMAND_EDIT,
                     ConfigIndex.CUSTOM_RUN_COMMAND_PRE,
                     ConfigIndex.CUSTOM_RUN_COMMAND_POST,
