@@ -53,6 +53,7 @@ class VUGame(Game):
     _ArchiveFileName = "vu.zip"
     _ModsDirName = Path("Admin") / "mods"
     _FunBotsArchiveFileName = "fun-bots.zip"
+    _VotemapArchiveFileName = "votemap.zip"
 
     # Bare "curl.exe"/"tar.exe" can resolve to Git for Windows' copies
     # earlier on PATH than the Windows-native ones in System32; Git's
@@ -87,6 +88,17 @@ class VUGame(Game):
                 f'{self._TarExe} -xf "{fun_bots_archive_path}" -C "{mods_dir}"',
             ]
 
+        votemap_enabled = config[ConfigIndex.MODS_VOTEMAP_ENABLED].value
+        votemap_archive_path = self.directory / self._VotemapArchiveFileName
+        if votemap_enabled:
+            votemap_url = config[ConfigIndex.MODS_VOTEMAP_URL].value
+            mods_dir = self.server_root / self._ModsDirName
+            mods_dir.mkdir(parents=True, exist_ok=True)
+            commands += [
+                f'{self._CurlExe} -fsSL "{votemap_url}" -o "{votemap_archive_path}"',
+                f'{self._TarExe} -xf "{votemap_archive_path}" -C "{mods_dir}"',
+            ]
+
         def on_output(line: str) -> None:
             self.print(line)
 
@@ -94,6 +106,8 @@ class VUGame(Game):
             archive_path.unlink(missing_ok=True)
             if fun_bots_enabled:
                 fun_bots_archive_path.unlink(missing_ok=True)
+            if votemap_enabled:
+                votemap_archive_path.unlink(missing_ok=True)
 
             if not self.server_binary.exists():
                 self.print(
@@ -212,18 +226,20 @@ class VUGame(Game):
         return None
 
     _FunBotsRepoName = "fun-bots"
+    _VotemapRepoName = "BF3-Mods-Votemap"
     _NoModsPlaceholder = "# No mods yet"
 
-    def _find_fun_bots_mod_dir_name(self) -> Optional[str]:
-        """The fun-bots archive extracts into a folder named after its
-        repo and release tag (e.g. "fun-bots-3.0.0-Release"), which
-        varies with MODS_FUN_BOTS_URL — so look up the actual folder
-        under Admin/mods rather than guessing the name."""
+    def _find_mod_dir_name(self, repo_name: str) -> Optional[str]:
+        """A mod's archive extracts into a folder named after its repo
+        and release tag/branch (e.g. "fun-bots-3.0.0-Release" or
+        "BF3-Mods-Votemap-main"), which varies with its own URL config
+        item — so look up the actual folder under Admin/mods by its
+        repo-name prefix, rather than guessing the full name."""
         mods_dir = self.server_root / self._ModsDirName
         if not mods_dir.is_dir():
             return None
         for entry in mods_dir.iterdir():
-            if entry.is_dir() and entry.name.startswith(self._FunBotsRepoName):
+            if entry.is_dir() and entry.name.startswith(repo_name):
                 return entry.name
         return None
 
@@ -239,6 +255,7 @@ class VUGame(Game):
                 if line.strip()
                 and line.strip() != self._NoModsPlaceholder
                 and not line.strip().startswith(self._FunBotsRepoName)
+                and not line.strip().startswith(self._VotemapRepoName)
                 # Otherwise, since this file's own previous output is
                 # what feeds existing_lines, re-appending append_lines
                 # below would duplicate them on every subsequent run.
@@ -246,9 +263,14 @@ class VUGame(Game):
             ]
 
         if config[ConfigIndex.MODS_FUN_BOTS_ENABLED].value:
-            fun_bots_dir_name = self._find_fun_bots_mod_dir_name()
+            fun_bots_dir_name = self._find_mod_dir_name(self._FunBotsRepoName)
             if fun_bots_dir_name is not None:
                 existing_lines.append(fun_bots_dir_name)
+
+        if config[ConfigIndex.MODS_VOTEMAP_ENABLED].value:
+            votemap_dir_name = self._find_mod_dir_name(self._VotemapRepoName)
+            if votemap_dir_name is not None:
+                existing_lines.append(votemap_dir_name)
 
         existing_lines += append_lines
 
@@ -399,6 +421,8 @@ class VUGame(Game):
                 items=[
                     ConfigIndex.MODS_FUN_BOTS_ENABLED,
                     ConfigIndex.MODS_FUN_BOTS_URL,
+                    ConfigIndex.MODS_VOTEMAP_ENABLED,
+                    ConfigIndex.MODS_VOTEMAP_URL,
                 ],
             ),
             TabSpec(

@@ -232,6 +232,22 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Download the fun-bots mod from this URL. Only change URL if this download does not work or if you want to upgrade the fun-bots mod.",
             value="https://github.com/Joe91/fun-bots/archive/refs/tags/V3.0.0-Release.zip",
         ),
+        ConfigIndex.MODS_VOTEMAP_ENABLED: ConfigItem(
+            name="modsVotemapEnabled",
+            visible_name="Votemap",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Enable mod BF3-Mods-Votemap",
+            value=True,
+        ),
+        ConfigIndex.MODS_VOTEMAP_URL: ConfigItem(
+            name="modsVotemapUrl",
+            visible_name="Votemap URL",
+            type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Download the BF3-Mods-Votemap mod from this URL. Only change URL if this download does not work or if you want to upgrade the votemap mod.",
+            value="https://github.com/muppet99/BF3-Mods-Votemap/archive/refs/heads/main.zip",
+        ),
         ConfigIndex.ORDINARY_MAPGROUPS: ConfigItem(
             name="ordinary_mapgroups",
             visible_name="Ordinary map groups",

@@ -39,6 +39,8 @@ class ConfigIndex(IntEnum):
     CORPSE_DAMAGE_ENABLED = 26
     ORDINARY_MAPGROUPS = 27
     ORDINARY_MAPS = 30
+    MODS_VOTEMAP_ENABLED = 31
+    MODS_VOTEMAP_URL = 32
 
 
 _values = [item.value for item in ConfigIndex]

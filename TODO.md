@@ -1,5 +1,7 @@
 # General improvements
 
+## Make it possible to disable VU mods
+
 ## Map vote native
 
 ## Archive functionality for everything downloaded
