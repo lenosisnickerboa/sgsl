@@ -148,9 +148,9 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Round time (min)",
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Round time in minutes",
+            tooltip="Round time in minutes. Set it to 0 for indefinite round time.",
             value=5,
-            range=Range(min_value=1, max_value=60),
+            range=Range(min_value=0, max_value=60),
         ),
         ConfigIndex.DOWNLOAD_URL: ConfigItem(
             name="downloadURL",
@@ -246,7 +246,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Votemap",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Enable mod BF3-Mods-Votemap",
+            tooltip="Enable mod vu-mapvote",
             value=True,
         ),
         ConfigIndex.MODS_VOTEMAP_URL: ConfigItem(
@@ -254,8 +254,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Votemap URL",
             type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Download the BF3-Mods-Votemap mod from this URL. Only change URL if this download does not work or if you want to upgrade the votemap mod.",
-            value="https://github.com/muppet99/BF3-Mods-Votemap/archive/refs/heads/main.zip",
+            tooltip="Download the vu-mapvote mod from this URL. Only change URL if this download does not work or if you want to upgrade the votemap mod.",
+            value="https://gitlab.com/n4gi0s/vu-mapvote/-/jobs/artifacts/master/download?job=build",
         ),
         ConfigIndex.ORDINARY_MAPGROUPS: ConfigItem(
             name="ordinary_mapgroups",

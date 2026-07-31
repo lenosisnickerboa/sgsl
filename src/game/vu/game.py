@@ -101,12 +101,14 @@ class VUGame(Game):
             votemap_dir.mkdir(parents=True, exist_ok=True)
             commands += [
                 f'{self._CurlExe} -fsSL "{votemap_url}" -o "{votemap_archive_path}"',
-                # --strip-components=1 drops the archive's own
-                # top-level folder (named after its repo/branch, e.g.
-                # "BF3-Mods-Votemap-main", which would otherwise vary
-                # with MODS_VOTEMAP_URL) so its contents land directly
-                # in a fixed, predictable folder name instead.
-                f'{self._TarExe} -xf "{votemap_archive_path}" -C "{votemap_dir}" --strip-components=1',
+                # Unlike a GitHub repo-archive zip, this GitLab CI job
+                # artifact has no wrapping top-level folder -- its
+                # entries (ext/, mod.json, ui.vuic, ...) sit directly
+                # at the zip root, so no --strip-components is needed
+                # (and would actually be wrong: root-level files like
+                # mod.json have no leading path component to strip,
+                # so tar would just silently drop them).
+                f'{self._TarExe} -xf "{votemap_archive_path}" -C "{votemap_dir}"',
             ]
 
         def on_output(line: str) -> None:

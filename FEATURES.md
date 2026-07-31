@@ -43,4 +43,4 @@
 
 - Mod support with configurable per mod on/off and URL
     - Fun Bots
-    - BF3-Mods-Votemap
+    - N4gi0s/Venice Unleashed MapVote
