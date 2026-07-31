@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import unicodedata
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
@@ -9,6 +10,14 @@ from config.config_item import ConfigItem, ConfigType
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from process import process_handler
+
+
+def _is_blank_line(line: str) -> bool:
+    """True if `line` has no real content -- empty, or every character
+    in it is whitespace and/or a control character (e.g. a stray
+    ANSI/null/backspace byte some game server processes emit on their
+    own "line"), so it's not worth showing in the terminal."""
+    return all(ch.isspace() or unicodedata.category(ch) == "Cc" for ch in line)
 
 
 class OperationResult(Enum):
@@ -47,6 +56,8 @@ class Game(ABC):
         return self.directory
 
     def handle_stdout_output(self, line: str):
+        if _is_blank_line(line):
+            return
         if self.filter_stdout:
             line = self.filter_stdout(line)
             if not line:
@@ -55,6 +66,8 @@ class Game(ABC):
         self.print(f"{prefix} {line}")
 
     def handle_stderr_output(self, line: str):
+        if _is_blank_line(line):
+            return
         if self.filter_stderr:
             line = self.filter_stderr(line)
             if not line:
