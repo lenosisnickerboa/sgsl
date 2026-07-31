@@ -1,5 +1,9 @@
 # General improvements
 
+## Add FEATURES.md
+
+One global with links to each supported game's FEATURES.md
+
 ## Make it possible to disable VU mods
 
 ## Map vote native

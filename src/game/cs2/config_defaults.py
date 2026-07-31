@@ -615,7 +615,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Fraction of connected players that must vote for an outcome (e.g. a "
             "specific next map) for a vote to pass",
-            value=0.6,
+            value=0.3,
             range=Range(min_value=0.0, max_value=1.0),
         ),
     }

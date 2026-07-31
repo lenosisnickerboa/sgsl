@@ -855,6 +855,17 @@ class CSGOGame(Game):
                 items=[ConfigIndex.ORDINARY_MAPGROUPS, ConfigIndex.WORKSHOP_MAPGROUPS],
             ),
             TabSpec(
+                title="MapVote",
+                items=[
+                    ConfigIndex.MAPVOTE_ENDMATCH_ENABLE,
+                    ConfigIndex.MAPVOTE_ENDMATCH_DURATION,
+                    ConfigIndex.MAPVOTE_NEXTLEVEL_ALLOWED,
+                    ConfigIndex.MAPVOTE_TIMER_DURATION,
+                    ConfigIndex.MAPVOTE_ALLOW_SPECTATORS,
+                    ConfigIndex.MAPVOTE_QUORUM_RATIO,
+                ],
+            ),
+            TabSpec(
                 title="Troubleshooting",
                 items=[
                     ConfigIndex.REMOVE_MANIFEST_FILE,

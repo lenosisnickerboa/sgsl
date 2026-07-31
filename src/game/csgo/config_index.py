@@ -92,6 +92,14 @@ class ConfigIndex(IntEnum):
     RCON_PASSWORD = 56
     CONSOLE_ENABLED = 57
 
+    # -- Map vote --
+    MAPVOTE_ENDMATCH_ENABLE = 58
+    MAPVOTE_ENDMATCH_DURATION = 59
+    MAPVOTE_NEXTLEVEL_ALLOWED = 60
+    MAPVOTE_TIMER_DURATION = 61
+    MAPVOTE_ALLOW_SPECTATORS = 62
+    MAPVOTE_QUORUM_RATIO = 63
+
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"
