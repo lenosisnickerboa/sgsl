@@ -1,12 +1,10 @@
 # General improvements
 
-# Improve error report by allowing the game to provide a file list to include
+## Map vote native
 
 ## Improve how toggles are shown disabled
 
 Hard (impossible) to see now if a toggle is disabled.
-
-## Map vote native
 
 ## General code review
 

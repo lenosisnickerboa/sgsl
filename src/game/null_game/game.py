@@ -208,3 +208,7 @@ class NullGame(Game):
 
     def config_loaded(self, config: Config[IndexT]) -> None:
         self.config = config
+
+    def error_report_files(self) -> list[str]:
+        # TODO: add null_game-specific logs/state useful for diagnosing issues.
+        return []

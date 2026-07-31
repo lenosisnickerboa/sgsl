@@ -902,3 +902,17 @@ class CSGOGame(Game):
                 config[ConfigIndex.MP_WARMUP_PAUSETIMER].set(False)
                 config[ConfigIndex.MP_DO_WARMUP_OFFLINE].set(False)
         return []
+
+    def error_report_files(self) -> list[str]:
+        # The gamemode_*.cfg files sgsl writes cvars into (the pattern
+        # also matches any gamemode_*_append.cfg the user maintains
+        # alongside them) -- useful for seeing exactly what was
+        # actually written to disk.
+        cfg_dir = self.server_root / "csgo" / "cfg"
+        if not cfg_dir.is_dir():
+            return []
+        return [
+            str(path.relative_to(self.directory))
+            for path in cfg_dir.glob("gamemode_*.cfg")
+            if path.is_file()
+        ]

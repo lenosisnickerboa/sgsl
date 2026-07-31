@@ -424,3 +424,16 @@ class VUGame(Game):
             self._sync_selected_map_state(config)
             return [ConfigIndex.SELECTED_MAP]
         return []
+
+    def error_report_files(self) -> list[str]:
+        # MapList.txt/Startup.txt/ModList.txt (plus any user-maintained
+        # *_append.txt siblings, and anything else dropped in here) --
+        # useful for seeing exactly what was actually written to disk.
+        admin_dir = self.server_root / "Admin"
+        if not admin_dir.is_dir():
+            return []
+        return [
+            str(path.relative_to(self.directory))
+            for path in admin_dir.glob("*.txt")
+            if path.is_file()
+        ]

@@ -249,5 +249,16 @@ class Game(ABC):
         """Return default config for the game."""
         raise NotImplementedError
 
+    def error_report_files(self) -> list[str]:
+        """Return extra file paths to bundle into an error report, in
+        addition to the terminal log and config files sgsl always
+        includes. Each path is relative to the install directory (i.e.
+        self.directory, the parent of self.server_root) -- not an
+        absolute path, and not relative to self.server_root itself.
+        A path that doesn't currently exist is silently skipped rather
+        than failing the report. Empty by default; override to add
+        game-specific logs/state useful for diagnosing issues."""
+        raise NotImplementedError
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(directory={self.directory!r})"

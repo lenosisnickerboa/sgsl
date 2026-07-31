@@ -279,16 +279,30 @@ def on_error_report():
         f"{free_gb:.2f} GB", encoding="utf-8"
     )
 
+    if game is not None:
+        for relative_path in game.error_report_files():
+            source_path = Path(current_dir) / relative_path
+            if not source_path.is_file():
+                # Not created yet, or the game just doesn't have it --
+                # skip rather than fail the whole report.
+                continue
+            dest_path = report_dir / relative_path
+            dest_path.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_path, dest_path)
+
     error_reports_dir = Path(current_dir) / "error_reports"
     error_reports_dir.mkdir(parents=True, exist_ok=True)
-    archive_path = shutil.make_archive(
-        str(error_reports_dir / report_name), "zip", root_dir=report_dir
+    archive_path = Path(
+        shutil.make_archive(
+            str(error_reports_dir / report_name), "zip", root_dir=report_dir
+        )
     )
 
     shutil.rmtree(report_dir)
 
+    relative_archive_path = archive_path.relative_to(current_dir)
     print_to_terminal(f"Error report created: {archive_path}")
-    set_status_line("Error report created")
+    set_status_line(f"Error report created: {relative_archive_path}")
     root.after(5000, restore_status_line)
 
 
