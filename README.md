@@ -45,6 +45,8 @@ On top of the already implemented game options, every game support the following
 
 As a a first hint, if something doesn't work, have a look in the terminal log to see more details of what failed. There is also the possibility to create an error report and file an [issue](https://github.com/lenosisnickerboa/sgsl/issues). I will do my best to analyze it. As always, the more time you put into the issue text, the less time I need to fix the issue.
 
+**I have done my best to mask all sensitive data in the error report, but please inspect the complete report before submitting it to ensure nothing sensitive is leaked.**
+
 ## Developer information
 
 If you want to develop sgsl on your own, [here](src/develop/README.md) are some hints.

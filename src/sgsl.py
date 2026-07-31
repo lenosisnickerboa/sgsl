@@ -288,7 +288,12 @@ def on_error_report():
                 continue
             dest_path = report_dir / relative_path
             dest_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source_path, dest_path)
+            # Text, not a raw copy -- these are game-written cfg/log
+            # files that can literally contain a password/token cvar
+            # value (e.g. sv_password/rcon_password), same as the
+            # terminal log above, so they need the same redaction.
+            text = source_path.read_text(encoding="utf-8", errors="replace")
+            dest_path.write_text(_redact_secrets(text, *configs), encoding="utf-8")
 
     error_reports_dir = Path(current_dir) / "error_reports"
     error_reports_dir.mkdir(parents=True, exist_ok=True)
