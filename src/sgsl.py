@@ -4,7 +4,7 @@ import shutil
 import threading
 from datetime import datetime
 from pathlib import Path
-from config.config_item import ConfigItem, ConfigType, Range
+from config.config_item import ConfigType
 from config.tab_spec import TabSpec
 from config.toml_config import Config, TomlConfigParser
 from app.version import VERSION
@@ -12,6 +12,7 @@ import ui.widgets as ui
 import ui.terminal as terminal
 from game.game import Game, OperationResult, TerminalLineResult
 from game.game_factory import GameFactory
+from app.config_defaults import build_app_defaults
 from app.config_index import ConfigIndex
 from ui_builder.ui_builder import UiBuilder
 from support.browser import open_url
@@ -54,41 +55,6 @@ g_app_config_file = None
 g_game_config = None
 g_game_config_file = None
 g_ui_builder = None
-
-
-def build_app_defaults() -> Config[ConfigIndex]:
-    return {
-        ConfigIndex.TERMINAL_ENABLED: ConfigItem(
-            name="terminal_enable",
-            visible_name="Enable terminal",
-            type=ConfigType.BOOLEAN,
-            value=False,
-        ),
-        ConfigIndex.TERMINAL_LOG_MAX_LINES: ConfigItem(
-            name="terminal_log_max_lines",
-            visible_name="Terminal log max lines",
-            type=ConfigType.INTEGER,
-            tooltip="Maximum number of lines kept in the terminal log; 0 = no limit",
-            value=0,
-            range=Range(min_value=0),
-        ),
-        ConfigIndex.SNAP_WINDOWS_ENABLED: ConfigItem(
-            name="snap_windows_enabled",
-            visible_name="Snap windows",
-            type=ConfigType.BOOLEAN,
-            tooltip="Snap the terminal/config windows to and drag them along with the main window",
-            value=True,
-        ),
-        ConfigIndex.AUTO_OPEN_TERMINAL_ON_INSTALL_OR_UPDATE: ConfigItem(
-            name="auto_open_terminal_on_install_or_update",
-            visible_name="Auto open terminal on install/update",
-            type=ConfigType.BOOLEAN,
-            tooltip="If the terminal isn't already open, open it automatically when "
-            "install/update starts and close it again once it finishes successfully "
-            "(left open if it was already open, or if install/update fails)",
-            value=True,
-        ),
-    }
 
 
 def print_to_terminal(line: str):
@@ -678,7 +644,10 @@ def setup_detected_game_server(game: Game):
         [
             TabSpec(
                 title="General",
-                items=[ConfigIndex.SNAP_WINDOWS_ENABLED],
+                items=[
+                    ConfigIndex.SNAP_WINDOWS_ENABLED,
+                    ConfigIndex.AUTOMATIC_UPDATE_CHECK,
+                ],
             ),
             TabSpec(
                 title="Terminal",
@@ -808,7 +777,8 @@ g_terminal_window = terminal.TerminalWindow(
 
 print_to_terminal(f"sgsl.exe {VERSION} starting...")
 
-_check_for_update_in_background()
+if g_app_config[ConfigIndex.AUTOMATIC_UPDATE_CHECK].value:
+    _check_for_update_in_background()
 
 # Also a direct follower of the main window: when the config window
 # isn't open (so the terminal is snapped straight to the main window),

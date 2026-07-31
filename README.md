@@ -54,3 +54,9 @@ If you want to develop sgsl on your own, [here](src/develop/README.md) are some 
 I am currently only running local game servers and invite external players via the free [tailscale](https://tailscale.com/) but there is nothing stopping you from going public with your server. I have provided the necessary options and briefly described what is required in the game descriptions. 
 
 I have a limited amount of people connecting to my servers and hence I find tailscale a simple and practical solution for this. It solves all problems for all kinds of game servers, not just the ones controlled by sgsl.exe, i.e. tailscale makes my game server host available to all invited as if they where directly connected to my LAN.
+
+# A few words about the application, myself and AI
+
+This application is mostly written in python, a language I have used from time to time but far from master. I have written this application as a hobby project since I wanted to play with python and occasionaly host game servers for connecting friends. I just want an easy way to host game servers and to offer others the same level of hosting I am content with. This is the game server launcher for dummies, but it offers quite a bit of simplified configuration should you want it. If you're an expert tinkerer this is probably not the application for you.
+
+Also, a few words on AI, as it tends to be a popular topic right now (31 of July, 2026). I have designed the program structure, coded most of the basics from scratch and I have quite extensively used Claude to further improve functionality. Claude has many times surpassed my expectations, but also underperformed. I take full responsibility for the code though. I have reviewed and approved all Claude's changes. Just wanted to get that out of the way in case someone has strong opinions on "vibe coding". If it's not for you, just don't use sgls. And stop googling and copy-pasting from stack overflow...
