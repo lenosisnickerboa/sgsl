@@ -2,6 +2,7 @@ import copy
 import os
 import shutil
 import threading
+import webbrowser
 from datetime import datetime
 from pathlib import Path
 from config.config_item import ConfigItem, ConfigType, Range
@@ -233,6 +234,13 @@ def save_config():
 
 def on_save_config():
     save_config()
+
+
+_GithubUrl = "https://github.com/lenosisnickerboa/sgsl"
+
+
+def on_open_github():
+    webbrowser.open(_GithubUrl)
 
 
 def on_restart_application():
@@ -595,6 +603,16 @@ def setup_detected_game_server(game: Game):
 
     application_frame = ui.EditGroupFrame(master=g_main_frame, name="Application")
     application_frame.pack()
+
+    # Anchored to the left of application_frame, opposite the button
+    # group below.
+    github_button = ui.Button(
+        master=application_frame,
+        name="GitHub",
+        tooltip="Open the sgsl GitHub page in your default browser",
+        command=on_open_github,
+    )
+    github_button.pack()
 
     # Anchored to the right of application_frame, as a group — same
     # pattern as game_frame's right_button_frame.
