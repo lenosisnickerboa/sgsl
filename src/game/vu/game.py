@@ -92,11 +92,16 @@ class VUGame(Game):
         votemap_archive_path = self.directory / self._VotemapArchiveFileName
         if votemap_enabled:
             votemap_url = config[ConfigIndex.MODS_VOTEMAP_URL].value
-            mods_dir = self.server_root / self._ModsDirName
-            mods_dir.mkdir(parents=True, exist_ok=True)
+            votemap_dir = self.server_root / self._ModsDirName / self._VotemapModDirName
+            votemap_dir.mkdir(parents=True, exist_ok=True)
             commands += [
                 f'{self._CurlExe} -fsSL "{votemap_url}" -o "{votemap_archive_path}"',
-                f'{self._TarExe} -xf "{votemap_archive_path}" -C "{mods_dir}"',
+                # --strip-components=1 drops the archive's own
+                # top-level folder (named after its repo/branch, e.g.
+                # "BF3-Mods-Votemap-main", which would otherwise vary
+                # with MODS_VOTEMAP_URL) so its contents land directly
+                # in a fixed, predictable folder name instead.
+                f'{self._TarExe} -xf "{votemap_archive_path}" -C "{votemap_dir}" --strip-components=1',
             ]
 
         def on_output(line: str) -> None:
@@ -226,7 +231,9 @@ class VUGame(Game):
         return None
 
     _FunBotsRepoName = "fun-bots"
-    _VotemapRepoName = "BF3-Mods-Votemap"
+    # Fixed (see _install_or_update()'s --strip-components=1), unlike
+    # fun-bots' folder name, which still varies with its release tag.
+    _VotemapModDirName = "vu-mapvote"
     _NoModsPlaceholder = "# No mods yet"
 
     def _find_mod_dir_name(self, repo_name: str) -> Optional[str]:
@@ -255,7 +262,7 @@ class VUGame(Game):
                 if line.strip()
                 and line.strip() != self._NoModsPlaceholder
                 and not line.strip().startswith(self._FunBotsRepoName)
-                and not line.strip().startswith(self._VotemapRepoName)
+                and line.strip() != self._VotemapModDirName
                 # Otherwise, since this file's own previous output is
                 # what feeds existing_lines, re-appending append_lines
                 # below would duplicate them on every subsequent run.
@@ -268,9 +275,9 @@ class VUGame(Game):
                 existing_lines.append(fun_bots_dir_name)
 
         if config[ConfigIndex.MODS_VOTEMAP_ENABLED].value:
-            votemap_dir_name = self._find_mod_dir_name(self._VotemapRepoName)
-            if votemap_dir_name is not None:
-                existing_lines.append(votemap_dir_name)
+            votemap_dir = self.server_root / self._ModsDirName / self._VotemapModDirName
+            if votemap_dir.is_dir():
+                existing_lines.append(self._VotemapModDirName)
 
         existing_lines += append_lines
 
