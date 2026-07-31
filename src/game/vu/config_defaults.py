@@ -18,7 +18,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Selected map",
             type=ConfigType.STRING_LIST,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="The currently selected map, one of the maps in the selected map group",
+            tooltip="The currently selected map, one of the maps in the selected map group or ALL maps",
             value="",  #  will be filled in later
             # will be filled in later allowed_values=[],
         ),
@@ -45,7 +45,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Players",
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Players count",
+            tooltip="Player count",
             value=4,
             range=Range(min_value=2, max_value=64),
         ),
@@ -69,16 +69,16 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ),
         ConfigIndex.SERVER_UPDATE_FREQUENCY: ConfigItem(
             name="update_frequency",
-            visible_name="Update frequence",
+            visible_name="Server frequence (Hz)",
             type=ConfigType.STRING_LIST,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="The server update frequency",
+            tooltip="The server tickrate (Hz)",
             value="60",
             allowed_values=["60", "120"],
         ),
         ConfigIndex.LISTEN_HOST: ConfigItem(
             name="listen_host",
-            visible_name="Listen Host Address",
+            visible_name="Listen Address",
             type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Listen on this host IP address (0.0.0.0 == all interfaces)",
@@ -125,7 +125,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.STRING,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Your servers name",
-            value="My own VU server",
+            value="",  #  will be filled in later
         ),
         ConfigIndex.SERVER_PASSWORD: ConfigItem(
             name="vars.gamePassword",
@@ -148,7 +148,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Download URL",
             type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Download the VU archive from this URL",
+            tooltip="Download the VU archive from this URL. Don't change unless this URL does not work.",
             value="https://veniceunleashed.net/files/vu.zip",
         ),
         ConfigIndex.RUN_COMMAND_EDIT: ConfigItem(
@@ -229,7 +229,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Fun bots URL",
             type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Where to download mod fun-bots from",
+            tooltip="Download the fun-bots mod from this URL. Only change URL if this download does not work or if you want to upgrade the fun-bots mod.",
             value="https://github.com/Joe91/fun-bots/archive/refs/tags/V3.0.0-Release.zip",
         ),
         ConfigIndex.ORDINARY_MAPGROUPS: ConfigItem(
@@ -254,7 +254,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.ARRAY,
             item_type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Maps that can be picked as the selected map",
+            tooltip="Maps installed by the game",
             value=[],  # filled in, along with allowed_values, by VUGame.config_defaults()
             read_only=True,
         ),

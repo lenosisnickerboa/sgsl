@@ -277,7 +277,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Friendly fire",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="If enabled, shooting at your team mates hurt them",
+            tooltip="Friendly fire, i.e. when you shoot at your team mates they take damage",
             value=False,
         ),
         ConfigIndex.MP_AUTO_TEAM_BALANCE: ConfigItem(

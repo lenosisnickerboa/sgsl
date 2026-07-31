@@ -1,3 +1,5 @@
+import getpass
+import socket
 from pathlib import Path
 from typing import Callable, Optional, Union
 from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType
@@ -292,6 +294,13 @@ class VUGame(Game):
         all_game_modes = self.modes.all_names()
         defaults[ConfigIndex.GAME_MODE].allowed_values = all_game_modes
         defaults[ConfigIndex.GAME_MODE].value = all_game_modes[0]
+        username = getpass.getuser()  # current logged-in user
+        hostname = socket.gethostname()  # machine's hostname
+        defaults[ConfigIndex.SERVER_NAME].value = f"My server {username}@{hostname}"
+
+        for item in defaults.values():
+            self._append_default_and_range_to_tooltip(item)
+
         return defaults
 
     def config_loaded(self, config: Config[IndexT]) -> None:
