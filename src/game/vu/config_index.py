@@ -43,6 +43,9 @@ class ConfigIndex(IntEnum):
     MODS_VOTEMAP_URL = 32
     ROUND_TIME = 33
     TICKET_COUNT_MODIFIER = 34
+    MAPVOTE_RANDOMIZE = 35
+    MAPVOTE_LIMIT = 36
+    MAPVOTE_EXCLUDE_CURRENT_MAP = 37
 
 
 _values = [item.value for item in ConfigIndex]

@@ -169,6 +169,12 @@ class VUGame(Game):
     _StartupFileName = Path("Admin") / "Startup.txt"
     _ModListFileName = Path("Admin") / "ModList.txt"
 
+    _MapvoteConfigIndexes = {
+        ConfigIndex.MAPVOTE_RANDOMIZE,
+        ConfigIndex.MAPVOTE_LIMIT,
+        ConfigIndex.MAPVOTE_EXCLUDE_CURRENT_MAP,
+    }
+
     def _read_append_lines(self, path: Path) -> list[str]:
         """If a sibling <stem>_append<suffix> file exists next to path
         (e.g. Startup_append.txt next to Startup.txt), return its
@@ -196,11 +202,13 @@ class VUGame(Game):
         )
         map_list_path.write_text("\n".join(map_list_lines) + "\n", encoding="utf-8")
 
+        votemap_enabled = config[ConfigIndex.MODS_VOTEMAP_ENABLED].value
         startup_path = self.server_root / self._StartupFileName
         startup_lines = [
             self._format_cvar_line(item)
-            for item in config.values()
+            for index, item in config.items()
             if item.config_type is ConfigDeliveryType.SERVER_CFG_FILE
+            and (votemap_enabled or index not in self._MapvoteConfigIndexes)
         ] + self._read_append_lines(startup_path)
         startup_path.write_text("\n".join(startup_lines) + "\n", encoding="utf-8")
 
@@ -445,6 +453,14 @@ class VUGame(Game):
             TabSpec(
                 title="Map groups",
                 items=[ConfigIndex.ORDINARY_MAPGROUPS],
+            ),
+            TabSpec(
+                title="MapVote",
+                items=[
+                    ConfigIndex.MAPVOTE_RANDOMIZE,
+                    ConfigIndex.MAPVOTE_LIMIT,
+                    ConfigIndex.MAPVOTE_EXCLUDE_CURRENT_MAP,
+                ],
             ),
         ]
 
