@@ -41,4 +41,6 @@
 
 ### <img src="src/game/vu/assets/icon.png" width="24" alt=""> Venice Unleashed
 
-- Mods tab: Fun Bots and BF3-Mods-Votemap, auto-installed and auto-detected in `ModList.txt`.
+- Mod support with configurable per mod on/off and URL
+    - Fun Bots
+    - BF3-Mods-Votemap

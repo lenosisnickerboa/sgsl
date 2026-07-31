@@ -1,7 +1,5 @@
 # General improvements
 
-## Make it possible to disable VU mods
-
 ## Archive functionality for everything downloaded
 
 Stuff that may disappear otherwise
