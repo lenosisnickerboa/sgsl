@@ -6,6 +6,7 @@ import tkinter.ttk as tkttk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.tooltip import ToolTip
+from ttkbootstrap.utility import scale_size
 from ttkbootstrap.scrolled import ScrolledFrame
 from ttkbootstrap.tableview import Tableview
 import ui.helpers as helpers
@@ -14,6 +15,13 @@ from app.resources import resource_path
 
 def Nop():
     pass
+
+
+_TooltipWrapLength = 800
+
+
+def make_tooltip(widget, text: str) -> ToolTip:
+    return ToolTip(widget, text=text, wraplength=scale_size(widget, _TooltipWrapLength))
 
 
 class EnableDisableMixin:
@@ -640,7 +648,9 @@ class HintedWidget(EnableDisableMixin, ttk.Frame):
         untouched `height` as "auto" too, collapsing it toward zero —
         so it has to be pinned every time width is."""
         if hasattr(self, "hint_frame"):
-            self.hint_frame.configure(width=pixel_width, height=self._hint_natural_height)
+            self.hint_frame.configure(
+                width=pixel_width, height=self._hint_natural_height
+            )
 
     def pack(self, side=LEFT):
         if side == TOP:
@@ -674,9 +684,9 @@ class IntegerSpinbox(HintedWidget):
         self.spinbox.pack(side=LEFT, expand=YES, padx=5, fill=X)
         self.spinbox.bind("<Return>", self.on_event)
         self.spinbox.bind("<FocusOut>", self.on_event)
-        ToolTip(self.spinbox, text=tooltip)
+        make_tooltip(self.spinbox, text=tooltip)
         if not compact:
-            ToolTip(self.hint, text=tooltip)
+            make_tooltip(self.hint, text=tooltip)
 
     def on_event(self, event=None):
         if self.command is None:
@@ -718,9 +728,9 @@ class FloatSpinbox(HintedWidget):
         self.spinbox.pack(side=LEFT, expand=YES, padx=5, fill=X)
         self.spinbox.bind("<Return>", self.on_event)
         self.spinbox.bind("<FocusOut>", self.on_event)
-        ToolTip(self.spinbox, text=tooltip)
+        make_tooltip(self.spinbox, text=tooltip)
         if not compact:
-            ToolTip(self.hint, text=tooltip)
+            make_tooltip(self.hint, text=tooltip)
 
     def on_event(self, event=None):
         if self.command is None:
@@ -754,9 +764,9 @@ class StringEntry(HintedWidget):
         self.entry.pack(side=LEFT, expand=YES, padx=5, fill=X)
         self.entry.bind("<Return>", self.on_event)
         self.entry.bind("<FocusOut>", self.on_event)
-        ToolTip(self.entry, text=tooltip)
+        make_tooltip(self.entry, text=tooltip)
         if not compact:
-            ToolTip(self.hint, text=tooltip)
+            make_tooltip(self.hint, text=tooltip)
 
     def on_event(self, event=None):
         if self.command is not None:
@@ -789,9 +799,9 @@ class MaskedStringEntry(HintedWidget):
         self.entry.pack(side=LEFT, expand=YES, padx=5, fill=X)
         self.entry.bind("<Return>", self.on_event)
         self.entry.bind("<FocusOut>", self.on_event)
-        ToolTip(self.entry, text=tooltip)
+        make_tooltip(self.entry, text=tooltip)
         if not compact:
-            ToolTip(self.hint, text=tooltip)
+            make_tooltip(self.hint, text=tooltip)
 
     def on_event(self, event=None):
         if self.command is not None:
@@ -834,9 +844,9 @@ class StringCombobox(HintedWidget):
             self.combobox.current(selected)
         else:
             self.combobox.current(values.index(selected))
-        ToolTip(self.combobox, text=tooltip)
+        make_tooltip(self.combobox, text=tooltip)
         if not compact:
-            ToolTip(self.hint, text=tooltip)
+            make_tooltip(self.hint, text=tooltip)
 
     def on_event(self, event=None):
         if self.command is not None:
@@ -908,9 +918,9 @@ class ArrayEditor(HintedWidget):
         )
         self.remove_button.pack(side=LEFT, padx=(5, 0))
 
-        ToolTip(self.listbox, text=tooltip)
+        make_tooltip(self.listbox, text=tooltip)
         if not compact:
-            ToolTip(self.hint, text=tooltip)
+            make_tooltip(self.hint, text=tooltip)
 
     def _on_add(self, event=None):
         text = self.new_value.get().strip()
@@ -1090,7 +1100,7 @@ class StructEditor(HintedWidget):
             widget.pack(side=TOP, fill=X)
             self._field_vars[field_name] = var
 
-        ToolTip(fields_frame, text=tooltip)
+        make_tooltip(fields_frame, text=tooltip)
 
     def _on_commit(self) -> None:
         try:
@@ -1199,7 +1209,7 @@ class StructListEditor(HintedWidget):
         )
         self.remove_button.pack(side=LEFT, padx=(5, 0))
 
-        ToolTip(self.tree, text=tooltip)
+        make_tooltip(self.tree, text=tooltip)
 
     def _load_rows(self, entries: list) -> None:
         self.tree.delete(*self.tree.get_children())
@@ -1333,7 +1343,9 @@ class StructMapEditor(HintedWidget):
         # own #0 column instead), kept stable regardless of key_name
         # so the id never has to match whatever label is displayed for
         # it.
-        self.columns = list(schema.keys()) if value_is_list else ["key"] + list(schema.keys())
+        self.columns = (
+            list(schema.keys()) if value_is_list else ["key"] + list(schema.keys())
+        )
 
         table_row = ttk.Frame(self.container)
         table_row.pack(side=TOP, fill=BOTH, expand=YES, padx=5, pady=(2, 0))
@@ -1392,9 +1404,7 @@ class StructMapEditor(HintedWidget):
             entry_row = ttk.Frame(self.container)
             entry_row.pack(side=TOP, fill=X, padx=5, pady=2)
             ttk.Label(entry_row, text=key_name).pack(side=LEFT, padx=(4, 2))
-            self.key_var, self.key_widget = _build_scalar_field(
-                entry_row, key_type, ""
-            )
+            self.key_var, self.key_widget = _build_scalar_field(entry_row, key_type, "")
             self.key_widget.pack(side=LEFT)
 
         self._field_vars = {}
@@ -1432,7 +1442,7 @@ class StructMapEditor(HintedWidget):
         self.remove_button.pack(side=LEFT, padx=(5, 0))
         self._buttons.extend([self.add_button, self.update_button, self.remove_button])
 
-        ToolTip(self.tree, text=tooltip)
+        make_tooltip(self.tree, text=tooltip)
 
     # -- shared -----------------------------------------------------
 
@@ -1448,9 +1458,7 @@ class StructMapEditor(HintedWidget):
                     open=True,
                 )
                 for item in entry["value"]:
-                    self.tree.insert(
-                        parent, END, values=[item[f] for f in self.schema]
-                    )
+                    self.tree.insert(parent, END, values=[item[f] for f in self.schema])
         else:
             for entry in entries:
                 row = [entry["key"]] + [entry["value"][f] for f in self.schema]
@@ -1673,13 +1681,13 @@ class Button(EnableDisableMixin, ttk.Frame):
         self.compact = compact
         self.button = ttk.Button(master=self, text=name, command=command)
         self.button.pack(side=LEFT, padx=5, fill=X)
-        ToolTip(self.button, text=tooltip)
+        make_tooltip(self.button, text=tooltip)
 
     def set_name(self, name: str):
         self.button.configure(text=name)
 
     def set_tooltip(self, tooltip: str):
-        ToolTip(self.button, text=tooltip)
+        make_tooltip(self.button, text=tooltip)
 
     def pack(self):
         super().pack(side=LEFT, padx=5, fill=X)
@@ -1700,13 +1708,13 @@ class ExpandingButton(EnableDisableMixin, ttk.Frame):
         self.compact = compact
         self.button = ttk.Button(master=self, text=name, command=command)
         self.button.pack(side=LEFT, padx=5, fill=X)
-        ToolTip(self.button, text=tooltip)
+        make_tooltip(self.button, text=tooltip)
 
     def set_name(self, name: str):
         self.button.configure(text=name)
 
     def set_tooltip(self, tooltip: str):
-        ToolTip(self.button, text=tooltip)
+        make_tooltip(self.button, text=tooltip)
 
     def pack(self):
         super().pack(side=LEFT, padx=5, fill=X, expand=True)
@@ -1734,9 +1742,9 @@ class CheckButton(HintedWidget):
             variable=self.value,
         )
         self.button.pack(side=LEFT, padx=5)
-        ToolTip(self.button, text=tooltip)
+        make_tooltip(self.button, text=tooltip)
         if not compact:
-            ToolTip(self.hint, text=tooltip)
+            make_tooltip(self.hint, text=tooltip)
 
     def on_event(self):
         if self.command is not None:

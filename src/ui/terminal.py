@@ -3,9 +3,8 @@ from typing import Callable, Optional, Union
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
-from ttkbootstrap.tooltip import ToolTip
 from datetime import datetime
-from ui.widgets import SnapWindow
+from ui.widgets import SnapWindow, make_tooltip
 
 
 class TerminalWindow(SnapWindow, tb.Toplevel):
@@ -43,11 +42,11 @@ class TerminalWindow(SnapWindow, tb.Toplevel):
 
         save_button = tb.Button(button_row, text="Save", command=self.save_to_file)
         save_button.pack(side=LEFT, padx=(0, 5))
-        ToolTip(save_button, text="Save the current log to a timestamped file")
+        make_tooltip(save_button, text="Save the current log to a timestamped file")
 
         clear_button = tb.Button(button_row, text="Clear", command=self.clear)
         clear_button.pack(side=LEFT)
-        ToolTip(clear_button, text="Clear the log")
+        make_tooltip(clear_button, text="Clear the log")
 
         self.output = ScrolledText(
             self, padding=5, autohide=False, height=20, vbar=True

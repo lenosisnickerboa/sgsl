@@ -80,6 +80,18 @@ class Range:
                 f"min_value ({self.min_value}) > max_value ({self.max_value})"
             )
 
+    def describe(self) -> str:
+        """Human-readable "min X, max Y" bounds (only whichever
+        side(s) are actually set), for UI text like tooltips or the
+        TOML file's generated comments -- shared so every caller
+        renders a Range the same way."""
+        bounds = []
+        if self.min_value is not None:
+            bounds.append(f"min {self.min_value}")
+        if self.max_value is not None:
+            bounds.append(f"max {self.max_value}")
+        return ", ".join(bounds)
+
 
 @dataclass
 class SchemaField:

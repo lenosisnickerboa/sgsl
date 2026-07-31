@@ -62,7 +62,16 @@ class TomlConfigParser:
             return config
 
         with path.open("rb") as f:
-            raw = tomllib.load(f)
+            try:
+                raw = tomllib.load(f)
+            except tomllib.TOMLDecodeError:
+                # Corrupt/unparseable file (e.g. hand-edited, or left
+                # over from a version that could write invalid TOML) --
+                # same "don't fail the whole load" philosophy as an
+                # unknown key or a value that no longer validates
+                # below, just for the file as a whole instead of one
+                # entry: fall back to defaults rather than crash.
+                return config
 
         # Map TOML key (ConfigItem.name) -> index, so we can find which
         # default each TOML entry corresponds to.
@@ -157,17 +166,18 @@ class TomlConfigParser:
         to hand-edit without cross-referencing the source."""
         comment_lines = [f"# {item.visible_name} ({item.type.name})"]
         if item.tooltip:
-            comment_lines.append(f"# {item.tooltip}")
+            # A multi-line tooltip (e.g. one with a "Default: ..."/
+            # "Range: ..." line appended) needs every line commented
+            # out individually -- a single "# " prefix on the whole
+            # string only comments out its first line, leaving the
+            # rest as bare, invalid TOML.
+            for tooltip_line in item.tooltip.splitlines():
+                comment_lines.append(f"# {tooltip_line}")
         if item.allowed_values is not None:
             values = ", ".join(str(v) for v in item.allowed_values)
             comment_lines.append(f"# Allowed values: {values}")
         if item.range is not None:
-            bounds = []
-            if item.range.min_value is not None:
-                bounds.append(f"min {item.range.min_value}")
-            if item.range.max_value is not None:
-                bounds.append(f"max {item.range.max_value}")
-            comment_lines.append(f"# Range: {', '.join(bounds)}")
+            comment_lines.append(f"# Range: {item.range.describe()}")
         if item.max_length is not None:
             comment_lines.append(f"# Max length: {item.max_length}")
 
