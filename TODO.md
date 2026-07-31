@@ -2,6 +2,10 @@
 
 ## Map vote native
 
+## Archive functionality for everything downloaded
+
+Stuff that may disappear otherwise
+
 ## Improve how toggles are shown disabled
 
 Hard (impossible) to see now if a toggle is disabled.
