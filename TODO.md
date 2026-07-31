@@ -1,6 +1,6 @@
 # General improvements
 
-# Detect new version available
+# Add button for github access
 
 # Improve error report by allowing the game to provide a file list to include
 

@@ -1,4 +1,5 @@
 from typing import Optional
+import webbrowser
 
 import tkinter as tk
 import tkinter.font as tkfont
@@ -324,6 +325,83 @@ class Dialog(EnableDisableMixin, ttk.Toplevel):
 
         label = ttk.Label(frame, text=message, wraplength=360, justify=LEFT)
         label.pack(fill=X, pady=(0, 15))
+
+        button = ttk.Button(
+            frame, text="OK", command=self._handle_ok, bootstyle="primary"
+        )
+        button.pack()
+        button.focus_set()
+
+        self._center_on_master()
+
+        # Modal: block interaction with other windows until closed.
+        self.transient(self.master)
+        self.grab_set()
+
+    def _center_on_master(self):
+        master = self.master
+        if master is None:
+            return
+        master.update_idletasks()
+        self.update_idletasks()
+        x = master.winfo_x() + (master.winfo_width() - self.winfo_width()) // 2
+        y = master.winfo_y() + (master.winfo_height() - self.winfo_height()) // 2
+        self.geometry(f"+{x}+{y}")
+
+    def _handle_ok(self):
+        self.grab_release()
+        self.destroy()
+        if self.on_ok is not None:
+            self.on_ok()
+
+    def show(self):
+        """Block the calling code until the dialog is dismissed."""
+        self.wait_window(self)
+
+
+class LinkDialog(EnableDisableMixin, ttk.Toplevel):
+    """A modal message dialog like Dialog, but with a clickable link
+    (rendered as a "link"-styled button; opens `link_url` in the
+    default web browser when clicked) shown between the message and
+    the OK button. Appears immediately on construction; call show() to
+    block the caller until it's dismissed (OK pressed, or closed via
+    the window's own close button — treated the same way)."""
+
+    def __init__(
+        self,
+        title: str,
+        message: str,
+        link_text: str,
+        link_url: str,
+        on_ok=Nop(),
+        **kwargs,
+    ):
+        super().__init__(title=title, **kwargs)
+        # Parked off-screen until _center_on_master() repositions it --
+        # same reasoning as Window.__init__: avoids a flash at the
+        # window manager's default placement before centering.
+        self.geometry("+8000+8000")
+
+        self.on_ok = on_ok
+
+        # Fixed size — a message dialog doesn't need to be resized.
+        self.resizable(False, False)
+        self.protocol("WM_DELETE_WINDOW", self._handle_ok)
+
+        frame = ttk.Frame(self, padding=20)
+        frame.pack(fill=BOTH, expand=YES)
+
+        label = ttk.Label(frame, text=message, wraplength=360, justify=LEFT)
+        label.pack(fill=X, pady=(0, 10))
+
+        link = ttk.Button(
+            frame,
+            text=link_text,
+            bootstyle="link",
+            cursor="hand2",
+            command=lambda: webbrowser.open(link_url),
+        )
+        link.pack(pady=(0, 15))
 
         button = ttk.Button(
             frame, text="OK", command=self._handle_ok, bootstyle="primary"

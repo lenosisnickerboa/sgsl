@@ -1,6 +1,7 @@
 import copy
 import os
 import shutil
+import threading
 from datetime import datetime
 from pathlib import Path
 from config.config_item import ConfigItem, ConfigType, Range
@@ -13,13 +14,14 @@ from game.game import Game, OperationResult, TerminalLineResult
 from game.game_factory import GameFactory
 from app.config_index import ConfigIndex
 from ui_builder.ui_builder import UiBuilder
-from support.dialog import ok_dialog, ok_dialog_exit
+from support.dialog import link_dialog, ok_dialog, ok_dialog_exit
 from support.set_status_line import (
     init_status_line,
     set_status_line,
     restore_status_line,
 )
 from support.restart_application import restart_application
+from support.update_check import check_for_update
 
 g_restart_requested = False
 g_main_frame = None
@@ -703,6 +705,33 @@ def on_close_app_configure_window():
     g_app_configure_open_close.off()
 
 
+def _show_update_available_dialog(new_version: str, release_url: str) -> None:
+    link_dialog(
+        message=(
+            f"A new version {new_version} of sgsl has been detected and is "
+            "available for download here:"
+        ),
+        link_text=release_url,
+        link_url=release_url,
+        title="Update available",
+    )
+
+
+def _check_for_update_in_background() -> None:
+    """Check GitHub for a newer sgsl release on a background thread
+    (network I/O, must not block startup), then hop back to the main
+    thread via root.after() -- same pattern as the install/update
+    result callbacks below -- to show a dialog if one was found."""
+
+    def worker():
+        result = check_for_update(VERSION)
+        if result is not None:
+            new_version, release_url = result
+            root.after(0, lambda: _show_update_available_dialog(new_version, release_url))
+
+    threading.Thread(target=worker, daemon=True).start()
+
+
 # main
 
 root = ui.Window(title="Simple Game Server Launcher" + " " + VERSION)
@@ -735,6 +764,8 @@ g_terminal_window = terminal.TerminalWindow(
 )
 
 print_to_terminal(f"sgsl.exe {VERSION} starting...")
+
+_check_for_update_in_background()
 
 # Also a direct follower of the main window: when the config window
 # isn't open (so the terminal is snapped straight to the main window),
