@@ -1,5 +1,9 @@
 # General improvements
 
+# Fix all config definitions, tooltips, name, display name
+
+# Detect new version available
+
 # Improve error report by allowing the game to provide a file list to include
 
 ## Improve how toggles are shown disabled

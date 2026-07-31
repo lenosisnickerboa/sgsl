@@ -4,6 +4,8 @@
 
 ## Installation [Publisher docs](https://developer.valvesoftware.com/wiki/Counter-Strike:_Global_Offensive/Dedicated_Servers) and [here](https://steamcommunity.com/sharedfiles/filedetails/?id=3678325098)
 
+Just a general note; installation takes time and terminal output is not continous (it is buffered) so you will just have to be patient. For me an install takes about 15 minutes.
+
 Depending on how you want to run your server, here comes some scenarios.
 
 A note first; csgo is discontinued and my only ambition with getting it to work is to be able to play locally with friends. To do this I had to do some things which might not be necessary, but it worked for me.

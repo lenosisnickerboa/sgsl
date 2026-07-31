@@ -48,30 +48,45 @@ class ProcessHandler:
         """
         matching_pids = []
 
-        for proc in psutil.process_iter(attrs=["pid", "exe", "cmdline"]):
+        # Deliberately not psutil.process_iter(): its cache is one
+        # shared generator over every pid, and once inspecting some
+        # single process raises anything it doesn't itself catch (its
+        # internal try/except only guards NoSuchProcess -- AccessDenied
+        # or even a raw OSError, e.g. WinError 87 "The parameter is
+        # incorrect" from ReadProcessMemory, seen for certain
+        # processes, both escape it), that generator is permanently
+        # exhausted from then on -- a caller catching the exception
+        # only stops the crash, it can't make the generator resume, so
+        # every pid after the bad one would silently go unscanned.
+        # psutil.pids() is a plain list instead: one bad pid's failure
+        # is isolated to that loop iteration and can't affect any
+        # other.
+        for pid in psutil.pids():
             try:
-                exe_path = proc.info.get("exe")
-                cmdline = proc.info.get("cmdline")
-
-                # Match either the resolved executable path, or the first
-                # element of the process's cmdline (in case exe() fails,
-                # e.g. due to permissions).
-                if (
-                    exe_path
-                    and os.path.normcase(os.path.normpath(exe_path))
-                    == self.command_line
-                ):
-                    matching_pids.append(proc.info["pid"])
-                elif (
-                    cmdline
-                    and os.path.normcase(os.path.normpath(cmdline[0]))
-                    == self.command_line
-                ):
-                    matching_pids.append(proc.info["pid"])
-
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                # Process may have terminated, or we lack permission to inspect it.
+                info = psutil.Process(pid).as_dict(attrs=["exe", "cmdline"])
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess, OSError):
+                # Process may have terminated, we lack permission to
+                # inspect it, or some OS-level quirk (as above)
+                # prevented reading its info -- either way, skip just
+                # this one pid.
                 continue
+
+            exe_path = info.get("exe")
+            cmdline = info.get("cmdline")
+
+            # Match either the resolved executable path, or the first
+            # element of the process's cmdline (in case exe() fails,
+            # e.g. due to permissions).
+            if (
+                exe_path
+                and os.path.normcase(os.path.normpath(exe_path)) == self.command_line
+            ):
+                matching_pids.append(pid)
+            elif (
+                cmdline
+                and os.path.normcase(os.path.normpath(cmdline[0])) == self.command_line
+            ):
+                matching_pids.append(pid)
 
         return matching_pids
 

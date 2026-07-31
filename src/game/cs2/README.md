@@ -4,6 +4,8 @@
 
 ## Installation [Publisher docs](https://developer.valvesoftware.com/wiki/Counter-Strike_2/Dedicated_Servers)
 
+Just a general note; installation takes time and terminal output is not continous (it is buffered) so you will just have to be patient. For me an install takes about 30 minutes.
+
 Depending on how you want to run your server, here comes some scenarios.
 
 ### Simplest possible, LAN only, no workshop maps, just want to play locally with friends
