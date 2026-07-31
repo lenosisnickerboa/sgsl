@@ -152,6 +152,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value=5,
             range=Range(min_value=0, max_value=60),
         ),
+        ConfigIndex.TICKET_COUNT_MODIFIER: ConfigItem(
+            name="vars.gameModeCounter",
+            visible_name="Ticket count modifier",
+            type=ConfigType.INTEGER,
+            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
+            tooltip="Modifies the ticket count (or time, depending on game mode) as a percentage of the default",
+            value=100,
+            range=Range(min_value=0, max_value=1000),
+        ),
         ConfigIndex.DOWNLOAD_URL: ConfigItem(
             name="downloadURL",
             visible_name="Download URL",

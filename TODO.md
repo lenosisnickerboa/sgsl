@@ -51,3 +51,5 @@ Current filtering should be moved as defaults for filtering stdout
 Or just hardcode some more mods?
 
 ## fun-bots mod: Set bot skill
+
+## map-vote: randomize == true, need to change that

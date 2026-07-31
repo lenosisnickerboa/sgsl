@@ -388,7 +388,6 @@ class VUGame(Game):
                     ConfigIndex.PLAYER_COUNT_START_ROUND,
                     ConfigIndex.PLAYER_COUNT_RESTART_ROUND,
                     ConfigIndex.FRIENDLY_FIRE,
-                    ConfigIndex.ROUND_TIME,
                     ConfigIndex.RUN_COMMAND_EDIT,
                     ConfigIndex.CUSTOM_RUN_COMMAND_PRE,
                     ConfigIndex.CUSTOM_RUN_COMMAND_POST,
@@ -430,6 +429,13 @@ class VUGame(Game):
                     ConfigIndex.MODS_FUN_BOTS_URL,
                     ConfigIndex.MODS_VOTEMAP_ENABLED,
                     ConfigIndex.MODS_VOTEMAP_URL,
+                ],
+            ),
+            TabSpec(
+                title="Match rules",
+                items=[
+                    ConfigIndex.ROUND_TIME,
+                    ConfigIndex.TICKET_COUNT_MODIFIER,
                 ],
             ),
             TabSpec(
