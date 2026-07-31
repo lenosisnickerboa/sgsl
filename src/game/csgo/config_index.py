@@ -86,7 +86,7 @@ class ConfigIndex(IntEnum):
 
     # -- Server / network --
     SERVER_FREQUENCY = 52
-    LISTEN_HOST = 53
+    LISTEN_ADDRESS = 53
     LISTEN_PORT = 54
     RCON_ENABLE = 55
     RCON_PASSWORD = 56

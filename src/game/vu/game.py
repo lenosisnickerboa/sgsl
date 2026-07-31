@@ -113,7 +113,7 @@ class VUGame(Game):
             "-serverInstancePath",
             f"{self.server_root}",
             "-listen"
-            f"{config[ConfigIndex.LISTEN_HOST].value}:{config[ConfigIndex.LISTEN_PORT_FROSTBITE].value}",
+            f"{config[ConfigIndex.LISTEN_ADDRESS].value}:{config[ConfigIndex.LISTEN_PORT_FROSTBITE].value}",
             "-mHarmonyPort" f"{config[ConfigIndex.LISTEN_PORT_HARMONY].value}",
             "-server",
             "-dedicated",
@@ -381,7 +381,7 @@ class VUGame(Game):
             TabSpec(
                 title="Network",
                 items=[
-                    ConfigIndex.LISTEN_HOST,
+                    ConfigIndex.LISTEN_ADDRESS,
                     ConfigIndex.LISTEN_PORT_FROSTBITE,
                     ConfigIndex.LISTEN_PORT_HARMONY,
                     ConfigIndex.RCON_ENABLE,

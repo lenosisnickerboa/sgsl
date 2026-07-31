@@ -76,8 +76,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value="60",
             allowed_values=["60", "120"],
         ),
-        ConfigIndex.LISTEN_HOST: ConfigItem(
-            name="listen_host",
+        ConfigIndex.LISTEN_ADDRESS: ConfigItem(
+            name="listen_address",
             visible_name="Listen Address",
             type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,

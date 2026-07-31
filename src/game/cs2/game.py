@@ -316,7 +316,7 @@ class CS2Game(Game):
             args.append("+sv_setsteamaccount")
             args.append(config[ConfigIndex.STEAM_GSLT].value)
         args.append("-ip")
-        args.append(config[ConfigIndex.LISTEN_HOST].value)
+        args.append(config[ConfigIndex.LISTEN_ADDRESS].value)
         args.append("-port")
         args.append(str(config[ConfigIndex.LISTEN_PORT].value))
         args.append("-tickrate")
@@ -749,7 +749,7 @@ class CS2Game(Game):
             TabSpec(
                 title="Network",
                 items=[
-                    ConfigIndex.LISTEN_HOST,
+                    ConfigIndex.LISTEN_ADDRESS,
                     ConfigIndex.LISTEN_PORT,
                     ConfigIndex.CONSOLE_ENABLED,
                     ConfigIndex.RCON_ENABLE,
