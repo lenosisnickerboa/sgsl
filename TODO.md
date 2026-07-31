@@ -1,11 +1,5 @@
 # General improvements
 
-# Fix all config definitions, tooltips, name, display name
-
-# Dynamically add default, value range and ... to the tooltip
-
-Perhaps with line breaks?
-
 # Detect new version available
 
 # Improve error report by allowing the game to provide a file list to include
