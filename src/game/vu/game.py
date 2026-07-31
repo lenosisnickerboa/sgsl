@@ -81,11 +81,16 @@ class VUGame(Game):
         fun_bots_archive_path = self.directory / self._FunBotsArchiveFileName
         if fun_bots_enabled:
             mods_url = config[ConfigIndex.MODS_FUN_BOTS_URL].value
-            mods_dir = self.server_root / self._ModsDirName
-            mods_dir.mkdir(parents=True, exist_ok=True)
+            fun_bots_dir = self.server_root / self._ModsDirName / self._FunBotsModDirName
+            fun_bots_dir.mkdir(parents=True, exist_ok=True)
             commands += [
                 f'{self._CurlExe} -fsSL "{mods_url}" -o "{fun_bots_archive_path}"',
-                f'{self._TarExe} -xf "{fun_bots_archive_path}" -C "{mods_dir}"',
+                # --strip-components=1 drops the archive's own
+                # top-level folder (named after its repo/release tag,
+                # e.g. "fun-bots-3.0.0-Release", which would otherwise
+                # vary with MODS_FUN_BOTS_URL) so its contents land
+                # directly in a fixed, predictable folder name instead.
+                f'{self._TarExe} -xf "{fun_bots_archive_path}" -C "{fun_bots_dir}" --strip-components=1',
             ]
 
         votemap_enabled = config[ConfigIndex.MODS_VOTEMAP_ENABLED].value
@@ -230,25 +235,12 @@ class VUGame(Game):
                 return entry["value"]
         return None
 
-    _FunBotsRepoName = "fun-bots"
-    # Fixed (see _install_or_update()'s --strip-components=1), unlike
-    # fun-bots' folder name, which still varies with its release tag.
+    # Both fixed (see _install_or_update()'s --strip-components=1
+    # extraction), unlike the archives' own top-level folder names,
+    # which vary with their release tag/branch.
+    _FunBotsModDirName = "fun-bots"
     _VotemapModDirName = "vu-mapvote"
     _NoModsPlaceholder = "# No mods yet"
-
-    def _find_mod_dir_name(self, repo_name: str) -> Optional[str]:
-        """A mod's archive extracts into a folder named after its repo
-        and release tag/branch (e.g. "fun-bots-3.0.0-Release" or
-        "BF3-Mods-Votemap-main"), which varies with its own URL config
-        item — so look up the actual folder under Admin/mods by its
-        repo-name prefix, rather than guessing the full name."""
-        mods_dir = self.server_root / self._ModsDirName
-        if not mods_dir.is_dir():
-            return None
-        for entry in mods_dir.iterdir():
-            if entry.is_dir() and entry.name.startswith(repo_name):
-                return entry.name
-        return None
 
     def _write_mod_list(self, config: Config[IndexT]) -> None:
         mod_list_path = self.server_root / self._ModListFileName
@@ -261,7 +253,7 @@ class VUGame(Game):
                 for line in mod_list_path.read_text(encoding="utf-8").splitlines()
                 if line.strip()
                 and line.strip() != self._NoModsPlaceholder
-                and not line.strip().startswith(self._FunBotsRepoName)
+                and line.strip() != self._FunBotsModDirName
                 and line.strip() != self._VotemapModDirName
                 # Otherwise, since this file's own previous output is
                 # what feeds existing_lines, re-appending append_lines
@@ -269,14 +261,13 @@ class VUGame(Game):
                 and line not in append_lines
             ]
 
+        mods_dir = self.server_root / self._ModsDirName
         if config[ConfigIndex.MODS_FUN_BOTS_ENABLED].value:
-            fun_bots_dir_name = self._find_mod_dir_name(self._FunBotsRepoName)
-            if fun_bots_dir_name is not None:
-                existing_lines.append(fun_bots_dir_name)
+            if (mods_dir / self._FunBotsModDirName).is_dir():
+                existing_lines.append(self._FunBotsModDirName)
 
         if config[ConfigIndex.MODS_VOTEMAP_ENABLED].value:
-            votemap_dir = self.server_root / self._ModsDirName / self._VotemapModDirName
-            if votemap_dir.is_dir():
+            if (mods_dir / self._VotemapModDirName).is_dir():
                 existing_lines.append(self._VotemapModDirName)
 
         existing_lines += append_lines
