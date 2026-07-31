@@ -5,7 +5,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, Optional, Union
 
-from config.config_item import ConfigItem
+from config.config_item import ConfigItem, ConfigType
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from process import process_handler
@@ -127,6 +127,31 @@ class Game(ABC):
         quiet."""
         pids = self._ensure_process_handler().list_pids()
         return len(pids) > 0
+
+    def _append_default_and_range_to_tooltip(self, item: ConfigItem) -> None:
+        """Append the item's default value, and its allowed values or
+        range (whichever it has -- allowed_values wins if somehow both
+        are set), to its tooltip -- each on its own new line -- so a
+        user hovering over a config item can see both without having
+        to look them up elsewhere. Shared across every game's
+        config_defaults(): call this on each item in the returned
+        Config, last, right before returning, so "default value"
+        reflects whatever that method itself just computed (e.g. a
+        detected maps list, a generated hostname) rather than a stale
+        value from that game's build_game_defaults()."""
+        lines = [item.tooltip] if item.tooltip else []
+        default_value = (
+            "********"
+            if item.type is ConfigType.MASKED_STRING and item.value
+            else item.value
+        )
+        lines.append(f"Default: {default_value}")
+        if item.allowed_values is not None:
+            values = ", ".join(str(v) for v in item.allowed_values)
+            lines.append(f"Allowed values: {values}")
+        elif item.range is not None:
+            lines.append(f"Range: {item.range.describe()}")
+        item.tooltip = "\n".join(lines)
 
     @abstractmethod
     def get_short_name(self) -> str:

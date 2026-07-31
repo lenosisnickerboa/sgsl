@@ -639,26 +639,6 @@ class CS2Game(Game):
 
         return defaults
 
-    def _append_default_and_range_to_tooltip(self, item: ConfigItem) -> None:
-        """Append the item's default value, and its allowed values or
-        range (whichever it has -- allowed_values wins if somehow both
-        are set), to its tooltip -- each on its own new line -- so a
-        user hovering over a config item can see both without having
-        to look them up elsewhere. Done last, right before
-        config_defaults() returns, so "default value" reflects
-        whatever this method itself just computed (e.g. the detected
-        maps list, the generated hostname) rather than a stale value
-        from build_game_defaults()."""
-        lines = [item.tooltip] if item.tooltip else []
-        default_value = "********" if item.type is ConfigType.MASKED_STRING and item.value else item.value
-        lines.append(f"Default: {default_value}")
-        if item.allowed_values is not None:
-            values = ", ".join(str(v) for v in item.allowed_values)
-            lines.append(f"Allowed values: {values}")
-        elif item.range is not None:
-            lines.append(f"Range: {item.range.describe()}")
-        item.tooltip = "\n".join(lines)
-
     def _get_workshop_ids(self, maps: list[str]) -> list[int]:
         installed_ids = []
         for wm in maps:

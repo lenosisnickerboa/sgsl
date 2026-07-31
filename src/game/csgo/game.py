@@ -1,5 +1,7 @@
+import getpass
 import re
 import shutil
+import socket
 import winreg
 from datetime import datetime
 from pathlib import Path
@@ -662,6 +664,13 @@ class CSGOGame(Game):
         defaults[ConfigIndex.SELECTED_MAP].allowed_values = list(maps)
         defaults[ConfigIndex.SELECTED_MAP].value = maps[0] if len(maps) else ""
         defaults[ConfigIndex.WORKSHOP_MAPS].value = self._workshop_maps()
+        username = getpass.getuser()  # current logged-in user
+        hostname = socket.gethostname()  # machine's hostname
+        defaults[ConfigIndex.HOSTNAME].value = f"My server {username}@{hostname}"
+
+        for item in defaults.values():
+            self._append_default_and_range_to_tooltip(item)
+
         return defaults
 
     def _get_workshop_ids(self, maps: list[str]) -> list[int]:

@@ -63,7 +63,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Selected map",
             type=ConfigType.STRING_LIST,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="The currently selected map, one of the maps in the selected map group",
+            tooltip="The currently selected map, one of the maps in the selected map group or ALL maps",
             value="",  #  will be filled in later
             # allowed_values=... will be filled in later
         ),
@@ -96,7 +96,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Players",
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Total player slots — adjust to your group size",
+            tooltip="Max number of players",
             value=4,
             range=Range(min_value=1, max_value=64),
         ),
@@ -106,15 +106,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Hostname",
             type=ConfigType.STRING,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Server name shown in the server browser",
-            value="My LAN Server",
+            tooltip="Your servers name",
+            value="",  #  will be filled in later
         ),
         ConfigIndex.SV_LAN: ConfigItem(
             name="sv_lan",
             visible_name="LAN only",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="LAN only — not visible on the internet server browser",
+            tooltip="LAN only server, not visible in the internet server browser",
             value=True,
         ),
         ConfigIndex.SV_PASSWORD: ConfigItem(
@@ -122,7 +122,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Server password",
             type=ConfigType.MASKED_STRING,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Password required to join; empty means no password",
+            tooltip="Password required to join, empty means no password",
             value="",
         ),
         ConfigIndex.SV_VISIBLEMAXPLAYERS: ConfigItem(
@@ -130,9 +130,9 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Visible max players",
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="-1 = use the Players setting",
-            value=-1,
-            range=Range(min_value=-1, max_value=64),
+            tooltip='Max number of players shown to outside clients, mostly set it to the same as "max number of players"',
+            value=4,
+            range=Range(min_value=1, max_value=64),
         ),
         # -- Bots --
         ConfigIndex.BOT_DIFFICULTY: ConfigItem(
@@ -158,7 +158,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Bot quota mode",
             type=ConfigType.STRING_LIST,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="fill = top off empty slots, normal = fixed count, match = mirror human count",
+            tooltip='How should bots work?\n"fill" - top off empty slots, "normal" = fixed count, "match" = mirror human count',
             value="fill",
             allowed_values=["fill", "normal", "match"],
         ),
@@ -198,16 +198,16 @@ def build_game_defaults() -> Config[ConfigIndex]:
         # -- Match / round rules --
         ConfigIndex.MP_ROUNDTIME: ConfigItem(
             name="mp_roundtime",
-            visible_name="Round time",
+            visible_name="Round time (min)",
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Round length in minutes",
-            value=2,
+            value=5,
             range=Range(min_value=1, max_value=60),
         ),
         ConfigIndex.MP_FREEZETIME: ConfigItem(
             name="mp_freezetime",
-            visible_name="Freeze time",
+            visible_name="Freeze time (s)",
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Freeze time at round start, in seconds",
@@ -215,10 +215,10 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ),
         ConfigIndex.MP_BUYTIME: ConfigItem(
             name="mp_buytime",
-            visible_name="Buy time",
+            visible_name="Buy time (s)",
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Buy period length, in seconds",
+            tooltip="Buy time length, in seconds",
             value=20,
         ),
         ConfigIndex.MP_MAXROUNDS: ConfigItem(
@@ -226,7 +226,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Max rounds",
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Rounds per map; 0 = unlimited (good for casual LAN nights)",
+            tooltip="Rounds per map, 0 = unlimited",
             value=0,
             range=Range(min_value=0, max_value=24),
         ),
@@ -252,7 +252,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Number of overtime rounds",
-            value=6,
+            value=1,
             range=Range(min_value=0, max_value=24),
         ),
         ConfigIndex.MP_STARTMONEY: ConfigItem(
@@ -277,7 +277,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Friendly fire",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Off is the recommended default for casual play with friends",
+            tooltip="If enabled, shooting at your team mates hurt them",
             value=False,
         ),
         ConfigIndex.MP_AUTO_TEAM_BALANCE: ConfigItem(
@@ -319,7 +319,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Do warmup offline",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Controls whether the warmup phase happens in offline matches — meaning games against bots or local practice matches",
+            tooltip="Controls whether the warmup phase happens in offline matches meaning games against bots or local practice matches",
             value=False,
         ),
         ConfigIndex.MP_RESPAWN_ON_DEATH_CT: ConfigItem(
@@ -327,7 +327,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="CT respawn on death",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Counter terrorists respawn on death)",
+            tooltip="Counter terrorists respawn on death",
             value=True,
         ),
         ConfigIndex.MP_RESPAWN_ON_DEATH_T: ConfigItem(
@@ -335,7 +335,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Terrorists respawn on death",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Terrorists respawn on death)",
+            tooltip="Terrorists respawn on death",
             value=True,
         ),
         # -- Economy / weapons --
@@ -385,7 +385,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="All talk",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="All players hear each other regardless of team (fun for LAN)",
+            tooltip="All players hear each other regardless of team",
             value=True,
         ),
         ConfigIndex.SV_DEADTALK: ConfigItem(
@@ -402,7 +402,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Cheats enabled",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Keep off unless you want to use cheat-only commands",
+            tooltip="Enable if you want to use cheat commands",
             value=False,
         ),
         # -- Maps --
@@ -412,7 +412,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.ARRAY,
             item_type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Maps that can be picked as the selected map",
+            tooltip="Maps installed by the game (as opposed to workshop maps)",
             value=[],  # filled in from maps() in CSGOGame.config_defaults()
             read_only=True,
         ),
@@ -422,10 +422,9 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.ARRAY,
             item_type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Workshop map IDs that can be downloaded and used on this server. "
-            "When adding new workshop either the full url or just the map id can be entered. "
-            "It will be transformed to workshop\\map-id\\unknown until the map has been downloaded to the server. "
-            "After download, the real map name will be shown.",
+            tooltip="Workshop maps downloaded from the Steam workshop. "
+            "When adding a new workshop map either use the full url or just the map id. "
+            'It will be transformed to workshop\\map-id\\map-name (or map-name will be "unknown" if it can\'t be determined). ',
             value=[],
             transform=_normalize_workshop_map,
         ),
@@ -476,8 +475,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             "This can help when the update process keeps failing.",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Delete the Steam app manifest before installing/updating — use if "
-            "updates get stuck or fail to detect changes",
+            tooltip="Delete the Steam app manifest (appmanifest_740.acf) before installing/updating — use if updates get stuck or fail to detect changes",
             value=False,
         ),
         ConfigIndex.UPDATE_STEAMCMD: ConfigItem(
@@ -486,17 +484,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
             "Disable this if the steamcmd update for some reason interrupt the update process.",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Re-download and extract the latest steamcmd before installing/updating; disable to reuse the existing steamcmd install",
+            tooltip="Re-download the latest steamcmd before installing/updating. Disable to reuse the existing steamcmd if steamcmd download fails.",
             value=True,
         ),
         ConfigIndex.ORDINARY_MAPGROUPS: ConfigItem(
             name="ordinary_mapgroups",
             visible_name="Ordinary map groups",
             type=ConfigType.STRUCT_MAP,
-            tooltip="User-defined map groups, each a named list of maps to cycle through via "
-            "CS:GO's mapcyclefile. The game mode and round limit come from Game mode/Max rounds "
-            "as usual — CS:GO only supports one of each per running server, so they apply to "
-            "the whole rotation rather than being set per map",
+            tooltip="User-defined map groups defining a list of maps to cycle through. "
+            "Selecting one of these map groups disables individual map selection since the map is now taken from the map group ",
             value=[],
             item_type=ConfigType.STRING,
             value_type=ConfigType.STRUCT_LIST,
@@ -511,32 +507,28 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.ARRAY,
             item_type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Steam Workshop collection IDs to offer as map groups. When one is "
-            "selected as the active map group, the server is launched with "
-            "+host_workshop_collection instead, and Steam itself resolves and rotates "
-            "through the collection's maps — so unlike Workshop maps, these aren't "
-            "downloaded/detected up front; only the individual maps a collection "
-            "actually contains get downloaded and show up under Workshop maps. "
-            "When adding new entries either the full url or just the collection id can be entered.",
+            tooltip="Workshop map groups downloaded from the Steam workshop. "
+            "When adding a new workshop map group either use the full url or just the map group id. "
+            'It will be transformed to workshop\\map-group-id\\map-group-name (or map-group-name will be "unknown" if it can\'t be determined).',
             value=[],
             transform=_normalize_workshop_map,
         ),
         # -- Server / network --
         ConfigIndex.SERVER_FREQUENCY: ConfigItem(
             name="server_frequency",
-            visible_name="Server frequency",
+            visible_name="Server frequency (Hz)",
             type=ConfigType.STRING_LIST,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="The server tickrate (simulation updates per second)",
+            tooltip="The server tickrate (Hz)",
             value="64",
             allowed_values=["64", "128"],
         ),
         ConfigIndex.LISTEN_HOST: ConfigItem(
             name="listen_host",
-            visible_name="Listen host address",
+            visible_name="Listen address",
             type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Listen on this host IP address (0.0.0.0 == all interfaces)",
+            tooltip="Listen on this host IP address (0.0.0.0 == all interfaces). Recommended to keep default since changing this many times lead to issues (google it)",
             value="0.0.0.0",
         ),
         ConfigIndex.LISTEN_PORT: ConfigItem(
@@ -552,7 +544,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             name="rcon_enable",
             visible_name="RCON",
             type=ConfigType.BOOLEAN,
-            tooltip="Enable remote administration, RCON — over the game's own port, "
+            tooltip="Enable remote administration, RCON, over the game's own port, "
             "authenticated with RCON password below",
             value=False,
         ),
@@ -561,15 +553,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="RCON password",
             type=ConfigType.MASKED_STRING,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="The RCON password for remote administration; only takes effect while "
-            "RCON is enabled above (see CSGOGame.run())",
+            tooltip="The RCON password for remote administration, only takes effect while "
+            "RCON is enabled",
             value="",
         ),
         ConfigIndex.CONSOLE_ENABLED: ConfigItem(
             name="console_enabled",
             visible_name="Console",
             type=ConfigType.BOOLEAN,
-            tooltip="Show the server's console window (-console); disable to run headless",
+            tooltip="Show the server's console window",
             value=True,
         ),
     }
