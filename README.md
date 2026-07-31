@@ -19,6 +19,10 @@ Currently supported games:
 - <img src="src/game/csgo/assets/icon.png" width="24" alt=""> [Counter-Strike: Global Offensive](src/game/csgo/README.md)
 - <img src="src/game/vu/assets/icon.png" width="24" alt=""> [Venice Unleashed](src/game/vu/README.md)
 
+# Features
+
+See [FEATURES.md](FEATURES.md) for the full list of what sgsl can do, both in general and per supported game.
+
 # Preconditions
 
 For now requires Windows 11. Perhaps it works on previous Windows versions but I haven't tested it.

@@ -1,16 +1,12 @@
 # General improvements
 
-## Add FEATURES.md
-
-One global with links to each supported game's FEATURES.md
-
 ## Make it possible to disable VU mods
-
-## Map vote native
 
 ## Archive functionality for everything downloaded
 
 Stuff that may disappear otherwise
+
+# RCON client
 
 ## Improve how toggles are shown disabled
 
