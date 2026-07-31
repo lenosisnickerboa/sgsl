@@ -614,6 +614,14 @@ def setup_detected_game_server(game: Game):
     )
     github_button.pack()
 
+    check_for_updates_button = ui.Button(
+        master=application_frame,
+        name="Check for updates",
+        tooltip="Check GitHub for a newer sgsl release",
+        command=on_check_for_updates,
+    )
+    check_for_updates_button.pack()
+
     # Anchored to the right of application_frame, as a group — same
     # pattern as game_frame's right_button_frame.
     app_right_button_frame = ui.Frame(master=application_frame)
@@ -735,19 +743,36 @@ def _show_update_available_dialog(new_version: str, release_url: str) -> None:
     )
 
 
-def _check_for_update_in_background() -> None:
+def _check_for_update_in_background(manual: bool = False) -> None:
     """Check GitHub for a newer sgsl release on a background thread
     (network I/O, must not block startup), then hop back to the main
     thread via root.after() -- same pattern as the install/update
-    result callbacks below -- to show a dialog if one was found."""
+    result callbacks below -- to show a dialog if one was found.
+
+    `manual`, if True (a user-triggered check via the "Check for
+    updates" button, rather than the silent one done at startup), also
+    gives feedback via the status line when no update is available,
+    rather than doing nothing visible."""
 
     def worker():
         result = check_for_update(VERSION)
-        if result is not None:
-            new_version, release_url = result
-            root.after(0, lambda: _show_update_available_dialog(new_version, release_url))
+
+        def finish():
+            if result is not None:
+                new_version, release_url = result
+                _show_update_available_dialog(new_version, release_url)
+            elif manual:
+                set_status_line("You already have the latest version of sgsl")
+                restore_status_line_delayed()
+
+        root.after(0, finish)
 
     threading.Thread(target=worker, daemon=True).start()
+
+
+def on_check_for_updates():
+    set_status_line("Checking for updates...")
+    _check_for_update_in_background(manual=True)
 
 
 # main
