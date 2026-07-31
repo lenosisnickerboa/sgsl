@@ -2,7 +2,6 @@ import copy
 import os
 import shutil
 import threading
-import webbrowser
 from datetime import datetime
 from pathlib import Path
 from config.config_item import ConfigItem, ConfigType, Range
@@ -15,6 +14,7 @@ from game.game import Game, OperationResult, TerminalLineResult
 from game.game_factory import GameFactory
 from app.config_index import ConfigIndex
 from ui_builder.ui_builder import UiBuilder
+from support.browser import open_url
 from support.dialog import link_dialog, ok_dialog, ok_dialog_exit
 from support.set_status_line import (
     init_status_line,
@@ -240,7 +240,7 @@ _GithubUrl = "https://github.com/lenosisnickerboa/sgsl"
 
 
 def on_open_github():
-    webbrowser.open(_GithubUrl)
+    open_url(_GithubUrl)
 
 
 def on_restart_application():

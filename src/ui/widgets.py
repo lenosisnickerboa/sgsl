@@ -1,5 +1,4 @@
 from typing import Optional
-import webbrowser
 
 import tkinter as tk
 import tkinter.font as tkfont
@@ -12,6 +11,7 @@ from ttkbootstrap.scrolled import ScrolledFrame
 from ttkbootstrap.tableview import Tableview
 import ui.helpers as helpers
 from app.resources import resource_path
+from support.browser import open_url
 
 
 def Nop():
@@ -399,7 +399,7 @@ class LinkDialog(EnableDisableMixin, ttk.Toplevel):
             text=link_text,
             bootstyle="link",
             cursor="hand2",
-            command=lambda: webbrowser.open(link_url),
+            command=lambda: open_url(link_url),
         )
         link.pack(pady=(0, 15))
 

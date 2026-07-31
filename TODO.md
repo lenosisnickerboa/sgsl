@@ -1,7 +1,5 @@
 # General improvements
 
-# Add button for github access
-
 # Improve error report by allowing the game to provide a file list to include
 
 ## Improve how toggles are shown disabled
