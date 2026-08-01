@@ -71,6 +71,14 @@ Or you can just try and see if it works for you. This seems to be a moving targe
 
 If there is some special tweak you want to add, not supported by sgsl.exe, it can be accomplished by adding your own config file in <install -path>\server\game\csgo\cfg and naming it gamemode_<gamemode>_append.cfg. All config from this file will be added last to the gamemode_<gamemode>.cfg file prior to starting the game allowing you to add or override whatever you like. Same format is used as in the original config file.
 
+## Quirks
+
+Sometimes, for no reason, I get very low fps. Restarting the cs2 client GUI helps. Don't know why.
+
+## LAN only play
+
+Valve seems to (according to what I read online) have stopped supporting "sv_lan 1", i.e. a server which runs completely locally. Or rather, the server runs locally but the client will not be able to connect to a server setting "sv_lan 1". Therefore, as suggested, again online, I have set "sv_lan 0" unconditionally and use the "+sv_setsteamaccount" only when user select a public game. Most users will not notice this since it seems the sv_lan option is still there, just thought I'd mention it if someone happens to see that sv_lan is always set to 0.
+
 ## Notes
 
 When you start the server an extra terminal window will appear. I haven't found away to make it disappear, just minimize it if it bothers you.

@@ -89,6 +89,14 @@ If there is some special tweak you want to add, not supported by sgsl.exe, it ca
 
 In short; it's a mess, but most of the time you should be fine with using the same workshop items/ids as for [cs2](https://steamcommunity.com/workshop/browse/?appid=730). You can google it or ask your favourite AI companion about more details.
 
+## Quirks
+
+Sometimes, for no reason, I get very low fps. Restarting the cs2 client GUI helps. Don't know why.
+
+## LAN only play
+
+Valve seems to (according to what I read online) have stopped supporting "sv_lan 1", i.e. a server which runs completely locally. Or rather, the server runs locally but the client will not be able to connect to a server setting "sv_lan 1". Therefore, as suggested, again online, I have set "sv_lan 0" unconditionally and use the "+sv_setsteamaccount" only when user select a public game. Most users will not notice this since it seems the sv_lan option is still there, just thought I'd mention it if someone happens to see that sv_lan is always set to 0.
+
 ## Notes
 
 When you start the server an extra terminal window will appear. I haven't found away to make it disappear, just minimize it if it bothers you.
