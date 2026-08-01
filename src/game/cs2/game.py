@@ -50,6 +50,9 @@ class CS2Game(Game):
     def get_long_name(self) -> str:
         return "Counter-Strike 2"
 
+    def get_developer_url(self) -> str:
+        return "https://store.steampowered.com/app/730/CounterStrike_2/"
+
     # steamcmd, on a freshly-unzipped install, typically spends its
     # first invocation only self-updating: it downloads its own
     # bootstrapper, relaunches itself, and the +app_update job that

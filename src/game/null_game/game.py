@@ -30,6 +30,9 @@ class NullGame(Game):
     def get_long_name(self) -> str:
         return "Null Game"
 
+    def get_developer_url(self) -> str:
+        return "https://github.com/lenosisnickerboa/sgsl"
+
     def detect(self) -> bool:
         return self.server_binary.exists()
 

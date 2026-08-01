@@ -58,6 +58,9 @@ class CSGOGame(Game):
     def get_long_name(self) -> str:
         return "Counter-Strike: Global Offensive"
 
+    def get_developer_url(self) -> str:
+        return "https://store.steampowered.com/app/4465480/CounterStrikeGlobal_Offensive/"
+
     # steamcmd, on a freshly-unzipped install, typically spends its
     # first invocation only self-updating: it downloads its own
     # bootstrapper, relaunches itself, and the +app_update job that

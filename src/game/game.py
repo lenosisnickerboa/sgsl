@@ -177,6 +177,13 @@ class Game(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def get_developer_url(self) -> str:
+        """Return the URL of the game's developer/publisher page (e.g.
+        its store page, or its own site), shown to the user via a
+        "Developer" button."""
+        raise NotImplementedError
+
+    @abstractmethod
     def detect(self) -> bool:
         """Return True if the game is present/installed at self.directory."""
         raise NotImplementedError

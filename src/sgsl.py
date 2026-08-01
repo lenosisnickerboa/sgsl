@@ -501,6 +501,14 @@ def setup_detected_game_server(game: Game):
     right_button_frame = ui.Frame(master=game_frame)
     right_button_frame.pack(side=ui.RIGHT)
 
+    developer_button = ui.Button(
+        master=right_button_frame,
+        name="Developer",
+        tooltip=f"Open {game.get_long_name()}'s developer/publisher page in your default browser",
+        command=lambda: open_url(game.get_developer_url()),
+    )
+    developer_button.pack()
+
     global g_update_open_close
     g_update_open_close = ui.CheckButton(
         master=right_button_frame,

@@ -1,9 +1,5 @@
 # General improvements
 
-## Add new read only config type for comments
-
-- Initially use for Bots config tab in VU. F12 comment, also include clickable URL?
-
 ## Archive functionality for everything downloaded
 
 Stuff that may disappear otherwise

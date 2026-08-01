@@ -47,6 +47,9 @@ class VUGame(Game):
     def get_long_name(self) -> str:
         return "Venice Unleashed"
 
+    def get_developer_url(self) -> str:
+        return "https://veniceunleashed.net/"
+
     def install(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Installing {self.get_long_name()} into {self.server_root}")
         self._install_or_update(result_callback)
