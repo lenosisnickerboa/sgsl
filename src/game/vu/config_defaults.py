@@ -273,6 +273,22 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Download the vu-mapvote mod from this URL. Only change URL if this download does not work or if you want to upgrade the votemap mod.",
             value="https://gitlab.com/n4gi0s/vu-mapvote/-/jobs/artifacts/master/download?job=build",
         ),
+        ConfigIndex.MODS_MORE_GORE_ENABLED: ConfigItem(
+            name="modsMoreGoreEnabled",
+            visible_name="VU-More-Gore",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Enable mod VU-More-Gore",
+            value=True,
+        ),
+        ConfigIndex.MODS_MORE_GORE_URL: ConfigItem(
+            name="modsMoreGoreUrl",
+            visible_name="VU-More-Gore URL",
+            type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Download the VU-More-Gore mod from this URL. Only change URL if this download does not work or if you want to upgrade the mod.",
+            value="https://github.com/lywit/VU-More-Gore/releases/download/Release-1.4.0/VU-More-Gore.zip",
+        ),
         ConfigIndex.MAPVOTE_RANDOMIZE: ConfigItem(
             name="mapvote.randomize",
             visible_name="Randomize map vote choices",
@@ -306,6 +322,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
             file_path=_FunBotsConfigLuaPath,
             tooltip="Let fun-bots ignore Venice Unleashed's normal admin/permission checks. Recommended to leave as is, unless you know what you're doing and want to use Venice Unleashed's permission system to control fun-bots.",
             value=True,
+        ),
+        ConfigIndex.BOT_ADDITIONAL_SPAWN_DELAY: ConfigItem(
+            name="Config.AdditionalBotSpawnDelay",
+            visible_name="Bot additional spawn delay",
+            type=ConfigType.INTEGER,
+            config_type=ConfigDeliveryType.LUA_CONFIG_FILE,
+            file_path=_FunBotsConfigLuaPath,
+            tooltip="Extra delay (in seconds) before a bot spawns. Included so the VU-More-Gore mod has time to affect bots as well, the same way it does regular players.",
+            value=5,
         ),
         ConfigIndex.BOTS_HELP_TEXT: ConfigItem(
             name="bots_help_text",

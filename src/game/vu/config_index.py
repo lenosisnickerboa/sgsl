@@ -48,6 +48,9 @@ class ConfigIndex(IntEnum):
     MAPVOTE_EXCLUDE_CURRENT_MAP = 37
     BOTS_IGNORE_PERMISSIONS = 38
     BOTS_HELP_TEXT = 39
+    MODS_MORE_GORE_ENABLED = 40
+    MODS_MORE_GORE_URL = 41
+    BOT_ADDITIONAL_SPAWN_DELAY = 42
 
 
 _values = [item.value for item in ConfigIndex]

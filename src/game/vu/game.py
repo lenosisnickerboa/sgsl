@@ -62,6 +62,7 @@ class VUGame(Game):
     _ModsDirName = Path("Admin") / "mods"
     _FunBotsArchiveFileName = "fun-bots.zip"
     _VotemapArchiveFileName = "votemap.zip"
+    _MoreGoreArchiveFileName = "vu-more-gore.zip"
 
     # Bare "curl.exe"/"tar.exe" can resolve to Git for Windows' copies
     # earlier on PATH than the Windows-native ones in System32; Git's
@@ -119,6 +120,21 @@ class VUGame(Game):
                 f'{self._TarExe} -xf "{votemap_archive_path}" -C "{votemap_dir}"',
             ]
 
+        more_gore_enabled = config[ConfigIndex.MODS_MORE_GORE_ENABLED].value
+        more_gore_archive_path = self.directory / self._MoreGoreArchiveFileName
+        if more_gore_enabled:
+            more_gore_url = config[ConfigIndex.MODS_MORE_GORE_URL].value
+            more_gore_dir = self.server_root / self._ModsDirName / self._MoreGoreModDirName
+            more_gore_dir.mkdir(parents=True, exist_ok=True)
+            commands += [
+                f'{self._CurlExe} -fsSL "{more_gore_url}" -o "{more_gore_archive_path}"',
+                # Like fun-bots' GitHub release archive, this release
+                # asset wraps its contents in its own top-level folder
+                # ("VU-More-Gore/") -- confirmed by inspecting the
+                # actual zip -- so strip it the same way.
+                f'{self._TarExe} -xf "{more_gore_archive_path}" -C "{more_gore_dir}" --strip-components=1',
+            ]
+
         def on_output(line: str) -> None:
             self.print(line)
 
@@ -128,6 +144,8 @@ class VUGame(Game):
                 fun_bots_archive_path.unlink(missing_ok=True)
             if votemap_enabled:
                 votemap_archive_path.unlink(missing_ok=True)
+            if more_gore_enabled:
+                more_gore_archive_path.unlink(missing_ok=True)
 
             if not self.server_binary.exists():
                 self.print(
@@ -316,6 +334,7 @@ class VUGame(Game):
     # which vary with their release tag/branch.
     _FunBotsModDirName = "fun-bots"
     _VotemapModDirName = "vu-mapvote"
+    _MoreGoreModDirName = "VU-More-Gore"
     _NoModsPlaceholder = "# No mods yet"
 
     def _write_mod_list(self, config: Config[IndexT]) -> None:
@@ -331,6 +350,7 @@ class VUGame(Game):
                 and line.strip() != self._NoModsPlaceholder
                 and line.strip() != self._FunBotsModDirName
                 and line.strip() != self._VotemapModDirName
+                and line.strip() != self._MoreGoreModDirName
                 # Otherwise, since this file's own previous output is
                 # what feeds existing_lines, re-appending append_lines
                 # below would duplicate them on every subsequent run.
@@ -345,6 +365,10 @@ class VUGame(Game):
         if config[ConfigIndex.MODS_VOTEMAP_ENABLED].value:
             if (mods_dir / self._VotemapModDirName).is_dir():
                 existing_lines.append(self._VotemapModDirName)
+
+        if config[ConfigIndex.MODS_MORE_GORE_ENABLED].value:
+            if (mods_dir / self._MoreGoreModDirName).is_dir():
+                existing_lines.append(self._MoreGoreModDirName)
 
         existing_lines += append_lines
 
@@ -494,6 +518,7 @@ class VUGame(Game):
                 title="Bots",
                 items=[
                     ConfigIndex.BOTS_IGNORE_PERMISSIONS,
+                    ConfigIndex.BOT_ADDITIONAL_SPAWN_DELAY,
                     ConfigIndex.BOTS_HELP_TEXT,
                 ],
             ),
@@ -510,6 +535,8 @@ class VUGame(Game):
                     ConfigIndex.MODS_FUN_BOTS_URL,
                     ConfigIndex.MODS_VOTEMAP_ENABLED,
                     ConfigIndex.MODS_VOTEMAP_URL,
+                    ConfigIndex.MODS_MORE_GORE_ENABLED,
+                    ConfigIndex.MODS_MORE_GORE_URL,
                 ],
             ),
             TabSpec(
