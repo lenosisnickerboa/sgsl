@@ -149,8 +149,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Bot quota",
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Number of bots to maintain",
-            value=4,
+            tooltip="Max number of of bots",
+            value=32,
             range=Range(min_value=0, max_value=64),
         ),
         ConfigIndex.BOT_QUOTA_MODE: ConfigItem(
