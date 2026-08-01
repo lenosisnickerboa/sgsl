@@ -48,9 +48,13 @@ Current filtering should be moved as defaults for filtering stdout
 
 # CS2
 
+## Add Note and URL to GSLT and auth key in config page
+
 ## Mod support?
 
 # CSGO
+
+## Add Note and URL to GSLT and auth key in config page
 
 ## Mod support?
 
