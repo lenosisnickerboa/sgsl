@@ -47,6 +47,7 @@ class ConfigIndex(IntEnum):
     MAPVOTE_LIMIT = 36
     MAPVOTE_EXCLUDE_CURRENT_MAP = 37
     BOTS_IGNORE_PERMISSIONS = 38
+    BOTS_HELP_TEXT = 39
 
 
 _values = [item.value for item in ConfigIndex]

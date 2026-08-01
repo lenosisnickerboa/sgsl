@@ -491,6 +491,7 @@ class VUGame(Game):
                 title="Bots",
                 items=[
                     ConfigIndex.BOTS_IGNORE_PERMISSIONS,
+                    ConfigIndex.BOTS_HELP_TEXT,
                 ],
             ),
             TabSpec(

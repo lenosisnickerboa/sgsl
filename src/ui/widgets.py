@@ -1,3 +1,4 @@
+import re
 from typing import Optional
 
 import tkinter as tk
@@ -1796,6 +1797,65 @@ class ExpandingButton(EnableDisableMixin, ttk.Frame):
 
     def pack(self):
         super().pack(side=LEFT, padx=5, fill=X, expand=True)
+
+
+_UrlPattern = re.compile(r"https?://\S+")
+
+
+class StaticText(EnableDisableMixin, ttk.Frame):
+    """A block of non-editable informational text for a config tab
+    (e.g. usage notes that don't correspond to any actual config
+    value) -- see ConfigType.STATIC_TEXT. `text` may contain multiple
+    newline-separated lines; any http(s):// URL within a line is
+    rendered as a clickable link (opens in the default browser via
+    support.browser.open_url) with the rest of that line as plain text
+    either side of it."""
+
+    def __init__(self, master, text: str, compact: bool = True, **kwargs):
+        super().__init__(master, padding=2, **kwargs)
+        self.compact = compact
+        for line in text.splitlines():
+            self._build_line(line)
+
+    def _build_line(self, line: str) -> None:
+        row = ttk.Frame(self)
+        row.pack(side=TOP, fill=X, anchor=W)
+        pos = 0
+        built_something = False
+        for match in _UrlPattern.finditer(line):
+            if match.start() > pos:
+                ttk.Label(row, text=line[pos : match.start()]).pack(side=LEFT)
+                built_something = True
+            url = match.group()
+            ttk.Button(
+                row,
+                text=url,
+                bootstyle="link",
+                cursor="hand2",
+                command=lambda url=url: open_url(url),
+            ).pack(side=LEFT)
+            built_something = True
+            pos = match.end()
+        if pos < len(line) or not built_something:
+            ttk.Label(row, text=line[pos:]).pack(side=LEFT)
+
+    def set_read_only(self, read_only: bool) -> None:
+        # There's nothing to edit, and the links must stay clickable
+        # regardless -- overriding the default disable()/enable()
+        # (which would grey out and disable the link buttons too).
+        pass
+
+    def update(self, value: str) -> None:
+        # Static text never changes at runtime; accepted only so this
+        # widget matches the same update(value) interface every other
+        # config widget exposes -- see UiBuilder.config_changed().
+        pass
+
+    def pack(self, side=LEFT):
+        if side == TOP:
+            super().pack(side=TOP, padx=5, pady=2, fill=X, anchor=W)
+        else:
+            super().pack(side=LEFT, padx=5, fill=X, anchor=W)
 
 
 class CheckButton(HintedWidget):

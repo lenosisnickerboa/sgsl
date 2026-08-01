@@ -250,6 +250,12 @@ class UiBuilder:
                 command=on_widget_changed,
                 compact=compact,
             )
+        elif item.type is ConfigType.STATIC_TEXT:
+            widget = ui.StaticText(
+                master=master,
+                text=item.value,
+                compact=compact,
+            )
         elif item.type is ConfigType.MASKED_STRING:
             widget = ui.MaskedStringEntry(
                 master=master,

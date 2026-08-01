@@ -20,6 +20,15 @@ class ConfigType(Enum):
     # the same as STRING; given a distinct sentinel value for the same
     # reason as STRING_LIST — see _check_scalar().
     MASKED_STRING = "masked_string"
+    # A block of non-editable informational text for a config tab
+    # (e.g. usage notes) rather than an actual config value -- not
+    # delivered to a game server, never saved to/loaded from the TOML
+    # file (must be declared read_only — see ConfigItem.__post_init__).
+    # May contain multiple newline-separated lines; a UI should render
+    # any http(s):// URL within the text as a clickable link. Given a
+    # distinct sentinel value for the same reason as STRING_LIST — see
+    # _check_scalar().
+    STATIC_TEXT = "static_text"
     INTEGER = int
     FLOAT = float
     BOOLEAN = bool
@@ -138,7 +147,8 @@ def _check_scalar(name: str, value: Any, expected_type: ConfigType) -> None:
 
     py_type = (
         str
-        if expected_type in (ConfigType.STRING_LIST, ConfigType.MASKED_STRING)
+        if expected_type
+        in (ConfigType.STRING_LIST, ConfigType.MASKED_STRING, ConfigType.STATIC_TEXT)
         else expected_type.value
     )
 
@@ -274,6 +284,8 @@ class ConfigItem:
     read_only: bool = False
 
     def __post_init__(self) -> None:
+        if self.type is ConfigType.STATIC_TEXT and not self.read_only:
+            raise ValueError(f"{self.name}: STATIC_TEXT items must be read_only")
         if (
             self.config_type is ConfigDeliveryType.LUA_CONFIG_FILE
             and self.file_path is None

@@ -307,6 +307,17 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Let fun-bots ignore Venice Unleashed's normal admin/permission checks. Recommended to leave as is, unless you know what you're doing and want to use Venice Unleashed's permission system to control fun-bots.",
             value=True,
         ),
+        ConfigIndex.BOTS_HELP_TEXT: ConfigItem(
+            name="bots_help_text",
+            visible_name="Bots help",
+            type=ConfigType.STATIC_TEXT,
+            value=(
+                "\n"
+                "To further configure bots use the in-game bots editor by pressing F12 in-game.\n"
+                "To read more about the bot mod go here: https://github.com/Joe91/fun-bots"
+            ),
+            read_only=True,
+        ),
         ConfigIndex.ORDINARY_MAPGROUPS: ConfigItem(
             name="ordinary_mapgroups",
             visible_name="Ordinary map groups",
