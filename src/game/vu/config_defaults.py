@@ -1,4 +1,5 @@
 import re
+from pathlib import Path
 
 from config.config_item import (
     ConfigDeliveryType,
@@ -9,6 +10,12 @@ from config.config_item import (
 )
 from config.toml_config import Config
 from game.vu.config_index import ConfigIndex
+
+# Relative to the game's install directory (self.directory) -- see
+# ConfigItem.file_path.
+_FunBotsConfigLuaPath = str(
+    Path("server") / "Admin" / "mods" / "fun-bots" / "ext" / "Shared" / "Config.lua"
+)
 
 
 def build_game_defaults() -> Config[ConfigIndex]:
@@ -290,6 +297,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Exclude the currently playing map from the map vote choices",
             value=False,
+        ),
+        ConfigIndex.BOTS_IGNORE_PERMISSIONS: ConfigItem(
+            name="Config.IgnorePermissions",
+            visible_name="Bots ignore permissions",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.LUA_CONFIG_FILE,
+            file_path=_FunBotsConfigLuaPath,
+            tooltip="Let fun-bots ignore Venice Unleashed's normal admin/permission checks. Recommended to leave as is, unless you know what you're doing and want to use Venice Unleashed's permission system to control fun-bots.",
+            value=True,
         ),
         ConfigIndex.ORDINARY_MAPGROUPS: ConfigItem(
             name="ordinary_mapgroups",

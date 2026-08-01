@@ -60,6 +60,9 @@ class ConfigDeliveryType(Enum):
     COMMAND_LINE = "command_line"
     # Written into a server-side .cfg file the game reads on startup.
     SERVER_CFG_FILE = "server_cfg_file"
+    # Written into a Lua config file (e.g. a mod's own Config.lua) --
+    # see ConfigItem.file_path, which names which file.
+    LUA_CONFIG_FILE = "lua_config_file"
 
 
 @dataclass(frozen=True)
@@ -234,9 +237,18 @@ class ConfigItem:
     back to `visible_name`.
 
     `config_type`, if provided, tells a Game how to deliver this
-    item's value to the server process — as a COMMAND_LINE argument or
-    written into a SERVER_CFG_FILE. Left unset for config items that
-    aren't fed to a game server at all (e.g. app-level settings).
+    item's value to the server process — as a COMMAND_LINE argument,
+    written into a SERVER_CFG_FILE, or written into a LUA_CONFIG_FILE.
+    Left unset for config items that aren't fed to a game server at
+    all (e.g. app-level settings).
+
+    `file_path`, only valid (and required) when config_type is
+    LUA_CONFIG_FILE, is the path (relative to the game's install
+    directory) to the Lua file this item's value should be written
+    into. Unlike SERVER_CFG_FILE, where each game writes every such
+    item into one fixed file it already knows the path to, Lua config
+    items can belong to different mods that each keep their own
+    separate config file, so the item itself has to say which one.
 
     `read_only`, if True, tells a UI to build this item's widget so it
     only displays the current value, with no way to edit it (e.g. a
@@ -248,6 +260,7 @@ class ConfigItem:
     type: ConfigType
     value: Any
     config_type: Optional[ConfigDeliveryType] = None
+    file_path: Optional[str] = None
     item_type: Optional[ConfigType] = None
     schema: Optional[dict[str, Union[ConfigType, SchemaField]]] = None
     value_type: Optional[ConfigType] = None
@@ -261,6 +274,15 @@ class ConfigItem:
     read_only: bool = False
 
     def __post_init__(self) -> None:
+        if (
+            self.config_type is ConfigDeliveryType.LUA_CONFIG_FILE
+            and self.file_path is None
+        ):
+            raise ValueError(
+                f"{self.name}: LUA_CONFIG_FILE items require file_path"
+            )
+        if self.file_path is not None and self.config_type is not ConfigDeliveryType.LUA_CONFIG_FILE:
+            raise ValueError(f"{self.name}: file_path only applies to LUA_CONFIG_FILE items")
         if self.type is ConfigType.ARRAY and self.item_type is None:
             raise ValueError(f"{self.name}: ARRAY items require item_type")
         if self.type is ConfigType.TABLE and self.schema is None:

@@ -1,5 +1,6 @@
 import getpass
 import socket
+from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional, Union
 from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType
@@ -9,6 +10,10 @@ from game.vu import maps_info
 from game.vu import mode_info
 from game.vu.config_defaults import build_game_defaults
 from game.vu.config_index import ConfigIndex
+from game.vu.config_parser.lua_config_parser import (
+    ConfigEntry as LuaConfigEntry,
+    LuaConfigParser,
+)
 from game.game import Game, OperationResult, TerminalLineResult
 from support import bat_runner
 from support.dialog import edit_string_dialog_box
@@ -213,6 +218,64 @@ class VUGame(Game):
         startup_path.write_text("\n".join(startup_lines) + "\n", encoding="utf-8")
 
         self._write_mod_list(config)
+        self._update_lua_config_files(config)
+
+    # Marks a line as sgsl's own, so a later run can find and drop it
+    # again before appending a fresh copy -- see _update_lua_config_files().
+    _AddedByComment = "added by sgsl.exe"
+
+    def _format_lua_value(self, item: ConfigItem) -> str:
+        if item.type is ConfigType.BOOLEAN:
+            return "true" if item.value else "false"
+        if item.type in (
+            ConfigType.STRING,
+            ConfigType.STRING_LIST,
+            ConfigType.MASKED_STRING,
+        ):
+            return f'"{item.value}"'
+        return f"{item.value}"
+
+    def _update_lua_config_files(self, config: Config[IndexT]) -> None:
+        """Update each mod's own Lua config file (e.g. fun-bots'
+        Config.lua) with this run's LUA_CONFIG_FILE items, the same
+        way _write_server_cfg() updates Startup.txt -- except each
+        item names its own target file (file_path), since different
+        mods keep separate Lua config files. Previously-appended sgsl
+        lines are stripped and replaced, so repeated runs update in
+        place instead of piling up duplicates; everything else already
+        in the file (the mod's own defaults, comments, formatting) is
+        left untouched -- the new value just wins by being assigned
+        again, last, further down the file. A mod's Config.lua that
+        doesn't exist (e.g. that mod isn't installed/enabled) is
+        silently skipped."""
+        items_by_path: dict[str, list[ConfigItem]] = {}
+        for item in config.values():
+            if item.config_type is ConfigDeliveryType.LUA_CONFIG_FILE:
+                items_by_path.setdefault(item.file_path, []).append(item)
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        for file_path, items in items_by_path.items():
+            path = self.directory / file_path
+            if not path.exists():
+                continue
+            entries = LuaConfigParser.read(path)
+            entries = [
+                entry
+                for entry in entries
+                if not (
+                    isinstance(entry, LuaConfigEntry)
+                    and self._AddedByComment in entry.comment
+                )
+            ]
+            for item in items:
+                entries.append(
+                    LuaConfigEntry(
+                        name=item.name,
+                        value=self._format_lua_value(item),
+                        comment=f"{self._AddedByComment} {timestamp}",
+                    )
+                )
+            LuaConfigParser.write(path, entries)
 
     def _map_list_lines(self, config: Config[IndexT]) -> list[str]:
         """The generated (pre-append) lines for MapList.txt: one line
@@ -422,6 +485,12 @@ class VUGame(Game):
                     ConfigIndex.LISTEN_PORT_HARMONY,
                     ConfigIndex.RCON_ENABLE,
                     ConfigIndex.LISTEN_PORT_RCON,
+                ],
+            ),
+            TabSpec(
+                title="Bots",
+                items=[
+                    ConfigIndex.BOTS_IGNORE_PERMISSIONS,
                 ],
             ),
             TabSpec(

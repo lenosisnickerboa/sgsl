@@ -1,5 +1,9 @@
 # General improvements
 
+## Add new read only config type for comments
+
+- Initially use for Bots config tab in VU. F12 comment, also include clickable URL?
+
 ## Archive functionality for everything downloaded
 
 Stuff that may disappear otherwise
@@ -40,16 +44,20 @@ Current filtering should be moved as defaults for filtering stdout
 
 # CS2
 
+## Mod support?
 
 # CSGO
 
+## Mod support?
 
 # VU
 
-## General mods support?
+## General mod support?
 
-Or just hardcode some more mods?
+Instead of hardcoded ones
 
 ## fun-bots mod: Set bot skill
 
-## map-vote: randomize == true, need to change that
+## More bots support?
+
+gore?
