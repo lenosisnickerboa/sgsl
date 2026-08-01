@@ -782,6 +782,7 @@ class CSGOGame(Game):
                 items=[
                     ConfigIndex.STEAM_GSLT,
                     ConfigIndex.STEAM_API_AUTH_KEY,
+                    ConfigIndex.STEAM_HELP_TEXT,
                 ],
             ),
             TabSpec(

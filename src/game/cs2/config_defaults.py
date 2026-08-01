@@ -444,6 +444,17 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="The Game Server Login Token, identifying your game server with Valve",
             value="",
         ),
+        ConfigIndex.STEAM_HELP_TEXT: ConfigItem(
+            name="steam_help_text",
+            visible_name="Steam help",
+            type=ConfigType.STATIC_TEXT,
+            value=(
+                "\n"
+                "Get a Game Server Login Token here: https://steamcommunity.com/dev/managegameservers\n"
+                "Get an API auth key here: https://steamcommunity.com/dev/apikey"
+            ),
+            read_only=True,
+        ),
         ConfigIndex.RUN_COMMAND_EDIT: ConfigItem(
             name="run_command_edit",
             visible_name="Edit run command",

@@ -70,6 +70,7 @@ class ConfigIndex(IntEnum):
     # -- Steam --
     STEAM_API_AUTH_KEY = 42
     STEAM_GSLT = 43
+    STEAM_HELP_TEXT = 64
 
     RUN_COMMAND_EDIT = 44
 
