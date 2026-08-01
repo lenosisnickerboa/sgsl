@@ -5,6 +5,7 @@
 - One-click install/update
 - Start/monitor/stop game server
 - Host LAN only/public game server
+- Multiple game servers per host
 - Tabbed config windows for common settings with tooltips explaining them
 - Show all available maps and allow them to be used by name
     - Define server name, password, listen address and port, ...
@@ -43,4 +44,6 @@
 
 - Mod support with configurable per mod on/off and URL
     - Fun Bots
-    - N4gi0s/Venice Unleashed MapVote
+    - N4gi0s/Venice Unleashed MapVote (patched with BF3-Mods-Votemap)
+    - VU-More-Gore
+    - Head-hit-sounds-effect

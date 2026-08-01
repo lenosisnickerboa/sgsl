@@ -12,6 +12,8 @@ Simple Game Server Launcher
 
 This is a simple game server launcher suitable for people wanting to quickly setup and host a game server for some friends to join without diving into all the details.
 
+<img src="assets/top_window.png" alt="sgsl main window">
+
 The "One click install game server" vision is hard to reach due to how games are developed, but I think this is still as close as you get. Create an empty directory for your server, drop sgsl.exe into it and start it, select game to install. Done. (Note that installing a game may take a while and will not produce continous output during the install. Just sit back and wait and let it finish.)
 
 Currently supported games:

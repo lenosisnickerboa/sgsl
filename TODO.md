@@ -55,9 +55,3 @@ Current filtering should be moved as defaults for filtering stdout
 ## General mod support?
 
 Instead of hardcoded ones
-
-## fun-bots mod: Set bot skill
-
-## More bots support?
-
-gore?
