@@ -62,6 +62,7 @@ class VUGame(Game):
     _ModsDirName = Path("Admin") / "mods"
     _FunBotsArchiveFileName = "fun-bots.zip"
     _VotemapArchiveFileName = "votemap.zip"
+    _VotemapPatchArchiveFileName = "votemap-patch.zip"
     _MoreGoreArchiveFileName = "vu-more-gore.zip"
     _HeadHitSoundsArchiveFileName = "head-hit-sounds-effect.zip"
 
@@ -121,6 +122,27 @@ class VUGame(Game):
                 f'{self._TarExe} -xf "{votemap_archive_path}" -C "{votemap_dir}"',
             ]
 
+        # Not a mod of its own -- an unofficial fix applied on top of
+        # the vu-mapvote mod just installed above, so it only makes
+        # sense (and is only applied) while Votemap itself is enabled.
+        votemap_patch_enabled = (
+            votemap_enabled and config[ConfigIndex.MODS_VOTEMAP_PATCH_ENABLED].value
+        )
+        votemap_patch_archive_path = self.directory / self._VotemapPatchArchiveFileName
+        if votemap_patch_enabled:
+            votemap_patch_url = config[ConfigIndex.MODS_VOTEMAP_PATCH_URL].value
+            commands += [
+                f'{self._CurlExe} -fsSL "{votemap_patch_url}" -o "{votemap_patch_archive_path}"',
+                # This is a GitHub repo-archive zip (unlike vu-mapvote's
+                # own GitLab artifact), so it does wrap its contents in
+                # a "BF3-Mods-Votemap-main/" folder that needs
+                # stripping -- confirmed by inspecting the actual zip.
+                # Extracted into the same votemap_dir, after the main
+                # vu-mapvote extraction above, so its files overwrite
+                # whatever vu-mapvote itself shipped for them.
+                f'{self._TarExe} -xf "{votemap_patch_archive_path}" -C "{votemap_dir}" --strip-components=1',
+            ]
+
         more_gore_enabled = config[ConfigIndex.MODS_MORE_GORE_ENABLED].value
         more_gore_archive_path = self.directory / self._MoreGoreArchiveFileName
         if more_gore_enabled:
@@ -162,6 +184,8 @@ class VUGame(Game):
                 fun_bots_archive_path.unlink(missing_ok=True)
             if votemap_enabled:
                 votemap_archive_path.unlink(missing_ok=True)
+            if votemap_patch_enabled:
+                votemap_patch_archive_path.unlink(missing_ok=True)
             if more_gore_enabled:
                 more_gore_archive_path.unlink(missing_ok=True)
             if head_hit_sounds_enabled:
@@ -561,6 +585,8 @@ class VUGame(Game):
                     ConfigIndex.MODS_FUN_BOTS_URL,
                     ConfigIndex.MODS_VOTEMAP_ENABLED,
                     ConfigIndex.MODS_VOTEMAP_URL,
+                    ConfigIndex.MODS_VOTEMAP_PATCH_ENABLED,
+                    ConfigIndex.MODS_VOTEMAP_PATCH_URL,
                     ConfigIndex.MODS_MORE_GORE_ENABLED,
                     ConfigIndex.MODS_MORE_GORE_URL,
                     ConfigIndex.MODS_HEAD_HIT_SOUNDS_ENABLED,

@@ -53,6 +53,8 @@ class ConfigIndex(IntEnum):
     BOT_ADDITIONAL_SPAWN_DELAY = 42
     MODS_HEAD_HIT_SOUNDS_ENABLED = 43
     MODS_HEAD_HIT_SOUNDS_URL = 44
+    MODS_VOTEMAP_PATCH_ENABLED = 45
+    MODS_VOTEMAP_PATCH_URL = 46
 
 
 _values = [item.value for item in ConfigIndex]

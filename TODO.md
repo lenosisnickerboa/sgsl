@@ -3,6 +3,8 @@
 ## Archive functionality for everything downloaded
 
 Stuff that may disappear otherwise
+Or perhaps download and distribute these myself?
+Specially for the vu-mapvote case where a patch is applied during install/update.
 
 ## Rember window positions and sizes
 

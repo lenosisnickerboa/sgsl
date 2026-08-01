@@ -273,6 +273,23 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Download the vu-mapvote mod from this URL. Only change URL if this download does not work or if you want to upgrade the votemap mod.",
             value="https://gitlab.com/n4gi0s/vu-mapvote/-/jobs/artifacts/master/download?job=build",
         ),
+        ConfigIndex.MODS_VOTEMAP_PATCH_ENABLED: ConfigItem(
+            name="modsVotemapPatchEnabled",
+            visible_name="Votemap patch",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="After installing the vu-mapvote mod, also download and extract this patch on top of "
+            "it (overwriting some of its files). Only applies while Votemap is also enabled.",
+            value=True,
+        ),
+        ConfigIndex.MODS_VOTEMAP_PATCH_URL: ConfigItem(
+            name="modsVotemapPatchUrl",
+            visible_name="Votemap patch URL",
+            type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Download the vu-mapvote patch from this URL. Only change URL if this download does not work or if you want to upgrade the patch.",
+            value="https://github.com/muppet99/BF3-Mods-Votemap/archive/refs/heads/main.zip",
+        ),
         ConfigIndex.MODS_MORE_GORE_ENABLED: ConfigItem(
             name="modsMoreGoreEnabled",
             visible_name="VU-More-Gore",
