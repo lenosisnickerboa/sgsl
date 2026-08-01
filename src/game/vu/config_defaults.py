@@ -318,7 +318,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Map vote choice limit",
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Maximum number of maps offered in the map vote",
+            tooltip="Number of selectable random maps",
             value=15,
             range=Range(min_value=2, max_value=30),
         ),
