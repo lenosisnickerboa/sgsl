@@ -63,6 +63,7 @@ class VUGame(Game):
     _FunBotsArchiveFileName = "fun-bots.zip"
     _VotemapArchiveFileName = "votemap.zip"
     _MoreGoreArchiveFileName = "vu-more-gore.zip"
+    _HeadHitSoundsArchiveFileName = "head-hit-sounds-effect.zip"
 
     # Bare "curl.exe"/"tar.exe" can resolve to Git for Windows' copies
     # earlier on PATH than the Windows-native ones in System32; Git's
@@ -135,6 +136,23 @@ class VUGame(Game):
                 f'{self._TarExe} -xf "{more_gore_archive_path}" -C "{more_gore_dir}" --strip-components=1',
             ]
 
+        head_hit_sounds_enabled = config[ConfigIndex.MODS_HEAD_HIT_SOUNDS_ENABLED].value
+        head_hit_sounds_archive_path = self.directory / self._HeadHitSoundsArchiveFileName
+        if head_hit_sounds_enabled:
+            head_hit_sounds_url = config[ConfigIndex.MODS_HEAD_HIT_SOUNDS_URL].value
+            head_hit_sounds_dir = (
+                self.server_root / self._ModsDirName / self._HeadHitSoundsModDirName
+            )
+            head_hit_sounds_dir.mkdir(parents=True, exist_ok=True)
+            commands += [
+                f'{self._CurlExe} -fsSL "{head_hit_sounds_url}" -o "{head_hit_sounds_archive_path}"',
+                # Wraps its contents in its own top-level folder
+                # ("head-hit-sounds-effect/") -- confirmed by
+                # inspecting the actual zip -- so strip it the same
+                # way as fun-bots/VU-More-Gore.
+                f'{self._TarExe} -xf "{head_hit_sounds_archive_path}" -C "{head_hit_sounds_dir}" --strip-components=1',
+            ]
+
         def on_output(line: str) -> None:
             self.print(line)
 
@@ -146,6 +164,8 @@ class VUGame(Game):
                 votemap_archive_path.unlink(missing_ok=True)
             if more_gore_enabled:
                 more_gore_archive_path.unlink(missing_ok=True)
+            if head_hit_sounds_enabled:
+                head_hit_sounds_archive_path.unlink(missing_ok=True)
 
             if not self.server_binary.exists():
                 self.print(
@@ -335,6 +355,7 @@ class VUGame(Game):
     _FunBotsModDirName = "fun-bots"
     _VotemapModDirName = "vu-mapvote"
     _MoreGoreModDirName = "VU-More-Gore"
+    _HeadHitSoundsModDirName = "head-hit-sounds-effect"
     _NoModsPlaceholder = "# No mods yet"
 
     def _write_mod_list(self, config: Config[IndexT]) -> None:
@@ -351,6 +372,7 @@ class VUGame(Game):
                 and line.strip() != self._FunBotsModDirName
                 and line.strip() != self._VotemapModDirName
                 and line.strip() != self._MoreGoreModDirName
+                and line.strip() != self._HeadHitSoundsModDirName
                 # Otherwise, since this file's own previous output is
                 # what feeds existing_lines, re-appending append_lines
                 # below would duplicate them on every subsequent run.
@@ -369,6 +391,10 @@ class VUGame(Game):
         if config[ConfigIndex.MODS_MORE_GORE_ENABLED].value:
             if (mods_dir / self._MoreGoreModDirName).is_dir():
                 existing_lines.append(self._MoreGoreModDirName)
+
+        if config[ConfigIndex.MODS_HEAD_HIT_SOUNDS_ENABLED].value:
+            if (mods_dir / self._HeadHitSoundsModDirName).is_dir():
+                existing_lines.append(self._HeadHitSoundsModDirName)
 
         existing_lines += append_lines
 
@@ -537,6 +563,8 @@ class VUGame(Game):
                     ConfigIndex.MODS_VOTEMAP_URL,
                     ConfigIndex.MODS_MORE_GORE_ENABLED,
                     ConfigIndex.MODS_MORE_GORE_URL,
+                    ConfigIndex.MODS_HEAD_HIT_SOUNDS_ENABLED,
+                    ConfigIndex.MODS_HEAD_HIT_SOUNDS_URL,
                 ],
             ),
             TabSpec(

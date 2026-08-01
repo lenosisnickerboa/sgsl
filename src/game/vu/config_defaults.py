@@ -289,6 +289,22 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Download the VU-More-Gore mod from this URL. Only change URL if this download does not work or if you want to upgrade the mod.",
             value="https://github.com/lywit/VU-More-Gore/releases/download/Release-1.4.0/VU-More-Gore.zip",
         ),
+        ConfigIndex.MODS_HEAD_HIT_SOUNDS_ENABLED: ConfigItem(
+            name="modsHeadHitSoundsEnabled",
+            visible_name="Head hit sounds effect",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Enable mod head-hit-sounds-effect",
+            value=True,
+        ),
+        ConfigIndex.MODS_HEAD_HIT_SOUNDS_URL: ConfigItem(
+            name="modsHeadHitSoundsUrl",
+            visible_name="Head hit sounds effect URL",
+            type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Download the head-hit-sounds-effect mod from this URL. Only change URL if this download does not work or if you want to upgrade the mod.",
+            value="https://community.veniceunleashed.net/uploads/short-url/z5dOyKLuxQmnwe3Gu81V1bDLQp2.zip",
+        ),
         ConfigIndex.MAPVOTE_RANDOMIZE: ConfigItem(
             name="mapvote.randomize",
             visible_name="Randomize map vote choices",

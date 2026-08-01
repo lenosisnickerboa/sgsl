@@ -4,6 +4,8 @@
 
 Stuff that may disappear otherwise
 
+## Rember window positions and sizes
+
 # RCON client
 
 ## Improve how toggles are shown disabled

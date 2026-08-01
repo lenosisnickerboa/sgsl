@@ -51,6 +51,8 @@ class ConfigIndex(IntEnum):
     MODS_MORE_GORE_ENABLED = 40
     MODS_MORE_GORE_URL = 41
     BOT_ADDITIONAL_SPAWN_DELAY = 42
+    MODS_HEAD_HIT_SOUNDS_ENABLED = 43
+    MODS_HEAD_HIT_SOUNDS_URL = 44
 
 
 _values = [item.value for item in ConfigIndex]
