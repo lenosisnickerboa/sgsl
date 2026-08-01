@@ -14,6 +14,10 @@ Specially for the vu-mapvote case where a patch is applied during install/update
 
 Hard (impossible) to see now if a toggle is disabled.
 
+## Error report
+
+For cs2/csgo: detect if metamod/sourcemod is installed. May be useful info when troubleshooting.
+
 ## General code review
 
 Make static functions instead of methods where possible
