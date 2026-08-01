@@ -321,6 +321,9 @@ class CS2Game(Game):
         if not config[ConfigIndex.SV_LAN].value and config[ConfigIndex.STEAM_GSLT].value:
             args.append("+sv_setsteamaccount")
             args.append(config[ConfigIndex.STEAM_GSLT].value)
+        if config[ConfigIndex.STEAM_API_AUTH_KEY].value:
+            args.append("-authkey")
+            args.append(config[ConfigIndex.STEAM_API_AUTH_KEY].value)
         args.append("-ip")
         args.append(config[ConfigIndex.LISTEN_ADDRESS].value)
         args.append("-port")
@@ -356,7 +359,7 @@ class CS2Game(Game):
             # and rotates through the collection's maps, so there's no
             # mapcyclefile to write here, unlike an ordinary map group.
             self._append_workshop_host_args(
-                args, config, "host_workshop_collection", workshop_collection_id
+                args, "host_workshop_collection", workshop_collection_id
             )
         else:
             map_group = self._active_map_group(config)
@@ -379,7 +382,7 @@ class CS2Game(Game):
 
             if self._is_workshop_map(launch_map):
                 self._append_workshop_host_args(
-                    args, config, "host_workshop_map", self._get_workshop_id(launch_map)
+                    args, "host_workshop_map", self._get_workshop_id(launch_map)
                 )
             else:
                 args.append("+map")
@@ -419,15 +422,11 @@ class CS2Game(Game):
     def _append_workshop_host_args(
         self,
         args: list[str],
-        config: Config[IndexT],
         host_cvar: str,
         workshop_id: int,
     ) -> None:
         args.append("+map")  # dummy map seems to be needed when hosting from workshop
         args.append("de_dust2")
-        if config[ConfigIndex.STEAM_API_AUTH_KEY].value:  # required when hosting
-            args.append("-authkey")
-            args.append(config[ConfigIndex.STEAM_API_AUTH_KEY].value)
         args.append(f"+{host_cvar}")
         args.append(str(workshop_id))
 

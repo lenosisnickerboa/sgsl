@@ -73,7 +73,15 @@ If there is some special tweak you want to add, not supported by sgsl.exe, it ca
 
 ## Quirks
 
+### Workshop maps not working
+
+The workshop contains cs2 and csgo maps without a good possibility to distinguish them. If you happen to add a csgo map as a workshop map it will not work. If you restart sgsl and once again look through the maps these maps will be named something with "legacy_<something>". They will not be accepted by Valve so you might just remove them. They can be converted into a more modern format but that is beyond the scope of this description.
+
+### Low FPS
+
 Sometimes, for no reason, I get very low fps. Restarting the cs2 client GUI helps. Don't know why.
+
+
 
 ## LAN only play
 
