@@ -622,6 +622,7 @@ def setup_detected_game_server(game: Game):
             on_close_rcon_window,
             command_callback=send_rcon_command,
             install_dir=game.get_directory(),
+            quick_commands=game.rcon_quick_commands(),
             title=f"RCON — {game.get_long_name()}",
         )
 

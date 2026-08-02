@@ -17,12 +17,42 @@ from game.vu.config_parser.lua_config_parser import (
 from game.game import Game, OperationResult, TerminalLineResult
 from support import bat_runner
 from support.dialog import edit_string_dialog_box
+from support.frostbite_rcon_client import run_rcon_command
 from support.run_command import split_run_command
 
 GameExe = "vu.com"
 
 # All relative to server root directory
 GameExeWithPath = Path(GameExe)
+
+# sgsl's own curated shortlist of the 20 most commonly used VU/
+# Frostbite ("Plasma" RCON) dedicated server admin console commands
+# (no authoritative usage-frequency source exists) -- covering match
+# control, player admin, and core server settings. See RconWindow's
+# own docstring for how these are used (one-click-insert buttons, not
+# sent immediately).
+RconQuickCommands = [
+    "admin.say",
+    "admin.yell",
+    "admin.listPlayers",
+    "admin.kickPlayer",
+    "admin.banPlayer",
+    "admin.shutDown",
+    "mapList.list",
+    "mapList.nextLevelIndex",
+    "mapList.runNextRound",
+    "mapList.restartRound",
+    "mapList.endRound",
+    "vars.serverName",
+    "vars.gamePassword",
+    "vars.roundTimeLimit",
+    "vars.maxPlayers",
+    "vars.friendlyFire",
+    "banList.list",
+    "banList.save",
+    "serverInfo",
+    "version",
+]
 
 
 class VUGame(Game):
@@ -49,6 +79,31 @@ class VUGame(Game):
 
     def get_developer_url(self) -> str:
         return "https://veniceunleashed.net/"
+
+    def supports_rcon(self) -> bool:
+        return True
+
+    def rcon_enabled(self, config: Config[IndexT]) -> bool:
+        return config[ConfigIndex.RCON_ENABLE].value
+
+    def rcon_quick_commands(self) -> list[str]:
+        return RconQuickCommands
+
+    def send_rcon_command(self, command: str, config: Config[IndexT]) -> str:
+        # Unlike Source engine RCON (cs2/csgo), VU's RCON speaks the
+        # Frostbite "Plasma" protocol over its own dedicated port
+        # (LISTEN_PORT_RCON, -RemoteAdminPort) and takes a list of
+        # words rather than a single command string -- see
+        # support.frostbite_rcon_client for both, including a note on
+        # why this logs in with SERVER_PASSWORD (VU has no RCON-
+        # specific password of its own).
+        return run_rcon_command(
+            split_run_command(command),
+            enabled=config[ConfigIndex.RCON_ENABLE].value,
+            host=config[ConfigIndex.LISTEN_ADDRESS].value,
+            port=config[ConfigIndex.LISTEN_PORT_RCON].value,
+            password=config[ConfigIndex.SERVER_PASSWORD].value,
+        )
 
     def install(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Installing {self.get_long_name()} into {self.server_root}")

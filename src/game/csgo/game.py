@@ -16,6 +16,7 @@ from game.cs2.config_parser.valve_gamemode_config_parser import (
     ConfigEntry,
     ValveGamemodeConfigParser,
 )
+from game.cs2.game import RconQuickCommands
 from game.game import Game, OperationResult, TerminalLineResult
 from support import bat_runner
 from support.dialog import edit_string_dialog_box
@@ -69,6 +70,9 @@ class CSGOGame(Game):
 
     def rcon_enabled(self, config: Config[IndexT]) -> bool:
         return config[ConfigIndex.RCON_ENABLE].value
+
+    def rcon_quick_commands(self) -> list[str]:
+        return RconQuickCommands
 
     def send_rcon_command(self, command: str, config: Config[IndexT]) -> str:
         # RCON has no port of its own on Source engine servers -- it

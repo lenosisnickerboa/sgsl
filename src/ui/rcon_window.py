@@ -6,37 +6,7 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
 from ui.widgets import SnapWindow, make_tooltip
 
-# sgsl's own curated shortlist of the 20 most commonly used CS2/
-# Source-engine dedicated server admin console commands (no
-# authoritative usage-frequency source exists) -- covering match
-# control, player admin, and core server settings. Shown as quick-
-# insert buttons below the output log; most of these take an argument
-# (a map name, a player id, ...) the user still has to type, so a
-# click inserts the command rather than sending it immediately.
-_QuickCommands = [
-    "status",
-    "changelevel",
-    "map",
-    "mp_restartgame",
-    "mp_warmup_start",
-    "mp_warmup_end",
-    "mp_pause_match",
-    "mp_unpause_match",
-    "kick",
-    "kickid",
-    "banid",
-    "removeid",
-    "sv_cheats",
-    "sv_password",
-    "rcon_password",
-    "say",
-    "bot_kick",
-    "bot_add",
-    "sv_gravity",
-    "mp_maxrounds",
-]
-
-# Quick-command buttons per row -- 20 commands over this many columns.
+# Quick-command buttons per row, regardless of how many are given.
 _QuickCommandColumns = 10
 
 
@@ -46,7 +16,9 @@ class RconWindow(SnapWindow, tb.Toplevel):
     its response (or error). `command_callback` is called with the
     typed command text and must return the response text to display,
     or raise to report a failure (its message is shown in the log
-    instead, tagged as an error).
+    instead, tagged as an error). `quick_commands` is the game-specific
+    shortlist shown as one-click-insert buttons below the output log
+    (see Game.rcon_quick_commands()).
 
     Stays alive for the lifetime of the app; use show()/hide()/
     toggle() to control visibility. See SnapWindow (ui.widgets) for
@@ -58,6 +30,7 @@ class RconWindow(SnapWindow, tb.Toplevel):
         on_close: Callable[[], None],
         command_callback: Callable[[str], str],
         install_dir: Union[str, Path],
+        quick_commands: list[str],
         title: str = "RCON",
     ):
         super().__init__(master)
@@ -106,7 +79,7 @@ class RconWindow(SnapWindow, tb.Toplevel):
         # command entry, as intended.
         quick_commands_frame = tb.Frame(self)
         quick_commands_frame.pack(side=BOTTOM, fill=X, padx=5, pady=(0, 5))
-        for index, quick_command in enumerate(_QuickCommands):
+        for index, quick_command in enumerate(quick_commands):
             row, column = divmod(index, _QuickCommandColumns)
             button = tb.Button(
                 quick_commands_frame,

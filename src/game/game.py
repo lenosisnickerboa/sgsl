@@ -309,5 +309,14 @@ class Game(ABC):
         to override in that case."""
         raise NotImplementedError
 
+    def rcon_quick_commands(self) -> list[str]:
+        """A curated shortlist of this game's commonly used RCON
+        commands, shown as one-click-insert buttons in the RCON
+        console (see ui.rcon_window.RconWindow). Empty by default --
+        override for a game whose console supports RCON at all (see
+        supports_rcon()); returning no commands just means no buttons
+        are shown, rather than failing outright."""
+        return []
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(directory={self.directory!r})"
