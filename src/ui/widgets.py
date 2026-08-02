@@ -592,6 +592,91 @@ class ConfirmDialog(EnableDisableMixin, ttk.Toplevel):
         return self._result
 
 
+class ChoiceDialog(EnableDisableMixin, ttk.Toplevel):
+    """A modal dialog: shows `message` (may be multi-line) with an
+    arbitrary row of custom-labeled buttons, each with its own
+    tooltip. Appears immediately on construction; call show() to block
+    the caller until one is clicked, returning that button's
+    associated value -- or `cancel_value` if the window is closed via
+    its own close button instead."""
+
+    def __init__(
+        self,
+        title: str,
+        message: str,
+        choices: list[tuple[str, str, object]],
+        cancel_value=None,
+        **kwargs,
+    ):
+        """`choices` is a list of (label, tooltip, value) tuples, one
+        per button, left to right."""
+        super().__init__(title=title, **kwargs)
+        # Parked off-screen until _center_on_master() repositions it --
+        # same reasoning as Window.__init__: avoids a flash at the
+        # window manager's default placement before centering.
+        self.geometry("+8000+8000")
+
+        self._result = cancel_value
+        self._cancel_value = cancel_value
+
+        self.resizable(False, False)
+        self.protocol("WM_DELETE_WINDOW", self._handle_close)
+
+        frame = ttk.Frame(self, padding=20)
+        frame.pack(fill=BOTH, expand=YES)
+
+        label = ttk.Label(frame, text=message, wraplength=480, justify=LEFT)
+        label.pack(fill=X, pady=(0, 15))
+
+        button_row = ttk.Frame(frame)
+        button_row.pack()
+
+        for index, (label_text, tooltip, value) in enumerate(choices):
+            button = ttk.Button(
+                button_row,
+                text=label_text,
+                command=lambda v=value: self._handle_choice(v),
+                bootstyle="primary" if index == 0 else None,
+            )
+            button.pack(side=LEFT, padx=(0 if index == 0 else 5, 0))
+            make_tooltip(button, text=tooltip)
+            if index == 0:
+                button.focus_set()
+
+        self._center_on_master()
+
+        # Modal: block interaction with other windows until closed.
+        self.transient(self.master)
+        self.grab_set()
+
+    def _center_on_master(self):
+        master = self.master
+        if master is None:
+            return
+        master.update_idletasks()
+        self.update_idletasks()
+        x = master.winfo_x() + (master.winfo_width() - self.winfo_width()) // 2
+        y = master.winfo_y() + (master.winfo_height() - self.winfo_height()) // 2
+        self.geometry(f"+{x}+{y}")
+
+    def _handle_choice(self, value) -> None:
+        self._result = value
+        self.grab_release()
+        self.destroy()
+
+    def _handle_close(self) -> None:
+        self._result = self._cancel_value
+        self.grab_release()
+        self.destroy()
+
+    def show(self):
+        """Block the calling code until the dialog is dismissed, then
+        return the clicked button's value (or cancel_value if closed
+        via the window's own close button)."""
+        self.wait_window(self)
+        return self._result
+
+
 class EditStringDialog(EnableDisableMixin, ttk.Toplevel):
     """A modal dialog for editing a single string: shows `title`, an
     Entry pre-filled with `value`, and OK/Cancel buttons. Appears

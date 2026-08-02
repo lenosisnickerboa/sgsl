@@ -9,11 +9,13 @@ link that opens in the default web browser.
 edit_string_dialog_box() shows an editable string with OK/Cancel
 buttons and returns the edited value or None.
 confirm_dialog() shows a message with OK/Cancel buttons and returns
-whether OK was pressed.
+whether OK was pressed. choice_dialog() shows a message with an
+arbitrary row of custom-labeled buttons and returns which one's value
+was clicked.
 """
 
 import sys
-from typing import Optional
+from typing import Any, Optional
 
 import ui.widgets as ui
 
@@ -63,5 +65,22 @@ def confirm_dialog(
     dialog was closed via its own close button)."""
     dialog = ui.ConfirmDialog(
         title=title, message=message, ok_text=ok_text, cancel_text=cancel_text
+    )
+    return dialog.show()
+
+
+def choice_dialog(
+    message: str,
+    choices: list[tuple[str, str, Any]],
+    title: str = "Choose",
+    cancel_value: Any = None,
+) -> Any:
+    """Show `message` (may be multi-line) in a modal dialog with one
+    button per (label, tooltip, value) tuple in `choices`, left to
+    right, and block until the user dismisses it. Returns the clicked
+    button's value, or `cancel_value` if the dialog was closed via its
+    own close button instead."""
+    dialog = ui.ChoiceDialog(
+        title=title, message=message, choices=choices, cancel_value=cancel_value
     )
     return dialog.show()

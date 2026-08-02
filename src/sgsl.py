@@ -17,7 +17,7 @@ from app.config_defaults import build_app_defaults
 from app.config_index import ConfigIndex
 from ui_builder.ui_builder import UiBuilder
 from support.browser import open_url
-from support.dialog import link_dialog, ok_dialog, ok_dialog_exit
+from support.dialog import choice_dialog, link_dialog, ok_dialog, ok_dialog_exit
 from support.set_status_line import (
     init_status_line,
     set_status_line,
@@ -204,6 +204,39 @@ def save_config():
 
 def on_save_config():
     save_config()
+
+
+def _reset_config_to_defaults(
+    config: Config, defaults: Config, keep_masked: bool
+) -> list:
+    """Reset every non-read_only item in `config` to its value in
+    `defaults`, in place (so already-registered UI widgets/game state
+    referencing this exact dict keep working) -- except MASKED_STRING
+    items (passwords/keys) when `keep_masked` is True, which are left
+    untouched. read_only items are skipped, the same as
+    TomlConfigParser: they're always recomputed fresh (e.g. a detected
+    maps list), not something a "reset" should touch. Returns the list
+    of indexes actually changed, so the caller can refresh their
+    widgets and react the same way a live edit would (see
+    Game.config_item_changed())."""
+    changed = []
+    for index, item in config.items():
+        if item.read_only:
+            continue
+        if keep_masked and item.type is ConfigType.MASKED_STRING:
+            continue
+        default_item = defaults.get(index)
+        if default_item is None or item.value == default_item.value:
+            continue
+        try:
+            item.set(default_item.value)
+        except (TypeError, ValueError):
+            # Shouldn't normally happen (the default came from this
+            # same item's own schema), but don't let one bad item
+            # abort the whole reset.
+            continue
+        changed.append(index)
+    return changed
 
 
 _GithubUrl = "https://github.com/lenosisnickerboa/sgsl"
@@ -631,6 +664,87 @@ def setup_detected_game_server(game: Game):
     spacer_between_shortcut_and_application_frame = ui.Spacer(master=g_main_frame)
     spacer_between_shortcut_and_application_frame.pack()
 
+    def on_app_config_item_changed(_config_item, config):
+        ui.SnapWindow.enabled = config[ConfigIndex.SNAP_WINDOWS_ENABLED].value
+        return []
+
+    # A separate UiBuilder instance: its widget registry is keyed by
+    # IndexT enum members, and app.config_index.ConfigIndex's values
+    # collide numerically with game.cs2.config_index.ConfigIndex's
+    # (both are small IntEnums) — sharing g_ui_builder here would let
+    # a change to one wrongly refresh a same-valued widget in the other.
+    app_ui_builder = UiBuilder()
+    global g_app_configure_window
+    g_app_configure_window = app_ui_builder.build_configuration_window(
+        root,
+        on_close_app_configure_window,
+        "Configure application",
+        [
+            TabSpec(
+                title="General",
+                items=[
+                    ConfigIndex.SNAP_WINDOWS_ENABLED,
+                    ConfigIndex.AUTOMATIC_UPDATE_CHECK,
+                ],
+            ),
+            TabSpec(
+                title="Terminal",
+                items=[
+                    ConfigIndex.TERMINAL_ENABLED,
+                    ConfigIndex.TERMINAL_LOG_MAX_LINES,
+                    ConfigIndex.AUTO_OPEN_TERMINAL_ON_INSTALL_OR_UPDATE,
+                ],
+            ),
+        ],
+        g_app_config,
+        on_app_config_item_changed,
+    )
+
+    def on_set_defaults():
+        choice = choice_dialog(
+            "Set config back to default values?",
+            title="Set defaults",
+            choices=[
+                ("All", "All config items including masked", "all"),
+                (
+                    "All excluding masked",
+                    "All config items but keep masked config items, i.e. all passwords and keys",
+                    "all_excluding_masked",
+                ),
+                ("Cancel", "Don't touch my config, I want it as it is", "cancel"),
+            ],
+            cancel_value="cancel",
+        )
+        if choice == "cancel":
+            return
+
+        keep_masked = choice == "all_excluding_masked"
+
+        app_changed = _reset_config_to_defaults(
+            g_app_config, build_app_defaults(), keep_masked
+        )
+        app_affected = set(app_changed)
+        for index in app_changed:
+            app_affected.update(
+                on_app_config_item_changed(g_app_config[index], g_app_config)
+            )
+        app_ui_builder.config_changed(list(app_affected), g_app_config)
+
+        if g_game_config is not None:
+            game_changed = _reset_config_to_defaults(
+                g_game_config, game.config_defaults(), keep_masked
+            )
+            game_affected = set(game_changed)
+            for index in game_changed:
+                game_affected.update(
+                    game.config_item_changed(g_game_config[index], g_game_config)
+                )
+            g_ui_builder.config_changed(list(game_affected), g_game_config)
+
+        print_to_terminal("Configuration reset to default values")
+        set_status_line("Configuration reset to default values")
+        restore_status_line_delayed()
+
     # -- application frame
 
     application_frame = ui.EditGroupFrame(master=g_main_frame, name="Application")
@@ -676,6 +790,14 @@ def setup_detected_game_server(game: Game):
     )
     save_app_config_button.pack()
 
+    set_defaults_button = ui.Button(
+        master=app_right_button_frame,
+        name="Set defaults...",
+        tooltip="Reset the application and/or game configuration to default values",
+        command=on_set_defaults,
+    )
+    set_defaults_button.pack()
+
     restart_button = ui.Button(
         master=app_right_button_frame,
         name="Restart",
@@ -691,42 +813,6 @@ def setup_detected_game_server(game: Game):
         command=on_error_report,
     )
     error_report_button.pack()
-
-    def on_app_config_item_changed(_config_item, config):
-        ui.SnapWindow.enabled = config[ConfigIndex.SNAP_WINDOWS_ENABLED].value
-        return []
-
-    # A separate UiBuilder instance: its widget registry is keyed by
-    # IndexT enum members, and app.config_index.ConfigIndex's values
-    # collide numerically with game.cs2.config_index.ConfigIndex's
-    # (both are small IntEnums) — sharing g_ui_builder here would let
-    # a change to one wrongly refresh a same-valued widget in the other.
-    app_ui_builder = UiBuilder()
-    global g_app_configure_window
-    g_app_configure_window = app_ui_builder.build_configuration_window(
-        root,
-        on_close_app_configure_window,
-        "Configure application",
-        [
-            TabSpec(
-                title="General",
-                items=[
-                    ConfigIndex.SNAP_WINDOWS_ENABLED,
-                    ConfigIndex.AUTOMATIC_UPDATE_CHECK,
-                ],
-            ),
-            TabSpec(
-                title="Terminal",
-                items=[
-                    ConfigIndex.TERMINAL_ENABLED,
-                    ConfigIndex.TERMINAL_LOG_MAX_LINES,
-                    ConfigIndex.AUTO_OPEN_TERMINAL_ON_INSTALL_OR_UPDATE,
-                ],
-            ),
-        ],
-        g_app_config,
-        on_app_config_item_changed,
-    )
 
     spacer_at_end = ui.Spacer(master=g_main_frame)
     spacer_at_end.pack()

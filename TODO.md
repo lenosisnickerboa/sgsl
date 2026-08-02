@@ -6,7 +6,7 @@ Stuff that may disappear otherwise
 Or perhaps download and distribute these myself?
 Specially for the vu-mapvote case where a patch is applied during install/update.
 
-## Rember window positions and sizes
+## Rember window positions, open/closed, sizes
 
 ## Improve how toggles are shown disabled
 
