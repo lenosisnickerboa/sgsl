@@ -93,11 +93,17 @@ This is the typical layout of the config window. A tab for each group of paramet
 
 Config is automatically updated as you edit it, and is used directly when you start your server. There's also a manual "Save Config" button if you want to force the configuration to be saved to file. The configuration is automatically saved to file when you close the application, so it's really only necessary should you perform a large edit and the application crashes before you close it.
 
+## RCON
+
+<img src="assets/rcon_window.png" alt="RCON window">
+
+There is also an RCON window where the started server can be controlled. The RCON window contents can be saved to a file by clicking the Save button. The RCON window output will be saved in a directory "rcon_output" in the install directory.
+
 ## Terminal
 
 <img src="assets/terminal_window.png" alt="Terminal window">
 
-There is also a terminal window where all sgsl actions will end up, as well as any output from the game server. The terminal contents cant be saved to a file by clicking the Save button. The terminal output will be saved in a directory "terminal_output" in the install directory.
+There is also a terminal window where all sgsl actions will end up, as well as any output from the game server. The terminal contents can be saved to a file by clicking the Save button. The terminal output will be saved in a directory "terminal_output" in the install directory.
 
 ## Error report
 
