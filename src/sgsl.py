@@ -510,17 +510,6 @@ def setup_detected_game_server(game: Game):
         set_status_line("Ready")
     g_start_stop_server.pack()
 
-    global g_rcon_open_close
-    g_rcon_open_close = None
-    if game.supports_rcon():
-        g_rcon_open_close = ui.CheckButton(
-            master=game_frame,
-            name="RCON",
-            tooltip="Open an interactive RCON console for this server",
-            command=lambda _value: on_toggle_rcon_window(),
-        )
-        g_rcon_open_close.pack()
-
     # Anchored to the right of game_frame, as a group, so Start stays
     # pinned to the left while these sit flush against the right edge.
     right_button_frame = ui.Frame(master=game_frame)
@@ -534,6 +523,15 @@ def setup_detected_game_server(game: Game):
     )
     developer_button.pack()
 
+    global g_configure_open_close
+    g_configure_open_close = ui.CheckButton(
+        master=right_button_frame,
+        name="Configure",
+        tooltip="Edit game server configuration",
+        command=lambda _value: on_toggle_configure_window(),
+    )
+    g_configure_open_close.pack()
+
     global g_update_open_close
     g_update_open_close = ui.CheckButton(
         master=right_button_frame,
@@ -545,14 +543,16 @@ def setup_detected_game_server(game: Game):
     if g_server_should_be_running:
         g_update_open_close.disable()
 
-    global g_configure_open_close
-    g_configure_open_close = ui.CheckButton(
-        master=right_button_frame,
-        name="Configure",
-        tooltip="Edit game server configuration",
-        command=lambda _value: on_toggle_configure_window(),
-    )
-    g_configure_open_close.pack()
+    global g_rcon_open_close
+    g_rcon_open_close = None
+    if game.supports_rcon():
+        g_rcon_open_close = ui.CheckButton(
+            master=right_button_frame,
+            name="RCON",
+            tooltip="Open an interactive RCON console for this server",
+            command=lambda _value: on_toggle_rcon_window(),
+        )
+        g_rcon_open_close.pack()
 
     global g_terminal_open_close
     g_terminal_open_close = ui.CheckButton(
