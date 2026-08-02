@@ -7,13 +7,14 @@ from pathlib import Path
 from config.config_item import ConfigType
 from config.tab_spec import TabSpec
 from config.toml_config import Config, TomlConfigParser, reset_to_defaults
+from config.config_upgrader import apply_upgraders
 from app.version import VERSION
 import ui.widgets as ui
 import ui.terminal as terminal
 import ui.rcon_window as rcon_window
 from game.game import Game, OperationResult, TerminalLineResult
 from game.game_factory import GameFactory
-from app.config_defaults import build_app_defaults
+from app.config_defaults import build_app_defaults, APP_CONFIG_VERSION, APP_CONFIG_UPGRADERS
 from app.config_index import ConfigIndex
 from ui_builder.ui_builder import UiBuilder
 from support.browser import open_url
@@ -58,6 +59,12 @@ g_app_config = None
 g_app_config_file = None
 g_game_config = None
 g_game_config_file = None
+# The current game's config_version() -- cached here, rather than
+# keeping a global reference to the Game itself, since
+# _write_config_files() (called from save_config()/on_restart_
+# application(), both module-level) needs it but only
+# setup_detected_game_server(game) ever has `game` in scope.
+g_game_config_version = None
 g_ui_builder = None
 
 
@@ -189,9 +196,11 @@ def restore_status_line_delayed():
 
 
 def _write_config_files() -> None:
-    TomlConfigParser.write(g_app_config_file, g_app_config)
+    TomlConfigParser.write(g_app_config_file, g_app_config, version=APP_CONFIG_VERSION)
     if g_game_config is not None:
-        TomlConfigParser.write(g_game_config_file, g_game_config)
+        TomlConfigParser.write(
+            g_game_config_file, g_game_config, version=g_game_config_version
+        )
 
 
 def save_config():
@@ -575,8 +584,15 @@ def setup_detected_game_server(game: Game):
 
     global g_game_config
     global g_game_config_file
+    global g_game_config_version
     g_game_config_file = game.get_directory() / "game.toml"
     g_game_config = TomlConfigParser.read(g_game_config_file, game.config_defaults())
+    apply_upgraders(
+        g_game_config,
+        TomlConfigParser.read_version(g_game_config_file),
+        game.config_upgraders(),
+    )
+    g_game_config_version = game.config_version()
     game.config_loaded(g_game_config)
 
     # A saved value (e.g. a previously edited AVAILABLE_MAPS list) may
@@ -864,6 +880,11 @@ current_dir = os.getcwd()
 
 g_app_config_file = Path(current_dir) / "sgsl.toml"
 g_app_config = TomlConfigParser.read(g_app_config_file, build_app_defaults())
+apply_upgraders(
+    g_app_config,
+    TomlConfigParser.read_version(g_app_config_file),
+    APP_CONFIG_UPGRADERS,
+)
 ui.SnapWindow.enabled = g_app_config[ConfigIndex.SNAP_WINDOWS_ENABLED].value
 
 g_terminal_window = terminal.TerminalWindow(

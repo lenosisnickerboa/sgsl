@@ -1,6 +1,13 @@
 from app.config_index import ConfigIndex
 from config.config_item import ConfigItem, ConfigType, Range, finalize_default
+from config.config_upgrader import ConfigUpgrader
 from config.toml_config import Config
+
+# Bump whenever an entry is added to APP_CONFIG_UPGRADERS, so a saved
+# sgsl.toml gets migrated (see config.config_upgrader.apply_upgraders())
+# on next load. No app-level config migration has been needed yet.
+APP_CONFIG_VERSION = 1
+APP_CONFIG_UPGRADERS: list[ConfigUpgrader] = []
 
 
 def build_app_defaults() -> Config[ConfigIndex]:

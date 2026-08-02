@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional, Union
 from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType
+from config.config_upgrader import ConfigItemUpgrade, ConfigUpgrader
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from game.cs2.config_defaults import build_game_defaults
@@ -716,6 +717,52 @@ class CS2Game(Game):
             self._append_default_and_range_to_tooltip(item)
 
         return defaults
+
+    def config_version(self) -> int:
+        # No release has shipped yet, so there's no saved config out
+        # there predating GAME_MODE's default change below -- nothing
+        # to migrate from yet. Bump to 2 (and uncomment
+        # config_upgraders() below) once that change has actually
+        # shipped in a release.
+        return 1
+
+    def config_upgraders(self) -> list[ConfigUpgrader]:
+        # Example upgrader, kept as a reference for the next time a
+        # default changes: this is how GAME_MODE's default change from
+        # "Casual" to "DeathMatch" would be migrated for anyone who
+        # saved a config before that change shipped -- carrying
+        # forward anyone still on the old default, while leaving
+        # anyone who deliberately chose something else (including
+        # "Casual" itself, on purpose) alone. Not live (see
+        # config_version() above).
+        #
+        # old_game_mode = ConfigItem(
+        #     name="game_mode",
+        #     visible_name="Game mode",
+        #     type=ConfigType.STRING_LIST,
+        #     value="Casual",
+        #     allowed_values=[
+        #         "Casual",
+        #         "Competitive",
+        #         "ArmsRace",
+        #         "Demolition",
+        #         "DeathMatch",
+        #     ],
+        # )
+        # return [
+        #     ConfigUpgrader(
+        #         version=2,
+        #         upgrades=[
+        #             ConfigItemUpgrade(
+        #                 index=ConfigIndex.GAME_MODE,
+        #                 old=old_game_mode,
+        #                 new=build_game_defaults()[ConfigIndex.GAME_MODE],
+        #             )
+        #         ],
+        #         removed_indexes=[],
+        #     )
+        # ]
+        return []
 
     def _get_workshop_ids(self, maps: list[str]) -> list[int]:
         installed_ids = []

@@ -42,6 +42,11 @@ class TomlConfigParser:
     changed) is treated like an unknown key: it's skipped and the
     default value is kept, rather than failing the whole load.
 
+    A saved file also carries a "config_version" entry (see write()'s
+    `version` param and read_version()) — a plain integer, not tied to
+    any ConfigItem, used by config.config_upgrader.apply_upgraders()
+    to decide which migrations (if any) a loaded config still needs.
+
     This class is agnostic to which specific index enum you use — it
     only ever treats index values as opaque dict keys and, when
     ordering for output, as plain integers via int(idx). Different
@@ -49,6 +54,30 @@ class TomlConfigParser:
     their own enum/range without this module needing to know about
     either.
     """
+
+    # Reserved top-level TOML key for the config's schema version (see
+    # write()'s `version` param and read_version()) -- not a real
+    # ConfigItem, so read() harmlessly ignores it as just another
+    # unknown key when parsing into a Config.
+    _VERSION_KEY = "config_version"
+
+    @staticmethod
+    def read_version(path: Union[str, Path]) -> int:
+        """Peek `path`'s stored config_version (see write()'s
+        `version` param), without fully parsing it into a Config.
+        Returns 0 if the file doesn't exist, is corrupt, or predates
+        versioning (no such key) -- meaning "older than every real
+        version", so every ConfigUpgrader still applies."""
+        path = Path(path)
+        if not path.exists():
+            return 0
+        with path.open("rb") as f:
+            try:
+                raw = tomllib.load(f)
+            except tomllib.TOMLDecodeError:
+                return 0
+        version = raw.get(TomlConfigParser._VERSION_KEY)
+        return version if isinstance(version, int) else 0
 
     @staticmethod
     def read(path: Union[str, Path], defaults: Config[IndexT]) -> Config[IndexT]:
@@ -103,7 +132,14 @@ class TomlConfigParser:
         return config
 
     @staticmethod
-    def write(path: Union[str, Path], config: Config[IndexT]) -> None:
+    def write(
+        path: Union[str, Path], config: Config[IndexT], version: Optional[int] = None
+    ) -> None:
+        """Write `config` to `path` (see class docstring for the
+        format). `version`, if given, is stamped into the file as a
+        "config_version" entry (see read_version()) -- omit only for a
+        one-off dump (e.g. an error report's redacted copy) that isn't
+        meant to be read back via read_version()/apply_upgraders()."""
         path = Path(path)
 
         # Order by the index's integer value for a stable, deterministic
@@ -146,7 +182,14 @@ class TomlConfigParser:
             b for b in blocks if not TomlConfigParser._opens_table_header(b)
         ]
 
-        path.write_text("\n".join(plain_blocks + header_blocks), encoding="utf-8")
+        version_block = (
+            f"{TomlConfigParser._VERSION_KEY} = {version}\n\n"
+            if version is not None
+            else ""
+        )
+        path.write_text(
+            version_block + "\n".join(plain_blocks + header_blocks), encoding="utf-8"
+        )
 
     @staticmethod
     def _opens_table_header(block: str) -> bool:

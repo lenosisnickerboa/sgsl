@@ -1,8 +1,5 @@
 # General improvements
 
-Add masked config tab
-Handle changed set default values in coming veesion
-
 ## Archive functionality for everything downloaded
 
 Stuff that may disappear otherwise

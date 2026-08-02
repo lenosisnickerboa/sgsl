@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 
 from config.config_item import ConfigItem, ConfigType, finalize_default
+from config.config_upgrader import ConfigUpgrader
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from process import process_handler
@@ -258,6 +259,21 @@ class Game(ABC):
     def config_loaded(self, config: Config[IndexT]) -> None:
         """Return default config for the game."""
         raise NotImplementedError
+
+    def config_version(self) -> int:
+        """Current config schema version for this game -- bump
+        whenever an entry is added to config_upgraders() so a saved
+        game.toml from before that change gets migrated (see
+        config.config_upgrader.apply_upgraders()) on next load. Starts
+        at 1; override together with config_upgraders() when a
+        migration is first needed."""
+        return 1
+
+    def config_upgraders(self) -> list[ConfigUpgrader]:
+        """Migrations to apply, in order, to a saved config from an
+        older config_version() -- see
+        config.config_upgrader.apply_upgraders(). Empty by default."""
+        return []
 
     def error_report_files(self) -> list[str]:
         """Return extra file paths to bundle into an error report, in
