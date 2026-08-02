@@ -142,16 +142,17 @@ class Game(ABC):
         return len(pids) > 0
 
     def _append_default_and_range_to_tooltip(self, item: ConfigItem) -> None:
-        """Append the item's default value, and its allowed values or
-        range (whichever it has -- allowed_values wins if somehow both
-        are set), to its tooltip -- each on its own new line -- so a
-        user hovering over a config item can see both without having
-        to look them up elsewhere. Shared across every game's
-        config_defaults(): call this on each item in the returned
-        Config, last, right before returning, so "default value"
-        reflects whatever that method itself just computed (e.g. a
-        detected maps list, a generated hostname) rather than a stale
-        value from that game's build_game_defaults()."""
+        """Append the item's default value, its allowed values or range
+        (whichever it has -- allowed_values wins if somehow both are
+        set), and finally its underlying variable name, to its tooltip
+        -- each on its own new line -- so a user hovering over a
+        config item can see all of that without having to look it up
+        elsewhere. Shared across every game's config_defaults(): call
+        this on each item in the returned Config, last, right before
+        returning, so "default value" reflects whatever that method
+        itself just computed (e.g. a detected maps list, a generated
+        hostname) rather than a stale value from that game's
+        build_game_defaults()."""
         lines = [item.tooltip] if item.tooltip else []
         default_value = (
             "********"
@@ -164,6 +165,7 @@ class Game(ABC):
             lines.append(f"Allowed values: {values}")
         elif item.range is not None:
             lines.append(f"Range: {item.range.describe()}")
+        lines.append(f"Underlying variable: {item.name}")
         item.tooltip = "\n".join(lines)
 
     @abstractmethod
