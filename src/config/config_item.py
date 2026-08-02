@@ -263,6 +263,18 @@ class ConfigItem:
     `read_only`, if True, tells a UI to build this item's widget so it
     only displays the current value, with no way to edit it (e.g. a
     list that's derived from another item and shouldn't be hand-edited).
+
+    `default_value` is a snapshot of this item's value taken once its
+    Config dict has been fully computed -- see finalize_default(),
+    which sets it (call it once per item, right before returning from
+    build_game_defaults()/build_app_defaults() or a game's own
+    config_defaults() override, so it reflects whatever was actually
+    computed -- e.g. a detected maps list, a generated hostname --
+    rather than a placeholder construction-time value). None means
+    "not yet finalized" (no item in this codebase ever has a real
+    value of None, so this stays unambiguous). Used by a UI to detect
+    when the item has been changed away from its default, e.g. to
+    show a "reset to default" button -- see is_default().
     """
 
     name: str
@@ -282,6 +294,7 @@ class ConfigItem:
     max_length: Optional[int] = None
     tooltip: Optional[str] = None
     read_only: bool = False
+    default_value: Any = None
 
     def __post_init__(self) -> None:
         if self.type is ConfigType.STATIC_TEXT and not self.read_only:
@@ -580,8 +593,48 @@ class ConfigItem:
         unconstrained (any value matching the declared type is fine)."""
         return self.allowed_values
 
+    def is_default(self) -> bool:
+        """True if this item's current value matches its default_value
+        (or default_value hasn't been finalized yet -- see
+        finalize_default() -- in which case there's nothing to compare
+        against, so it's treated as "still default")."""
+        return self.default_value is None or self.value == self.default_value
+
     def __repr__(self) -> str:
         return (
             f"ConfigItem(name={self.name!r}, visible_name={self.visible_name!r}, "
             f"type={self.type.name}, value={self.value!r})"
         )
+
+
+def describe_default_value(item: ConfigItem) -> Any:
+    """Human-readable form of `item`'s default_value -- masked (e.g.
+    "********") for a MASKED_STRING item with a non-empty default, the
+    raw default_value otherwise. Shared by finalize_default()'s own
+    "Default: ..." tooltip line and by any other UI text (e.g.
+    DefaultResetRow's button tooltip) that wants to show the same
+    thing. Only meaningful once default_value has been finalized --
+    see finalize_default()."""
+    if item.type is ConfigType.MASKED_STRING and item.default_value:
+        return "********"
+    return item.default_value
+
+
+def finalize_default(item: ConfigItem) -> None:
+    """Snapshot `item`'s current value as its default_value (see
+    ConfigItem.default_value), and append a "Default: ..."/
+    "Range: ..."/"Allowed values: ..." block to its tooltip. Call once
+    per item, right before returning from a Config dict's own
+    "build the defaults" function (build_game_defaults()/
+    build_app_defaults(), or a game's own config_defaults() override,
+    whichever ran last), so "default" reflects whatever was actually
+    computed rather than a placeholder set at construction time."""
+    item.default_value = item.value
+    lines = [item.tooltip] if item.tooltip else []
+    lines.append(f"Default: {describe_default_value(item)}")
+    if item.allowed_values is not None:
+        values = ", ".join(str(v) for v in item.allowed_values)
+        lines.append(f"Allowed values: {values}")
+    elif item.range is not None:
+        lines.append(f"Range: {item.range.describe()}")
+    item.tooltip = "\n".join(lines)

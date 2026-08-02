@@ -1,6 +1,6 @@
 from typing import Callable, Optional, Union
 
-from config.config_item import ConfigItem, ConfigType, SchemaField
+from config.config_item import ConfigItem, ConfigType, SchemaField, describe_default_value
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 import ui.widgets as ui
@@ -30,6 +30,13 @@ class UiBuilder:
 
     def __init__(self):
         self._widgets: dict[IndexT, list[object]] = {}
+        # Registered separately from _widgets: a DefaultResetRow wraps
+        # a built widget rather than replacing it in the registry
+        # config_changed() uses to refresh values/read_only/allowed_values
+        # (see build_configuration_window()), but still needs its own
+        # "am I default right now?" refresh on every change -- see
+        # _register_reset_row().
+        self._reset_rows: dict[IndexT, list[object]] = {}
 
     def build_shortcuts(
         self,
@@ -99,17 +106,64 @@ class UiBuilder:
             tab_widgets = []
             for index in tab_spec.items:
                 config_item = config[index]
+                if config_item.read_only:
+                    # Nothing sensible to "reset" (e.g. a maps list
+                    # derived fresh from disk on every config_defaults()
+                    # call) -- leave it exactly as before, unwrapped.
+                    widget = self._build_widget(
+                        tab,
+                        index,
+                        config_item,
+                        config,
+                        config_changed_callback,
+                        compact=False,
+                    )
+                    widget.pack(side=ui.TOP)
+                    self._register(index, widget)
+                    tab_widgets.append(widget)
+                    continue
+
+                def on_reset(index=index, config_item=config_item):
+                    # `widget` is deliberately NOT a default arg here:
+                    # it doesn't exist yet at this point in the loop
+                    # (built below, against `row` as its master, right
+                    # after row itself) -- resolved from the enclosing
+                    # scope once this actually runs, by which time it's
+                    # long since been assigned. Same forward-reference
+                    # pattern _build_widget()'s own on_widget_changed
+                    # relies on for its own `widget`.
+                    self._apply_edit(
+                        index,
+                        config_item,
+                        config,
+                        config_item.default_value,
+                        widget,
+                        config_changed_callback,
+                    )
+
+                row = ui.DefaultResetRow(
+                    master=tab,
+                    on_reset=on_reset,
+                    tooltip=f"Reset to default value ({describe_default_value(config_item)})",
+                )
+                # Built with `row` (not `tab`) as its master, so it's a
+                # genuine Tk child of the row -- see
+                # DefaultResetRow.set_child()'s docstring for why that
+                # matters.
                 widget = self._build_widget(
-                    tab,
+                    row,
                     index,
                     config_item,
                     config,
                     config_changed_callback,
                     compact=False,
                 )
-                widget.pack(side=ui.TOP)
+                row.set_child(widget)
                 self._register(index, widget)
                 tab_widgets.append(widget)
+                row.set_has_default(config_item.is_default())
+                row.pack(side=ui.TOP)
+                self._register_reset_row(index, row)
             self._align_hint_widths(tab_widgets)
             if overflowing:
                 self._clip_tab_to_visible_items(tab, len(tab_spec.items))
@@ -162,6 +216,13 @@ class UiBuilder:
         enable/disable an item's widget (e.g. in response to another
         item's edit) by toggling ConfigItem.read_only and listing the
         item as affected, the same way it would change allowed_values.
+        Also toggles any DefaultResetRow wrapping one of those widgets
+        (see build_configuration_window()) to show/hide its "reset to
+        default" button, since a change made anywhere -- a shortcut
+        widget, another tab's copy of the same item, a reset itself,
+        or a Game.config_item_changed() side effect -- can just as
+        easily move an item back to its default as away from it.
+
         Indexes with no built widget are skipped."""
         for index in changed:
             item = config[index]
@@ -170,9 +231,52 @@ class UiBuilder:
                     widget.set_values(item.allowed_values)
                 widget.update(item.value)
                 widget.set_read_only(item.read_only)
+            for row in self._reset_rows.get(index, []):
+                row.set_has_default(item.is_default())
 
     def _register(self, index: IndexT, widget: object) -> None:
         self._widgets.setdefault(index, []).append(widget)
+
+    def _register_reset_row(self, index: IndexT, row: object) -> None:
+        self._reset_rows.setdefault(index, []).append(row)
+
+    def _apply_edit(
+        self,
+        index: IndexT,
+        item: ConfigItem,
+        config: Config[IndexT],
+        new_value,
+        widget,
+        config_changed_callback: Optional[
+            Callable[[ConfigItem, Config[IndexT]], list[IndexT]]
+        ],
+    ) -> None:
+        """Validate and apply `new_value` to `item`, then refresh every
+        registered widget/reset-row for its index -- shared by a
+        widget's own on-change handler (see _build_widget()) and a
+        DefaultResetRow's reset button (see build_configuration_window()),
+        so a reset behaves exactly like any other edit: widget value
+        refresh, sibling-widget refresh, config_changed_callback side
+        effects, and reset-button visibility, all included."""
+        previous = item.value
+        try:
+            item.set(new_value)
+        except (TypeError, ValueError):
+            # Reject the edit and snap the widget back to the last
+            # valid value rather than leaving item/widget out of sync.
+            widget.update(previous)
+            return
+        # Other widgets built for this same index (e.g. a shortcut
+        # and its counterpart in the config tabs) need to pick up
+        # the new value too.
+        self.config_changed([index], config)
+        if config_changed_callback is not None:
+            # The game may have reacted by mutating other config
+            # items (e.g. narrowing another item's allowed_values)
+            # — refresh their widgets too.
+            affected = config_changed_callback(item, config)
+            if affected:
+                self.config_changed(affected, config)
 
     def _build_widget(
         self,
@@ -188,25 +292,9 @@ class UiBuilder:
         tooltip = item.tooltip if item.tooltip else item.visible_name
 
         def on_widget_changed(new_value):
-            previous = item.value
-            try:
-                item.set(new_value)
-            except (TypeError, ValueError):
-                # Reject the edit and snap the widget back to the last
-                # valid value rather than leaving item/widget out of sync.
-                widget.update(previous)
-                return
-            # Other widgets built for this same index (e.g. a shortcut
-            # and its counterpart in the config tabs) need to pick up
-            # the new value too.
-            self.config_changed([index], config)
-            if config_changed_callback is not None:
-                # The game may have reacted by mutating other config
-                # items (e.g. narrowing another item's allowed_values)
-                # — refresh their widgets too.
-                affected = config_changed_callback(item, config)
-                if affected:
-                    self.config_changed(affected, config)
+            self._apply_edit(
+                index, item, config, new_value, widget, config_changed_callback
+            )
 
         if item.type is ConfigType.BOOLEAN:
             widget = ui.CheckButton(

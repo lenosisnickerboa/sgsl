@@ -6,7 +6,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Callable, Optional, Union
 
-from config.config_item import ConfigItem, ConfigType
+from config.config_item import ConfigItem, ConfigType, finalize_default
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
 from process import process_handler
@@ -142,31 +142,19 @@ class Game(ABC):
         return len(pids) > 0
 
     def _append_default_and_range_to_tooltip(self, item: ConfigItem) -> None:
-        """Append the item's default value, its allowed values or range
-        (whichever it has -- allowed_values wins if somehow both are
-        set), and finally its underlying variable name, to its tooltip
-        -- each on its own new line -- so a user hovering over a
-        config item can see all of that without having to look it up
-        elsewhere. Shared across every game's config_defaults(): call
-        this on each item in the returned Config, last, right before
-        returning, so "default value" reflects whatever that method
-        itself just computed (e.g. a detected maps list, a generated
-        hostname) rather than a stale value from that game's
-        build_game_defaults()."""
-        lines = [item.tooltip] if item.tooltip else []
-        default_value = (
-            "********"
-            if item.type is ConfigType.MASKED_STRING and item.value
-            else item.value
-        )
-        lines.append(f"Default: {default_value}")
-        if item.allowed_values is not None:
-            values = ", ".join(str(v) for v in item.allowed_values)
-            lines.append(f"Allowed values: {values}")
-        elif item.range is not None:
-            lines.append(f"Range: {item.range.describe()}")
-        lines.append(f"Underlying variable: {item.name}")
-        item.tooltip = "\n".join(lines)
+        """Snapshot the item's default value (see
+        config.config_item.finalize_default(), which also appends the
+        "Default: ..."/"Range: ..."/"Allowed values: ..." lines to its
+        tooltip), then append its underlying variable name too -- so a
+        user hovering over a config item can see all of that without
+        having to look it up elsewhere. Shared across every game's
+        config_defaults(): call this on each item in the returned
+        Config, last, right before returning, so "default value"
+        reflects whatever that method itself just computed (e.g. a
+        detected maps list, a generated hostname) rather than a stale
+        value from that game's build_game_defaults()."""
+        finalize_default(item)
+        item.tooltip = f"{item.tooltip}\nUnderlying variable: {item.name}"
 
     @abstractmethod
     def get_short_name(self) -> str:

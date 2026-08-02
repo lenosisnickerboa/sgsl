@@ -1,5 +1,5 @@
 import re
-from typing import Optional
+from typing import Callable, Optional
 
 import tkinter as tk
 import tkinter.font as tkfont
@@ -976,6 +976,84 @@ class HintedWidget(EnableDisableMixin, ttk.Frame):
             super().pack(side=TOP, padx=5, pady=2, fill=X)
         else:
             super().pack(side=LEFT, expand=YES, padx=5, fill=X)
+
+
+class DefaultResetRow(EnableDisableMixin, ttk.Frame):
+    """A small "D" button fixed to the far left of a row, used to reset
+    a config item to its default value, plus -- via set_child() -- the
+    item's own widget packed to the button's right. The button only
+    does anything (and only shows its "D" label) while the item's
+    current value differs from its default -- see set_has_default(),
+    which a UI builder calls whenever the item's value changes;
+    otherwise it stays blank and disabled, but still occupies its
+    usual space, so every row in a tab lines up in a straight column
+    whether or not it currently has an active button. (The button
+    widget itself is always present and never added/removed from the
+    layout -- toggling its appearance this way, rather than packing/
+    unpacking it, is what actually guarantees that alignment: a
+    freshly (re)packed sibling can't be measured reliably before the
+    window's own geometry has settled, which showed up as misaligned
+    rows across an early version of this widget.)
+
+    `on_reset` is called (with no arguments) when the button is
+    clicked while active."""
+
+    def __init__(
+        self,
+        master,
+        on_reset: Callable[[], None],
+        tooltip: str = "Reset to default value",
+        **kwargs,
+    ):
+        super().__init__(master, padding=0, **kwargs)
+
+        self._on_reset = on_reset
+        self._has_default = True
+
+        self.button = ttk.Button(self, text="", width=2, command=self._handle_click)
+        self.button.pack(side=LEFT)
+        make_tooltip(self.button, text=tooltip)
+        self._apply_button_state()
+
+        self.child = None
+
+    def set_child(self, child) -> None:
+        """Pack `child` to the right of the reset button. `child` must
+        already have been constructed with this row as its own Tk
+        master (not the tab it visually sits in) -- pack() alone
+        doesn't reparent a widget onto a different master, only a
+        different *packing container* than the one it's actually a
+        child of, so building it against the wrong master first and
+        trying to pack it in here afterward silently leaves it
+        positioned in that other master instead."""
+        self.child = child
+        child.pack(side=LEFT)
+
+    def _handle_click(self) -> None:
+        if not self._has_default:
+            self._on_reset()
+
+    def set_has_default(self, is_default: bool) -> None:
+        """Make the reset button active (showing "D") or blank/inert
+        depending on whether the item currently equals its default --
+        called by UiBuilder.config_changed() whenever the item's value
+        changes."""
+        self._has_default = is_default
+        self._apply_button_state()
+
+    def _apply_button_state(self) -> None:
+        if self._has_default:
+            self.button.configure(text="")
+            self.button.state(["disabled"])
+        else:
+            self.button.configure(text="D")
+            self.button.state(["!disabled"])
+
+    def pack(self, side=TOP):
+        if side == TOP:
+            super().pack(side=TOP, fill=X)
+        else:
+            super().pack(side=LEFT, expand=YES, fill=X)
 
 
 class IntegerSpinbox(HintedWidget):

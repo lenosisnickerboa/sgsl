@@ -1,10 +1,10 @@
 from app.config_index import ConfigIndex
-from config.config_item import ConfigItem, ConfigType, Range
+from config.config_item import ConfigItem, ConfigType, Range, finalize_default
 from config.toml_config import Config
 
 
 def build_app_defaults() -> Config[ConfigIndex]:
-    return {
+    defaults = {
         ConfigIndex.TERMINAL_ENABLED: ConfigItem(
             name="terminal_enable",
             visible_name="Enable terminal",
@@ -43,3 +43,6 @@ def build_app_defaults() -> Config[ConfigIndex]:
             value=True,
         ),
     }
+    for item in defaults.values():
+        finalize_default(item)
+    return defaults
