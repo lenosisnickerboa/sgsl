@@ -437,6 +437,85 @@ class LinkDialog(EnableDisableMixin, ttk.Toplevel):
         self.wait_window(self)
 
 
+class ConfirmDialog(EnableDisableMixin, ttk.Toplevel):
+    """A modal dialog: shows `message` (may be multi-line) with OK/
+    Cancel buttons. Appears immediately on construction; call show()
+    to block the caller until it's dismissed, returning True if OK was
+    pressed, or False if Cancel was pressed (or the window closed via
+    its own close button, treated the same as Cancel)."""
+
+    def __init__(
+        self,
+        title: str,
+        message: str,
+        ok_text: str = "OK",
+        cancel_text: str = "Cancel",
+        **kwargs,
+    ):
+        super().__init__(title=title, **kwargs)
+        # Parked off-screen until _center_on_master() repositions it --
+        # same reasoning as Window.__init__: avoids a flash at the
+        # window manager's default placement before centering.
+        self.geometry("+8000+8000")
+
+        self._result = False
+
+        self.resizable(False, False)
+        self.protocol("WM_DELETE_WINDOW", self._handle_cancel)
+
+        frame = ttk.Frame(self, padding=20)
+        frame.pack(fill=BOTH, expand=YES)
+
+        label = ttk.Label(frame, text=message, wraplength=480, justify=LEFT)
+        label.pack(fill=X, pady=(0, 15))
+
+        button_row = ttk.Frame(frame)
+        button_row.pack()
+
+        ok_button = ttk.Button(
+            button_row, text=ok_text, command=self._handle_ok, bootstyle="primary"
+        )
+        ok_button.pack(side=LEFT, padx=(0, 5))
+        ok_button.focus_set()
+
+        cancel_button = ttk.Button(
+            button_row, text=cancel_text, command=self._handle_cancel
+        )
+        cancel_button.pack(side=LEFT)
+
+        self._center_on_master()
+
+        # Modal: block interaction with other windows until closed.
+        self.transient(self.master)
+        self.grab_set()
+
+    def _center_on_master(self):
+        master = self.master
+        if master is None:
+            return
+        master.update_idletasks()
+        self.update_idletasks()
+        x = master.winfo_x() + (master.winfo_width() - self.winfo_width()) // 2
+        y = master.winfo_y() + (master.winfo_height() - self.winfo_height()) // 2
+        self.geometry(f"+{x}+{y}")
+
+    def _handle_ok(self):
+        self._result = True
+        self.grab_release()
+        self.destroy()
+
+    def _handle_cancel(self):
+        self._result = False
+        self.grab_release()
+        self.destroy()
+
+    def show(self) -> bool:
+        """Block the calling code until the dialog is dismissed, then
+        return True (OK) or False (Cancel/closed)."""
+        self.wait_window(self)
+        return self._result
+
+
 class EditStringDialog(EnableDisableMixin, ttk.Toplevel):
     """A modal dialog for editing a single string: shows `title`, an
     Entry pre-filled with `value`, and OK/Cancel buttons. Appears

@@ -89,6 +89,8 @@ If there is some special tweak you want to add, not supported by sgsl.exe, it ca
 
 In short; it's a mess, but most of the time you should be fine with using the same workshop items/ids as for [cs2](https://steamcommunity.com/workshop/browse/?appid=730). You can google it or ask your favourite AI companion about more details.
 
+Also, read the [cs2 docs](../cs2/README.md) for more info.
+
 ## Quirks
 
 Sometimes, for no reason, I get very low fps. Restarting the cs2 client GUI helps. Don't know why.

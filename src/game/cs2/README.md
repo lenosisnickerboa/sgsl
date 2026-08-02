@@ -75,7 +75,8 @@ If there is some special tweak you want to add, not supported by sgsl.exe, it ca
 
 ### Workshop maps not working
 
-The workshop contains cs2 and csgo maps without a good possibility to distinguish them. If you happen to add a csgo map as a workshop map it will not work. If you restart sgsl and once again look through the maps these maps will be named something with "legacy_<something>". They will not be accepted by Valve so you might just remove them. They can be converted into a more modern format but that is beyond the scope of this description.
+Most of the time workshop map just works, but if you run into problems, the reason could be that the workshop map is simply too old.
+The workshop contains cs2 and csgo maps without a good possibility to distinguish them. It has e.g. been left to the map author to properly tag the map. sgsl tries to determine if the map is a cs2 map or not and will display a dialog box with its findings but eventually it is up to you if you determine this is a cs2 or csgo map. If it isn't a proper cs2 map it will not work when you try to use it (cs2 will fallback to de_dust2). If you allow the map to be downloaded (let the game server run "for a while") and restart sgsl and you see the map named something with "legacy_<something>" that indicates this was an old map and it should simply be removed.
 
 ### Low FPS
 

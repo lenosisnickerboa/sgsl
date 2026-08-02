@@ -8,6 +8,8 @@ link_dialog() is the same as ok_dialog() but with an extra clickable
 link that opens in the default web browser.
 edit_string_dialog_box() shows an editable string with OK/Cancel
 buttons and returns the edited value or None.
+confirm_dialog() shows a message with OK/Cancel buttons and returns
+whether OK was pressed.
 """
 
 import sys
@@ -49,4 +51,17 @@ def edit_string_dialog_box(title: str, value: str) -> Optional[str]:
     the edited string if OK was pressed, or None if Cancel was pressed
     (or the dialog was closed via its own close button)."""
     dialog = ui.EditStringDialog(title=title, value=value)
+    return dialog.show()
+
+
+def confirm_dialog(
+    message: str, title: str = "Confirm", ok_text: str = "OK", cancel_text: str = "Cancel"
+) -> bool:
+    """Show `message` (may be multi-line) in a modal dialog with OK/
+    Cancel buttons, and block until the user dismisses it. Returns
+    True if OK was pressed, or False if Cancel was pressed (or the
+    dialog was closed via its own close button)."""
+    dialog = ui.ConfirmDialog(
+        title=title, message=message, ok_text=ok_text, cancel_text=cancel_text
+    )
     return dialog.show()

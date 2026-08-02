@@ -861,7 +861,11 @@ class CSGOGame(Game):
             ),
             TabSpec(
                 title="Maps",
-                items=[ConfigIndex.ORDINARY_MAPS, ConfigIndex.WORKSHOP_MAPS],
+                items=[
+                    ConfigIndex.ORDINARY_MAPS,
+                    ConfigIndex.WORKSHOP_MAPS,
+                    ConfigIndex.WORKSHOP_MAPS_HELP_TEXT,
+                ],
             ),
             TabSpec(
                 title="Map groups",

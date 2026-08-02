@@ -9,7 +9,7 @@ from config.config_item import (
 )
 from config.toml_config import Config
 from game.cs2.config_index import ConfigIndex
-from support.steam_workshop import fetch_published_file_title
+from support.steam_workshop import confirm_workshop_item
 
 WorkshopMapPattern = re.compile(r"(\d+)(?:\\([^\\]+))?\s*$")
 WorkshopUrlIdPattern = re.compile(r"^https?://\S*[?&]id=(\d+)", re.IGNORECASE)
@@ -36,10 +36,13 @@ def _parse_workshop_entry(value: str) -> tuple[str, "str | None"]:
 def _normalize_workshop_map(value: str) -> str:
     """Normalize a workshop entry (an individual map or a collection
     used as a map group) down to "workshop\\<id>\\<name>" — the form
-    the name is stored in. If no explicit name was given, the title is
-    looked up directly from Valve's public GetPublishedFileDetails API;
-    if that lookup fails too (offline, bad id, Steam API hiccup, ...),
-    it falls back to "unknown" — re-entering the same id/URL later,
+    the name is stored in. If no explicit name was given yet (i.e.
+    this is a brand new entry, not a re-normalization of an
+    already-confirmed one), confirm_workshop_item() fetches its full
+    details, shows them to the user for confirmation, and raises to
+    reject the whole add if they cancel; if the lookup itself fails
+    (offline, bad id, Steam API hiccup, ...), it falls back to
+    "unknown" without prompting — re-entering the same id/URL later,
     once reachable, will resolve it.
 
     For an individual map (WORKSHOP_MAPS), this is only a first guess:
@@ -52,7 +55,7 @@ def _normalize_workshop_map(value: str) -> str:
     only source for its name."""
     workshop_id, name = _parse_workshop_entry(value)
     if name is None:
-        name = fetch_published_file_title(int(workshop_id))
+        name = confirm_workshop_item(int(workshop_id))
     return f"workshop\\{workshop_id}\\{name or 'unknown'}"
 
 
@@ -427,6 +430,13 @@ def build_game_defaults() -> Config[ConfigIndex]:
             'It will be transformed to workshop\\map-id\\map-name (or map-name will be "unknown" if it can\'t be determined). ',
             value=[],
             transform=_normalize_workshop_map,
+        ),
+        ConfigIndex.WORKSHOP_MAPS_HELP_TEXT: ConfigItem(
+            name="workshop_maps_help_text",
+            visible_name="Workshop maps help",
+            type=ConfigType.STATIC_TEXT,
+            value="You can find maps to download here: https://steamcommunity.com/app/730/workshop/",
+            read_only=True,
         ),
         ConfigIndex.STEAM_API_AUTH_KEY: ConfigItem(
             name="api_auth_key",
