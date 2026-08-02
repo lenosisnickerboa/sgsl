@@ -630,10 +630,11 @@ class CSGOGame(Game):
     # in the filename itself isn't reliable; the containing directory
     # is named after the actual workshop id, so use that instead.
 
+    def _workshop_content_dir(self) -> Path:
+        return Path(self.server_root) / "steamapps" / "workshop" / "content" / str(AppId)
+
     def _workshop_maps(self) -> list[str]:
-        maps_dir = (
-            Path(self.server_root) / "steamapps" / "workshop" / "content" / str(AppId)
-        )
+        maps_dir = self._workshop_content_dir()
         maps = []
         seen_ids = set()
         map_files = list(maps_dir.glob("**/*.vpk")) + list(maps_dir.glob("**/*.bsp"))
@@ -891,8 +892,30 @@ class CSGOGame(Game):
             ),
         ]
 
+    def _remove_orphaned_workshop_content(self, current_workshop_maps: list[str]) -> None:
+        """Delete the downloaded content directory for any workshop
+        map id that's no longer in `current_workshop_maps` (i.e. the
+        user just removed it from WORKSHOP_MAPS), so it doesn't keep
+        taking up disk space until the next full reinstall. Ids that
+        currently have no directory on disk (never downloaded, or
+        already removed) are silently skipped. Only applies to
+        individual maps -- a WORKSHOP_MAPGROUPS collection id is never
+        itself downloaded to its own directory."""
+        current_ids = {self._get_workshop_id(m) for m in current_workshop_maps}
+        content_dir = self._workshop_content_dir()
+        if not content_dir.is_dir():
+            return
+        for entry in content_dir.iterdir():
+            if not entry.is_dir() or not entry.name.isdigit():
+                continue
+            if int(entry.name) in current_ids:
+                continue
+            shutil.rmtree(entry, ignore_errors=True)
+            self.print(f"Removed downloaded workshop content for id {entry.name}")
+
     def config_item_changed(self, config_item, config: Config[IndexT]) -> list[IndexT]:
         if config_item is config[ConfigIndex.WORKSHOP_MAPS]:
+            self._remove_orphaned_workshop_content(config_item.value)
             # Keep the selected-map dropdown's choices in sync with
             # the editable map list; if the currently selected map was
             # removed, fall back to the first of what's left.

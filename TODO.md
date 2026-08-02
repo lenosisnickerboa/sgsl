@@ -48,13 +48,9 @@ Current filtering should be moved as defaults for filtering stdout
 
 # CS2
 
-## When a workshop map is removed, remove the downloaded map as well
-
 ## Mod support?
 
 # CSGO
-
-## When a workshop map is removed, remove the downloaded map as well
 
 ## Mod support?
 
