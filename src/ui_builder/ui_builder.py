@@ -85,10 +85,16 @@ class UiBuilder:
         """Build a tabbed window titled `title` with one tab per TabSpec
         in `tabs`, each populated with a widget per index in that
         spec's `items` — same widget building and change wiring as
-        build_shortcuts(). A final "All" tab is always appended,
-        containing every config item in `config` sorted alphabetically
-        by visible name, regardless of how the game grouped its other
-        tabs. The window is created hidden; use
+        build_shortcuts(). A "Masked" tab is appended next, containing
+        every MASKED_STRING item in `config` (passwords/keys), if any
+        -- skipped entirely if `config` has none. A final "All" tab is
+        always appended, containing every config item in `config`
+        sorted alphabetically by visible name, regardless of how the
+        game grouped its other tabs (an item that's also on a custom
+        tab, or the "Masked" one, appears on both — same as any other
+        duplicate between a custom tab and "All").
+
+        The window is created hidden; use
         its show()/hide()/toggle() to control visibility, which joins/
         leaves the shared snap chain automatically (see SnapWindow).
         `on_close` is called when the window is closed via its own
@@ -107,7 +113,16 @@ class UiBuilder:
         alphabetical_items = sorted(
             config.keys(), key=lambda index: config[index].visible_name.lower()
         )
-        all_tabs = [*tabs, TabSpec(title="All", items=alphabetical_items)]
+        masked_items = [
+            index
+            for index in alphabetical_items
+            if config[index].type is ConfigType.MASKED_STRING
+        ]
+        all_tabs = [
+            *tabs,
+            *([TabSpec(title="Masked", items=masked_items)] if masked_items else []),
+            TabSpec(title="All", items=alphabetical_items),
+        ]
         for tab_spec in all_tabs:
             overflowing = len(tab_spec.items) > MAX_VISIBLE_CONFIG_ITEMS_PER_TAB
             if overflowing:

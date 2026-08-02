@@ -8,7 +8,9 @@
 - Multiple game servers per host (you need to avoid port collisions of course)
 - Tabbed config windows for common settings with tooltips explaining them
     - Similar config tabs over all applications
+    - A "Masked" tab containing all secrets (password/keys/...)
     - An "All" tab containing all available config options
+- Default config item handling gor global, per config tab or config item.
 - Show all available maps and allow them to be used by name
     - Define server name, password, listen address and port, ...
     - Server tickrate
