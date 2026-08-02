@@ -19,6 +19,7 @@ from game.cs2.config_parser.valve_gamemode_config_parser import (
 from game.game import Game, OperationResult, TerminalLineResult
 from support import bat_runner
 from support.dialog import edit_string_dialog_box
+from support.rcon_client import run_rcon_command
 from support.run_command import split_run_command
 
 GameExe = "srcds.exe"
@@ -61,6 +62,24 @@ class CSGOGame(Game):
     def get_developer_url(self) -> str:
         return (
             "https://store.steampowered.com/app/4465480/CounterStrikeGlobal_Offensive/"
+        )
+
+    def supports_rcon(self) -> bool:
+        return True
+
+    def rcon_enabled(self, config: Config[IndexT]) -> bool:
+        return config[ConfigIndex.RCON_ENABLE].value
+
+    def send_rcon_command(self, command: str, config: Config[IndexT]) -> str:
+        # RCON has no port of its own on Source engine servers -- it
+        # authenticates over the game's own listen port (see run()'s
+        # cvar_overrides comment for the same point re: sv_lan).
+        return run_rcon_command(
+            command,
+            enabled=config[ConfigIndex.RCON_ENABLE].value,
+            host=config[ConfigIndex.LISTEN_ADDRESS].value,
+            port=config[ConfigIndex.LISTEN_PORT].value,
+            password=config[ConfigIndex.RCON_PASSWORD].value,
         )
 
     # steamcmd, on a freshly-unzipped install, typically spends its
