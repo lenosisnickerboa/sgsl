@@ -282,5 +282,32 @@ class Game(ABC):
         game-specific logs/state useful for diagnosing issues."""
         raise NotImplementedError
 
+    def supports_rcon(self) -> bool:
+        """True if this game can be controlled via an interactive RCON
+        console (see send_rcon_command()) -- a caller uses this to
+        decide whether to offer an RCON button/window at all. False by
+        default; override together with send_rcon_command() for a
+        game that supports it."""
+        return False
+
+    def rcon_enabled(self, config: Config[IndexT]) -> bool:
+        """True if `config` currently has RCON enabled -- a caller
+        checks this before even bothering to check whether the server
+        is running, so "RCON is disabled" takes priority over "server
+        isn't running" when both are true. Only ever called when
+        supports_rcon() is True -- unimplemented otherwise, the same
+        as send_rcon_command()."""
+        raise NotImplementedError
+
+    def send_rcon_command(self, command: str, config: Config[IndexT]) -> str:
+        """Send `command` over RCON to the running server and return
+        its response text; may raise (e.g. RuntimeError if RCON isn't
+        enabled/configured, or support.rcon_client.RconError for a
+        connection/protocol failure) to report a failure instead.
+        Only ever called when supports_rcon() is True -- unimplemented
+        otherwise, the same as any other method a subclass is expected
+        to override in that case."""
+        raise NotImplementedError
+
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(directory={self.directory!r})"

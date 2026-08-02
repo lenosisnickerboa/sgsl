@@ -10,6 +10,7 @@ from config.toml_config import Config, TomlConfigParser
 from app.version import VERSION
 import ui.widgets as ui
 import ui.terminal as terminal
+import ui.rcon_window as rcon_window
 from game.game import Game, OperationResult, TerminalLineResult
 from game.game_factory import GameFactory
 from app.config_defaults import build_app_defaults
@@ -34,6 +35,9 @@ g_terminal_open_close = None
 g_configure_window = None
 g_configure_is_open = False
 g_configure_open_close = None
+g_rcon_window = None
+g_rcon_is_open = False
+g_rcon_open_close = None
 g_app_configure_window = None
 g_app_configure_is_open = False
 g_app_configure_open_close = None
@@ -261,6 +265,10 @@ def on_error_report():
     (report_dir / "terminal.txt").write_text(
         _redact_secrets(g_terminal_window.get_content(), *configs), encoding="utf-8"
     )
+    if g_rcon_window is not None:
+        (report_dir / "rcon_output.txt").write_text(
+            _redact_secrets(g_rcon_window.get_content(), *configs), encoding="utf-8"
+        )
     TomlConfigParser.write(
         report_dir / g_app_config_file.name, _redact_masked_values(g_app_config)
     )
@@ -317,6 +325,26 @@ def on_toggle_configure_window():
     g_configure_window.toggle()
 
 
+def on_toggle_rcon_window():
+    global g_rcon_is_open
+    g_rcon_is_open = not g_rcon_is_open
+    g_rcon_window.toggle()
+
+
+def _update_rcon_button_state():
+    """Keep the RCON button's enabled state in sync with whether the
+    server is currently running -- there's nothing to send a command
+    to otherwise (see sgsl.send_rcon_command()'s own is_running()
+    check). A no-op if this game doesn't support RCON, so no button
+    was ever created."""
+    if g_rcon_open_close is None:
+        return
+    if g_server_should_be_running:
+        g_rcon_open_close.enable()
+    else:
+        g_rcon_open_close.disable()
+
+
 def on_toggle_app_configure_window():
     global g_app_configure_is_open
     g_app_configure_is_open = not g_app_configure_is_open
@@ -343,6 +371,7 @@ def on_start_stop_game_server(game: Game):
         g_start_stop_server.set_name(name="Stop")
         g_start_stop_server.set_tooltip(tooltip="Stop server")
         g_update_open_close.disable()
+        _update_rcon_button_state()
         print_to_terminal(
             f"Started game server for {game.get_long_name()} in directory {game.get_directory()}..."
         )
@@ -363,6 +392,7 @@ def on_start_stop_game_server(game: Game):
         g_start_stop_server.set_name(name="Start")
         g_start_stop_server.set_tooltip(tooltip="Start server")
         g_update_open_close.enable()
+        _update_rcon_button_state()
         print_to_terminal(
             f"Stopped game server for {game.get_long_name()} in directory {game.get_directory()}..."
         )
@@ -378,6 +408,7 @@ def on_game_server_crashed(game: Game):
     g_start_stop_server.set_name(name="Start")
     g_start_stop_server.set_tooltip(tooltip="Start server")
     g_update_open_close.enable()
+    _update_rcon_button_state()
     set_status_line(f"Game server {game.get_long_name()} crashed...")
     print_to_terminal(
         f"Game server for {game.get_long_name()} in directory {game.get_directory()} crashed..."
@@ -395,6 +426,7 @@ def on_game_map_load_failed(game: Game):
     g_start_stop_server.set_name(name="Start")
     g_start_stop_server.set_tooltip(tooltip="Start server")
     g_update_open_close.enable()
+    _update_rcon_button_state()
     set_status_line(f"Game server {game.get_long_name()} stopped (map load failed)...")
     print_to_terminal(
         f"Game server for {game.get_long_name()} in directory {game.get_directory()} stopped after map load failure..."
@@ -496,6 +528,18 @@ def setup_detected_game_server(game: Game):
         set_status_line("Ready")
     g_start_stop_server.pack()
 
+    global g_rcon_open_close
+    g_rcon_open_close = None
+    if game.supports_rcon():
+        g_rcon_open_close = ui.CheckButton(
+            master=game_frame,
+            name="RCON",
+            tooltip="Open an interactive RCON console for this server",
+            command=lambda _value: on_toggle_rcon_window(),
+        )
+        g_rcon_open_close.pack()
+        _update_rcon_button_state()
+
     # Anchored to the right of game_frame, as a group, so Start stays
     # pinned to the left while these sit flush against the right edge.
     right_button_frame = ui.Frame(master=game_frame)
@@ -586,6 +630,36 @@ def setup_detected_game_server(game: Game):
     # Keep the config window (and, transitively, the terminal window
     # via the registration above) snapped when the main window moves.
     root.add_snap_follower(g_configure_window)
+
+    def send_rcon_command(command: str) -> str:
+        if not game.rcon_enabled(g_game_config):
+            raise RuntimeError("RCON is disabled -- enable it first")
+        if not game.is_running():
+            raise RuntimeError(
+                f"{game.get_long_name()} is not running -- start it first"
+            )
+        return game.send_rcon_command(command, g_game_config)
+
+    global g_rcon_window
+    if game.supports_rcon():
+        g_rcon_window = rcon_window.RconWindow(
+            root,
+            on_close_rcon_window,
+            command_callback=send_rcon_command,
+            install_dir=game.get_directory(),
+            title=f"RCON — {game.get_long_name()}",
+            # Anchor to the right of the config window while it's
+            # open, so the two don't land on top of each other — both
+            # would otherwise snap to the same spot next to the main
+            # window (same reasoning as the app config window's anchor).
+            snap_anchor=lambda: (
+                g_configure_window
+                if g_configure_window is not None and g_configure_window.is_visible()
+                else root
+            ),
+        )
+        g_configure_window.add_snap_follower(g_rcon_window)
+        root.add_snap_follower(g_rcon_window)
 
     # -- spacer
 
@@ -719,6 +793,12 @@ def on_close_configure_window():
     global g_configure_is_open
     g_configure_is_open = False
     g_configure_open_close.off()
+
+
+def on_close_rcon_window():
+    global g_rcon_is_open
+    g_rcon_is_open = False
+    g_rcon_open_close.off()
 
 
 def on_close_app_configure_window():
