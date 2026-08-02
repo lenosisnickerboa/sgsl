@@ -133,10 +133,20 @@ class UiBuilder:
             tab_widgets = []
             for index in tab_spec.items:
                 config_item = config[index]
-                if config_item.read_only:
-                    # Nothing sensible to "reset" (e.g. a maps list
-                    # derived fresh from disk on every config_defaults()
-                    # call) -- leave it exactly as before, unwrapped.
+                if config_item.type is ConfigType.STATIC_TEXT:
+                    # Purely informational text, not a real config
+                    # value (ConfigItem.__post_init__ requires it be
+                    # read_only) -- nothing sensible to "reset", so
+                    # leave it unwrapped. Every other read_only item
+                    # still gets wrapped below: read_only for those is
+                    # a runtime flag, not a permanent trait (e.g. a
+                    # Game may flip RCON_PASSWORD or SELECTED_MAP
+                    # between read_only and editable depending on
+                    # another item's value -- see
+                    # Game._sync_rcon_password_state()) -- so whether
+                    # it's currently read_only at the moment this
+                    # window is built says nothing about whether it
+                    # can ever differ from its default.
                     widget = self._build_widget(
                         tab,
                         index,
