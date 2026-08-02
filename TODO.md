@@ -52,13 +52,9 @@ Current filtering should be moved as defaults for filtering stdout
 
 ## Mod support?
 
-## RCON client
-
 # VU
 
 ## General mod support?
 
 Instead of hardcoded ones
-
-## RCON client
 

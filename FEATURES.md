@@ -2,7 +2,7 @@
 
 ## General features in all supported games
 
-- One-click install/update
+- One-click install/update (start server possible without any further configuration)
 - Start/monitor/stop game server
 - Host LAN only/public game server
 - Multiple game servers per host (you need to avoid port collisions of course)
@@ -16,8 +16,9 @@
     - Create map groups
     - Optional map vote
     - Optional bots
-    - RCON
+    - RCON server config
     - Automatic/manual config save in toml config file
+- RCON client (connects to game server using server config)
 - Extend existing config options by defining custom pre and post options when starting game server
 - Further extend config options by writing your own config files which are appended to existing ones
 - If your run into any problems, an error report can be created and attached to a github issue
