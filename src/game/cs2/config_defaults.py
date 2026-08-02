@@ -55,7 +55,7 @@ def _normalize_workshop_map(value: str) -> str:
     only source for its name."""
     workshop_id, name = _parse_workshop_entry(value)
     if name is None:
-        name = confirm_workshop_item(int(workshop_id))
+        name = confirm_workshop_item(int(workshop_id), target_game="cs2")
     return f"workshop\\{workshop_id}\\{name or 'unknown'}"
 
 

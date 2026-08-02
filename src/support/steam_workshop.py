@@ -7,8 +7,10 @@ endpoint -- no API key needed, unlike most of the Steam Web API.
 
 confirm_workshop_item() builds on this to show the user everything
 Valve has on file for an item -- plus sgsl's best guess at whether
-it's a CS2-native map or a pre-CS2 (CS:GO-only) one, and why -- in a
-modal dialog, letting them accept or reject actually adding it.
+it's compatible with whichever of CS2/the re-released CS:GO is asking
+(they don't share Workshop maps -- CS2 uses Source 2, CS:GO the
+original engine), and why -- in a modal dialog, letting them accept or
+reject actually adding it.
 """
 
 import json
@@ -138,6 +140,47 @@ def _guess_cs2_compatibility(details: PublishedFileDetails) -> tuple[str, str]:
     return ("Unknown", "No creation date information available.")
 
 
+def _guess_csgo_compatibility(details: PublishedFileDetails) -> tuple[str, str]:
+    """Same idea as _guess_cs2_compatibility(), but for the
+    re-released standalone CS:GO app -- CS2 workshop maps generally
+    don't work there (Source 2 vs. CS:GO's original engine), so the
+    verdict is the mirror image: a map that looks CS2-native is the
+    *bad* sign here, and one that looks like a classic pre-CS2 CS:GO
+    map is the *good* sign. Same underlying signals and caveats as
+    _guess_cs2_compatibility(), just reversed."""
+    tags_lower = {tag.lower() for tag in details.tags}
+    if "csgo" in tags_lower:
+        return ("Likely a CS:GO map", 'Tagged "Csgo" by its author.')
+    if "cs2" in tags_lower:
+        return (
+            "Likely a CS2 map -- may not work correctly in CS:GO",
+            'Tagged "Cs2" (not "Csgo") by its author.',
+        )
+
+    created = _to_date(details.time_created)
+    updated = _to_date(details.time_updated)
+    if updated is not None and updated >= _Cs2ReleaseDate:
+        return (
+            "Possibly a CS2-only map -- may not work correctly in CS:GO",
+            f"No engine tag set, but last updated on {updated}, after CS2's "
+            f"release date {_Cs2ReleaseDate} -- it may have been ported to "
+            "Source 2 since.",
+        )
+    if created is not None and created >= _Cs2ReleaseDate:
+        return (
+            "Likely a CS2 map -- may not work correctly in CS:GO",
+            f"Published on {created}, after CS2's release date "
+            f"{_Cs2ReleaseDate} -- it didn't exist in the CS:GO era.",
+        )
+    if created is not None:
+        return (
+            "Likely a CS:GO map",
+            f"Published on {created} and never updated since, before CS2's "
+            f"release date {_Cs2ReleaseDate}.",
+        )
+    return ("Unknown", "No creation date information available.")
+
+
 def _format_workshop_details_message(
     details: PublishedFileDetails, verdict: str, reason: str
 ) -> str:
@@ -160,12 +203,16 @@ def _format_workshop_details_message(
     return "\n".join(lines)
 
 
-def confirm_workshop_item(workshop_id: int, timeout: float = 5.0) -> Optional[str]:
+def confirm_workshop_item(
+    workshop_id: int, target_game: str = "cs2", timeout: float = 5.0
+) -> Optional[str]:
     """Fetch full details for Workshop item `workshop_id` and show them
     to the user in a modal confirmation dialog -- including sgsl's
-    best guess at whether it's a CS2-native map or a pre-CS2 CS:GO one
-    (see _guess_cs2_compatibility()) -- letting them accept or reject
-    actually adding it.
+    best guess at whether it'll work in `target_game` ("cs2" or
+    "csgo" -- the re-released standalone CS:GO app, whose Workshop
+    maps generally aren't interchangeable with CS2's; see
+    _guess_cs2_compatibility()/_guess_csgo_compatibility()) -- letting
+    them accept or reject actually adding it.
 
     Returns the item's title (or None if Valve has none on file) if
     the user confirms. Raises ValueError if the user cancels -- the
@@ -180,7 +227,8 @@ def confirm_workshop_item(workshop_id: int, timeout: float = 5.0) -> Optional[st
     details = fetch_published_file_details(workshop_id, timeout=timeout)
     if details is None:
         return None
-    verdict, reason = _guess_cs2_compatibility(details)
+    guess = _guess_csgo_compatibility if target_game == "csgo" else _guess_cs2_compatibility
+    verdict, reason = guess(details)
     message = _format_workshop_details_message(details, verdict, reason)
     if not confirm_dialog(message, title="Add workshop item?"):
         raise ValueError(f"Adding workshop item {workshop_id} was cancelled")
