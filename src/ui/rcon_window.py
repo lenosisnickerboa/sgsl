@@ -50,7 +50,7 @@ class RconWindow(SnapWindow, tb.Toplevel):
 
     Stays alive for the lifetime of the app; use show()/hide()/
     toggle() to control visibility. See SnapWindow (ui.widgets) for
-    snap_anchor/add_snap_follower()."""
+    the automatic snap-chain behavior."""
 
     def __init__(
         self,
@@ -59,7 +59,6 @@ class RconWindow(SnapWindow, tb.Toplevel):
         command_callback: Callable[[str], str],
         install_dir: Union[str, Path],
         title: str = "RCON",
-        snap_anchor=None,
     ):
         super().__init__(master)
         self.title(title)
@@ -68,7 +67,7 @@ class RconWindow(SnapWindow, tb.Toplevel):
         self.on_close = on_close
         self.command_callback = command_callback
         self.install_dir = Path(install_dir)
-        self._init_snap(snap_anchor)
+        self._init_snap()
 
         # Command history -- see _on_history_up()/_on_history_down().
         # _history_index is None while not currently navigating (i.e.
@@ -224,10 +223,12 @@ class RconWindow(SnapWindow, tb.Toplevel):
         self._append(f"Saved RCON output to {file_path}", "info")
 
     def show(self):
-        """Reveal the window, snapped to the right edge of its anchor
-        (see snap_anchor), and bring it to the front with the command
-        entry focused. Reposition of any visible snap followers
-        happens via the <Configure> binding from _init_snap()."""
+        """Reveal the window, joining the snap chain (see
+        SnapWindow._join_chain()) and snapping to its right edge, and
+        bring it to the front with the command entry focused.
+        Reposition of the rest of the chain happens via the
+        <Configure> binding from _init_snap()."""
+        self._join_chain()
         self._snap_to_anchor()
         self.deiconify()
         self.lift()
@@ -237,10 +238,10 @@ class RconWindow(SnapWindow, tb.Toplevel):
     def hide(self):
         """Hide the window without destroying it or losing its log."""
         self.withdraw()
-        # withdraw() fires no <Configure>, so a follower dynamically
-        # anchored to "me, if visible, else something else" would
-        # otherwise never learn it should reposition.
-        self.notify_snap_followers()
+        # withdraw() fires no <Configure>, so leaving the chain (and
+        # reconnecting whatever was chained after this window) has to
+        # happen explicitly here rather than relying on that binding.
+        self._leave_chain()
         self.on_close()
 
     def toggle(self):

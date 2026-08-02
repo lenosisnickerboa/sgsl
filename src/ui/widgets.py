@@ -64,35 +64,35 @@ class EnableDisableMixin:
 
 
 class SnapWindow:
-    """Mixin giving a Tk Toplevel/Window "snapping": _snap_to_anchor()
-    positions this window to the right of an anchor widget, and any
-    window registered via add_snap_follower() is kept snapped to this
-    one automatically — not just when this window is shown, but any
-    time it (or, transitively, its own anchor) is moved or resized, via
-    the <Configure> binding set up in _init_snap().
+    """Mixin giving a Tk Toplevel/Window "snapping": every window using
+    it takes part in one shared, ordered chain. A newly shown window
+    always joins the end of the chain, snapping to whatever window is
+    currently rightmost (or to its own master/root if the chain is
+    empty) — see _join_chain(), called from show(). Hiding a chain
+    member splices it back out and re-anchors whatever was chained
+    after it onto whatever it was itself anchored to, so the remaining
+    windows close the gap instead of trailing off a hidden window —
+    see _leave_chain(), called from hide(). Any time a chain member
+    (or, transitively, its own anchor) is moved or resized, every
+    window chained after it is repositioned to follow, via the
+    <Configure> binding set up in _init_snap().
 
     Windows only move together while actually snapped: dragging a
-    follower away breaks it loose (detected by comparing its live
-    position against where its anchor would put it), and an anchor
-    moving after that no longer drags the detached window back. It
-    re-snaps the next time it's explicitly shown/repositioned.
+    chained window away breaks it loose (detected by comparing its
+    live position against where its anchor would put it), and its
+    former anchor moving after that no longer drags the detached
+    window back. It re-snaps the next time it's explicitly shown/
+    repositioned.
 
     While loose, dragging it close to another SnapWindow's right edge
     (within _DragSnapThreshold pixels on both axes) snaps it flush
-    against that edge and adopts that window as its new anchor going
-    forward — the same "drag it away, it stays put; move the anchor,
-    it follows" relationship as the app's built-in anchor chain, just
-    established ad hoc instead of at construction time. See
-    _try_drag_snap().
+    against that edge and splices it into the chain right after that
+    window, adopting it as the new anchor going forward — the same
+    relationship the automatic show()-time chaining establishes, just
+    initiated ad hoc by the user instead. See _try_drag_snap().
 
     Call _init_snap() from __init__, after the underlying Tk widget is
     constructed.
-
-    `snap_anchor`, if given, is a zero-arg callable returning the
-    widget this window should snap its left edge to the right of
-    (defaults to its master). It's re-evaluated on every reposition, so
-    it can return different widgets over time — e.g. "the config
-    window if it's open, else the main window".
 
     `enabled` is a class-level, app-wide on/off switch (not per-
     instance): set SnapWindow.enabled = False to turn snapping off
@@ -111,11 +111,20 @@ class SnapWindow:
     # _on_snap_destroy() once the underlying widget is destroyed.
     _all_windows: list = []
 
-    def _init_snap(self, snap_anchor=None):
-        self._snap_anchor = snap_anchor
-        self._snap_followers = []
+    # The ordered chain of currently visible, auto-snapped windows,
+    # left to right. The app's root/main window is the implicit
+    # predecessor of index 0 — it's never a member of this list
+    # itself, identified instead by having no master of its own (see
+    # _chain_successor()).
+    _chain: list = []
+
+    def _init_snap(self):
+        # The concrete window this one is currently snapped to, or
+        # None meaning "my own master" (root, for every window in
+        # this app) — only meaningful once this window has actually
+        # joined the chain (see _join_chain()/_try_drag_snap()).
+        self._snap_anchor_window = None
         self._is_snapped = False
-        self._current_anchor = None
         SnapWindow._all_windows.append(self)
         self.bind("<Configure>", self._on_snap_configure, add="+")
         self.bind("<Destroy>", self._on_snap_destroy, add="+")
@@ -123,26 +132,70 @@ class SnapWindow:
     def _on_snap_destroy(self, event=None) -> None:
         if self in SnapWindow._all_windows:
             SnapWindow._all_windows.remove(self)
+        self._leave_chain()
 
     def is_visible(self) -> bool:
         """Default for windows that don't already have their own
         (e.g. the app's single root Window, which is never withdrawn)."""
         return self.state() != "withdrawn"
 
-    def add_snap_follower(self, window) -> None:
-        """Register `window` to be kept snapped to this one: repositioned
-        whenever this window is shown, moved, or resized, as long as
-        `window` is visible AND still actually snapped at the time."""
-        self._snap_followers.append(window)
-
     def reposition(self) -> None:
         """Re-snap position without changing visibility or stealing focus."""
         self._snap_to_anchor()
 
+    def _join_chain(self) -> None:
+        """Add self to the end of the dynamic snap chain, snapped to
+        whichever window is currently rightmost (or this window's own
+        master if the chain is empty). A no-op if already a member.
+        Call from show(), each time this window is revealed."""
+        if self in SnapWindow._chain:
+            return
+        self._snap_anchor_window = SnapWindow._chain[-1] if SnapWindow._chain else None
+        SnapWindow._chain.append(self)
+
+    def _leave_chain(self) -> None:
+        """Remove self from the dynamic snap chain, if it's currently a
+        member, re-anchoring whichever window was chained after it
+        onto whatever self was itself anchored to, and repositioning
+        it so the chain closes the gap. Call from hide()/destroy()."""
+        if self not in SnapWindow._chain:
+            return
+        index = SnapWindow._chain.index(self)
+        former_anchor = self._snap_anchor_window
+        SnapWindow._chain.pop(index)
+        if index < len(SnapWindow._chain):
+            successor = SnapWindow._chain[index]
+            successor._snap_anchor_window = former_anchor
+            try:
+                if successor.is_visible():
+                    successor.reposition()
+            except tk.TclError:
+                # Successor (or the whole app) is mid-teardown —
+                # nothing sensible left to reposition.
+                pass
+        self._snap_anchor_window = None
+
+    def _chain_successor(self):
+        """The window immediately after `self` in the dynamic snap
+        chain, or None. For the app's root/main window (never a chain
+        member itself — identified by having no master of its own),
+        this is chain[0], the same implicit role it plays as every
+        chain-less window's fallback anchor in _snap_to_anchor()."""
+        if self in SnapWindow._chain:
+            index = SnapWindow._chain.index(self)
+            return (
+                SnapWindow._chain[index + 1]
+                if index + 1 < len(SnapWindow._chain)
+                else None
+            )
+        if self.master is None:
+            return SnapWindow._chain[0] if SnapWindow._chain else None
+        return None
+
     def _snap_to_anchor(self) -> None:
         if not SnapWindow.enabled:
             return
-        anchor = self._snap_anchor() if self._snap_anchor is not None else self.master
+        anchor = self._snap_anchor_window if self._snap_anchor_window is not None else self.master
         if anchor is None:
             return
         try:
@@ -166,10 +219,9 @@ class SnapWindow:
         # <Configure> event (which Tk may deliver later, or not fire
         # at all if we were already exactly at this position).
         self._is_snapped = True
-        self._current_anchor = anchor
 
     def _is_at_anchor_position(self) -> bool:
-        anchor = self._snap_anchor() if self._snap_anchor is not None else self.master
+        anchor = self._snap_anchor_window if self._snap_anchor_window is not None else self.master
         if anchor is None:
             return False
         try:
@@ -182,14 +234,15 @@ class SnapWindow:
 
     def _try_drag_snap(self) -> None:
         """Called while this window is loose (not snapped to its
-        configured anchor). If it's now close to another window's
-        right edge, snap flush against it and make that window this
-        one's new anchor from now on, detaching from whatever anchor
-        it had before."""
+        chain anchor). If it's now close to another window's right
+        edge, splice it into the chain right after that window (or,
+        if dragged onto the root/main window itself, make it the new
+        leftmost chain member), detaching from wherever it sat in the
+        chain before."""
         try:
             x, y = self.winfo_x(), self.winfo_y()
             for other in SnapWindow._all_windows:
-                if other is self or other in self._snap_followers:
+                if other is self:
                     continue
                 if not other.is_visible():
                     continue
@@ -198,18 +251,39 @@ class SnapWindow:
                     abs(x - other_right_edge) <= self._DragSnapThreshold
                     and abs(y - other.winfo_y()) <= self._DragSnapThreshold
                 ):
-                    if (
-                        self._current_anchor is not None
-                        and self in self._current_anchor._snap_followers
-                    ):
-                        self._current_anchor._snap_followers.remove(self)
-                    self._snap_anchor = lambda anchor=other: anchor
-                    other.add_snap_follower(self)
+                    self._leave_chain()
+                    if other.master is None or other not in SnapWindow._chain:
+                        # `other` is the root/main window (or, failing
+                        # that, some other non-chained window) --
+                        # become the new leftmost chain member.
+                        index = 0
+                        self._snap_anchor_window = None
+                    else:
+                        index = SnapWindow._chain.index(other) + 1
+                        self._snap_anchor_window = other
+                    displaced = (
+                        SnapWindow._chain[index]
+                        if index < len(SnapWindow._chain)
+                        else None
+                    )
+                    SnapWindow._chain.insert(index, self)
+                    # Finalize self's own position first -- reposition()
+                    # below can end up calling anchor.update() with
+                    # self as the anchor (see _snap_to_anchor()), which
+                    # reenters Tk's event processing; if self weren't
+                    # already at its final position by then, that
+                    # reentrant pass would find it still "unsnapped"
+                    # and recurse back into _try_drag_snap() before
+                    # this call ever gets to move it, spinning forever.
                     self._snap_to_anchor()
+                    if displaced is not None:
+                        displaced._snap_anchor_window = self
+                        if displaced.is_visible():
+                            displaced.reposition()
                     return
         except tk.TclError:
-            # Some window in the chain is mid-teardown (e.g. app
-            # shutting down) — nothing sensible left to snap to.
+            # Some window is mid-teardown (e.g. app shutting down) —
+            # nothing sensible left to snap to.
             return
 
     def _on_snap_configure(self, event=None) -> None:
@@ -225,31 +299,33 @@ class SnapWindow:
             # through while still withdrawn (initial construction, widgets
             # being packed, its very first _snap_to_anchor() before
             # deiconify()) can spuriously land it within the threshold of
-            # some other window and permanently hijack its snap_anchor
+            # some other window and permanently hijack its chain position
             # before it's ever actually shown.
             if not self._is_snapped and self.is_visible():
                 self._try_drag_snap()
         except tk.TclError:
             # This window (or the app) is mid-teardown — still try to
-            # notify followers below in case any of them are unaffected.
+            # notify the chain below in case it's unaffected.
             pass
-        self.notify_snap_followers()
+        self._notify_chain_successor()
 
-    def notify_snap_followers(self) -> None:
-        """Re-snap every visible, still-actually-snapped follower.
-        <Configure> covers this automatically while this window is
-        moved/resized, but withdraw() fires no <Configure> at all — so
-        subclasses must call this explicitly after hiding themselves,
-        or a follower dynamically anchored to "me, if visible, else
-        something else" would never learn it should fall back."""
-        for follower in self._snap_followers:
-            try:
-                if follower.is_visible() and follower._is_snapped:
-                    follower.reposition()
-            except tk.TclError:
-                # That follower (or the app) is mid-teardown — the
-                # rest of the chain may still be fine, keep going.
-                continue
+    def _notify_chain_successor(self) -> None:
+        """Re-snap whichever window comes immediately after `self` in
+        the chain (if any, visible, and still actually tracking its
+        anchor). <Configure> covers this automatically while this
+        window is moved/resized (each successor's own <Configure>
+        cascades further down the chain in turn); withdraw() fires no
+        <Configure> at all, so _leave_chain() repositions its own
+        successor directly instead of relying on this."""
+        successor = self._chain_successor()
+        if successor is None:
+            return
+        try:
+            if successor.is_visible() and successor._is_snapped:
+                successor.reposition()
+        except tk.TclError:
+            # That window (or the app) is mid-teardown.
+            pass
 
 
 class Window(SnapWindow, EnableDisableMixin, ttk.Window):
@@ -604,13 +680,13 @@ class TabbedWindow(SnapWindow, EnableDisableMixin, ttk.Toplevel):
     """A tabbed window that stays alive for the lifetime of the app;
     use show()/hide()/toggle() instead of creating/destroying it.
 
-    See SnapWindow for snap_anchor/add_snap_follower()."""
+    See SnapWindow for the automatic snap-chain behavior."""
 
-    def __init__(self, master, on_close, title: str, snap_anchor=None, **kwargs):
+    def __init__(self, master, on_close, title: str, **kwargs):
         super().__init__(title=title, master=master, **kwargs)
 
         self.on_close = on_close
-        self._init_snap(snap_anchor)
+        self._init_snap()
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill=BOTH, expand=YES, padx=5, pady=5)
 
@@ -628,10 +704,11 @@ class TabbedWindow(SnapWindow, EnableDisableMixin, ttk.Toplevel):
         self.notebook.add(tab.notebook_widget, text=tab.title)
 
     def show(self):
-        """Reveal the window, snapped to the right edge of its anchor
-        (see snap_anchor), and bring it to the front. Reposition of
-        any visible snap followers happens via the <Configure> binding
-        from _init_snap()."""
+        """Reveal the window, joining the snap chain (see
+        SnapWindow._join_chain()) and snapping to its right edge, and
+        bring it to the front. Reposition of the rest of the chain
+        happens via the <Configure> binding from _init_snap()."""
+        self._join_chain()
         self._snap_to_anchor()
         self.deiconify()
         self.lift()
@@ -640,11 +717,10 @@ class TabbedWindow(SnapWindow, EnableDisableMixin, ttk.Toplevel):
     def hide(self):
         """Hide the window without destroying it or losing its contents."""
         self.withdraw()
-        # withdraw() fires no <Configure>, so a follower dynamically
-        # anchored to "me, if visible, else something else" (e.g. the
-        # terminal window falling back to the main window once this
-        # config window closes) would otherwise never reposition.
-        self.notify_snap_followers()
+        # withdraw() fires no <Configure>, so leaving the chain (and
+        # reconnecting whatever was chained after this window) has to
+        # happen explicitly here rather than relying on that binding.
+        self._leave_chain()
         self.on_close()
 
     def toggle(self):

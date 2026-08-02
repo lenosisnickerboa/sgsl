@@ -72,7 +72,6 @@ class UiBuilder:
         config_changed_callback: Optional[
             Callable[[ConfigItem, Config[IndexT]], list[IndexT]]
         ] = None,
-        snap_anchor=None,
     ) -> ui.TabbedWindow:
         """Build a tabbed window titled `title` with one tab per TabSpec
         in `tabs`, each populated with a widget per index in that
@@ -81,14 +80,11 @@ class UiBuilder:
         containing every config item in `config` sorted alphabetically
         by visible name, regardless of how the game grouped its other
         tabs. The window is created hidden; use
-        its show()/hide()/toggle() to control visibility. `on_close` is
-        called when the window is closed via its own close button (see
-        TabbedWindow). `snap_anchor` is forwarded to TabbedWindow/
-        SnapWindow — see its docstring; defaults to snapping to
-        `master`."""
-        window = ui.TabbedWindow(
-            master=master, on_close=on_close, title=title, snap_anchor=snap_anchor
-        )
+        its show()/hide()/toggle() to control visibility, which joins/
+        leaves the shared snap chain automatically (see SnapWindow).
+        `on_close` is called when the window is closed via its own
+        close button (see TabbedWindow)."""
+        window = ui.TabbedWindow(master=master, on_close=on_close, title=title)
         alphabetical_items = sorted(
             config.keys(), key=lambda index: config[index].visible_name.lower()
         )

@@ -605,12 +605,6 @@ def setup_detected_game_server(game: Game):
         g_game_config,
         on_config_item_changed,
     )
-    # Keep an already-open terminal window snapped to the config
-    # window whenever the config window (re)opens, moves, or resizes.
-    g_configure_window.add_snap_follower(g_terminal_window)
-    # Keep the config window (and, transitively, the terminal window
-    # via the registration above) snapped when the main window moves.
-    root.add_snap_follower(g_configure_window)
 
     def send_rcon_command(command: str) -> str:
         if not game.rcon_enabled(g_game_config):
@@ -629,18 +623,7 @@ def setup_detected_game_server(game: Game):
             command_callback=send_rcon_command,
             install_dir=game.get_directory(),
             title=f"RCON — {game.get_long_name()}",
-            # Anchor to the right of the config window while it's
-            # open, so the two don't land on top of each other — both
-            # would otherwise snap to the same spot next to the main
-            # window (same reasoning as the app config window's anchor).
-            snap_anchor=lambda: (
-                g_configure_window
-                if g_configure_window is not None and g_configure_window.is_visible()
-                else root
-            ),
         )
-        g_configure_window.add_snap_follower(g_rcon_window)
-        root.add_snap_follower(g_rcon_window)
 
     # -- spacer
 
@@ -742,23 +725,7 @@ def setup_detected_game_server(game: Game):
         ],
         g_app_config,
         on_app_config_item_changed,
-        # Anchor to the right of the game config window while it's
-        # open, so the two don't land on top of each other — both
-        # would otherwise snap to the same spot next to the main
-        # window.
-        snap_anchor=lambda: (
-            g_configure_window
-            if g_configure_window is not None and g_configure_window.is_visible()
-            else root
-        ),
     )
-    # Keep it snapped alongside the game config window (if open) or
-    # the main window, the same way the terminal window does.
-    g_configure_window.add_snap_follower(g_app_configure_window)
-    root.add_snap_follower(g_app_configure_window)
-    # The terminal window chains off the app config window when it's
-    # open (see its snap_anchor) — keep it following along too.
-    g_app_configure_window.add_snap_follower(g_terminal_window)
 
     spacer_at_end = ui.Spacer(master=g_main_frame)
     spacer_at_end.pack()
@@ -849,29 +816,12 @@ g_terminal_window = terminal.TerminalWindow(
     install_dir=current_dir,
     title="Log Output",
     max_lines=g_app_config[ConfigIndex.TERMINAL_LOG_MAX_LINES].value,
-    # Chain rightward off whichever of the app config / game config
-    # windows is open, so it never lands on top of either of them —
-    # falling back to the main window if neither is open.
-    snap_anchor=lambda: (
-        g_app_configure_window
-        if g_app_configure_window is not None and g_app_configure_window.is_visible()
-        else (
-            g_configure_window
-            if g_configure_window is not None and g_configure_window.is_visible()
-            else root
-        )
-    ),
 )
 
 print_to_terminal(f"sgsl.exe {VERSION} starting...")
 
 if g_app_config[ConfigIndex.AUTOMATIC_UPDATE_CHECK].value:
     _check_for_update_in_background()
-
-# Also a direct follower of the main window: when the config window
-# isn't open (so the terminal is snapped straight to the main window),
-# moving the main window still needs to drag the terminal along.
-root.add_snap_follower(g_terminal_window)
 
 g_status_line = ui.StatusLine(master=root, initial_text="Ready")
 g_status_line.pack()

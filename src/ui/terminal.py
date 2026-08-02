@@ -14,7 +14,7 @@ class TerminalWindow(SnapWindow, tb.Toplevel):
     Stays alive for the lifetime of the app; use show()/hide() to toggle
     visibility instead of creating/destroying it.
 
-    See SnapWindow (ui.widgets) for snap_anchor/add_snap_follower().
+    See SnapWindow (ui.widgets) for the automatic snap-chain behavior.
     """
 
     def __init__(
@@ -23,7 +23,6 @@ class TerminalWindow(SnapWindow, tb.Toplevel):
         on_close: Callable[[], None],
         install_dir: Union[str, Path],
         title="Terminal",
-        snap_anchor=None,
         max_lines: int = 0,
     ):
         super().__init__(master)
@@ -35,7 +34,7 @@ class TerminalWindow(SnapWindow, tb.Toplevel):
         # 0 means "no limit" — the log is left to grow unbounded.
         self.max_lines = max_lines
         self._listeners: list[Callable[[str], object]] = []
-        self._init_snap(snap_anchor)
+        self._init_snap()
 
         button_row = tb.Frame(self)
         button_row.pack(fill=X, padx=1, pady=(1, 0))
@@ -119,10 +118,11 @@ class TerminalWindow(SnapWindow, tb.Toplevel):
         self.add_line(f"Saved terminal log to {file_path}", tag="info")
 
     def show(self):
-        """Reveal the window, snapped to the right edge of its anchor
-        (see snap_anchor), and bring it to the front. Reposition of
-        any visible snap followers happens via the <Configure> binding
-        from _init_snap()."""
+        """Reveal the window, joining the snap chain (see
+        SnapWindow._join_chain()) and snapping to its right edge, and
+        bring it to the front. Reposition of the rest of the chain
+        happens via the <Configure> binding from _init_snap()."""
+        self._join_chain()
         self._snap_to_anchor()
         self.deiconify()
         self.lift()
@@ -131,10 +131,10 @@ class TerminalWindow(SnapWindow, tb.Toplevel):
     def hide(self):
         """Hide the window without destroying it or losing its contents."""
         self.withdraw()
-        # withdraw() fires no <Configure>, so a follower dynamically
-        # anchored to "me, if visible, else something else" would
-        # otherwise never learn it should reposition.
-        self.notify_snap_followers()
+        # withdraw() fires no <Configure>, so leaving the chain (and
+        # reconnecting whatever was chained after this window) has to
+        # happen explicitly here rather than relying on that binding.
+        self._leave_chain()
         self.on_close()
 
     def toggle(self):
