@@ -74,13 +74,24 @@ def choice_dialog(
     choices: list[tuple[str, str, Any]],
     title: str = "Choose",
     cancel_value: Any = None,
+    master: Optional[Any] = None,
 ) -> Any:
     """Show `message` (may be multi-line) in a modal dialog with one
     button per (label, tooltip, value) tuple in `choices`, left to
     right, and block until the user dismisses it. Returns the clicked
     button's value, or `cancel_value` if the dialog was closed via its
-    own close button instead."""
+    own close button instead.
+
+    `master`, if given, is the window the dialog centers itself on
+    (see ChoiceDialog._center_on_master()) -- e.g. a config window,
+    rather than the application's main window, when that's what the
+    user is actually looking at. Defaults to the main window, same as
+    every other dialog in this module, if omitted."""
     dialog = ui.ChoiceDialog(
-        title=title, message=message, choices=choices, cancel_value=cancel_value
+        title=title,
+        message=message,
+        choices=choices,
+        cancel_value=cancel_value,
+        master=master,
     )
     return dialog.show()

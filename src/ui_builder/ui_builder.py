@@ -2,8 +2,9 @@ from typing import Callable, Optional, Union
 
 from config.config_item import ConfigItem, ConfigType, SchemaField, describe_default_value
 from config.tab_spec import TabSpec
-from config.toml_config import Config, IndexT
+from config.toml_config import Config, IndexT, reset_to_defaults
 import ui.widgets as ui
+from support.dialog import choice_dialog
 
 # Fallback bounds for an INTEGER/FLOAT item that declares no range, so
 # IntegerSpinbox/FloatSpinbox always has something usable to pass as from_/to.
@@ -79,6 +80,7 @@ class UiBuilder:
         config_changed_callback: Optional[
             Callable[[ConfigItem, Config[IndexT]], list[IndexT]]
         ] = None,
+        defaults_factory: Optional[Callable[[], Config[IndexT]]] = None,
     ) -> ui.TabbedWindow:
         """Build a tabbed window titled `title` with one tab per TabSpec
         in `tabs`, each populated with a widget per index in that
@@ -90,7 +92,17 @@ class UiBuilder:
         its show()/hide()/toggle() to control visibility, which joins/
         leaves the shared snap chain automatically (see SnapWindow).
         `on_close` is called when the window is closed via its own
-        close button (see TabbedWindow)."""
+        close button (see TabbedWindow).
+
+        `defaults_factory`, if given, adds a "Set defaults..." button
+        to the bottom right of every tab (including the "All" one),
+        offering the same All/All excluding masked/Cancel choice as an
+        application-wide reset button would, but scoped to just that
+        tab's own items -- see _add_tab_defaults_button(). Called fresh
+        each time the button is clicked (rather than once up front), so
+        it reflects whatever a defaults computation (e.g. a detected
+        maps list) would produce right now, the same as an
+        application-wide reset does."""
         window = ui.TabbedWindow(master=master, on_close=on_close, title=title)
         alphabetical_items = sorted(
             config.keys(), key=lambda index: config[index].visible_name.lower()
@@ -167,7 +179,75 @@ class UiBuilder:
             self._align_hint_widths(tab_widgets)
             if overflowing:
                 self._clip_tab_to_visible_items(tab, len(tab_spec.items))
+            if defaults_factory is not None:
+                self._add_tab_defaults_button(
+                    tab,
+                    window,
+                    tab_spec.items,
+                    config,
+                    config_changed_callback,
+                    defaults_factory,
+                )
         return window
+
+    def _add_tab_defaults_button(
+        self,
+        tab,
+        window: "ui.TabbedWindow",
+        indexes: list[IndexT],
+        config: Config[IndexT],
+        config_changed_callback: Optional[
+            Callable[[ConfigItem, Config[IndexT]], list[IndexT]]
+        ],
+        defaults_factory: Callable[[], Config[IndexT]],
+    ) -> None:
+        """Pack a "Set defaults..." button at the bottom right of `tab`,
+        offering the same All/All excluding masked/Cancel choice as an
+        application-wide reset button, but scoped to just `indexes` --
+        this tab's own items -- so resetting one tab doesn't touch
+        config items shown on another tab. The confirmation dialog
+        centers itself on `window` (the configuration window this tab
+        belongs to) rather than the application's main window, since
+        that's what the user is actually looking at when they click it."""
+
+        def on_tab_set_defaults():
+            choice = choice_dialog(
+                "Set config back to default values?",
+                title="Set defaults",
+                master=window,
+                choices=[
+                    ("All", "All config items including masked", "all"),
+                    (
+                        "All excluding masked",
+                        "All config items but keep masked config items, i.e. all "
+                        "passwords and keys",
+                        "all_excluding_masked",
+                    ),
+                    ("Cancel", "Don't touch my config, I want it as it is", "cancel"),
+                ],
+                cancel_value="cancel",
+            )
+            if choice == "cancel":
+                return
+
+            keep_masked = choice == "all_excluding_masked"
+            defaults = defaults_factory()
+            changed = reset_to_defaults(config, defaults, keep_masked, indexes=indexes)
+            affected = set(changed)
+            if config_changed_callback is not None:
+                for index in changed:
+                    affected.update(config_changed_callback(config[index], config))
+            self.config_changed(list(affected), config)
+
+        button_row = ui.Frame(master=tab)
+        button_row.pack(side=ui.BOTTOM, fill=ui.X)
+        button = ui.Button(
+            master=button_row,
+            name="Set defaults...",
+            tooltip="Reset this tab's config items to their default values",
+            command=on_tab_set_defaults,
+        )
+        button.pack(side=ui.RIGHT)
 
     def _align_hint_widths(self, widgets: list) -> None:
         """Give every widget's hint label in this tab the same fixed

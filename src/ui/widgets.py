@@ -861,8 +861,11 @@ class Frame(EnableDisableMixin, ttk.Frame):
     def __init__(self, master, **kwargs):
         super().__init__(master, **kwargs)
 
-    def pack(self, side=LEFT):
-        super().pack(side=side)
+    def pack(self, side=LEFT, fill=None):
+        if fill is not None:
+            super().pack(side=side, fill=fill)
+        else:
+            super().pack(side=side)
 
 
 class StatusLine(EnableDisableMixin, ttk.Frame):
@@ -2086,8 +2089,8 @@ class Button(EnableDisableMixin, ttk.Frame):
     def set_tooltip(self, tooltip: str):
         make_tooltip(self.button, text=tooltip)
 
-    def pack(self):
-        super().pack(side=LEFT, padx=5, fill=X)
+    def pack(self, side=LEFT):
+        super().pack(side=side, padx=5, fill=X)
 
 
 class ExpandingButton(EnableDisableMixin, ttk.Frame):

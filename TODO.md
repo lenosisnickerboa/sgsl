@@ -2,8 +2,9 @@
 
 ## Default button
 
-Change tooltip so that it contains the default value
 Change cs2 and csgo defaults to  Deathmatch and de_dust2 - something that always works
+Add masked config tab
+Handle changed set default values in coming veesion
 
 ## Archive functionality for everything downloaded
 

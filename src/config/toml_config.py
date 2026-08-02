@@ -3,11 +3,11 @@ from __future__ import annotations
 import copy
 import tomllib
 from pathlib import Path
-from typing import TypeVar, Union
+from typing import Iterable, Optional, TypeVar, Union
 
 import tomli_w
 
-from config.config_item import ConfigItem
+from config.config_item import ConfigItem, ConfigType
 
 # The index type just needs to behave like an int (any IntEnum works,
 # and so would a plain int) — this module never imports or assumes a
@@ -188,3 +188,46 @@ class TomlConfigParser:
         value_line = tomli_w.dumps({item.name: item.value}).rstrip("\n")
 
         return "\n".join(comment_lines) + "\n" + value_line + "\n\n"
+
+
+def reset_to_defaults(
+    config: Config[IndexT],
+    defaults: Config[IndexT],
+    keep_masked: bool = False,
+    indexes: Optional[Iterable[IndexT]] = None,
+) -> list[IndexT]:
+    """Reset every non-read_only item in `config` to its value in
+    `defaults`, in place (so already-registered UI widgets/game state
+    referencing this exact dict keep working) -- except MASKED_STRING
+    items (passwords/keys) when `keep_masked` is True, which are left
+    untouched. read_only items are skipped, the same as
+    TomlConfigParser: they're always recomputed fresh (e.g. a detected
+    maps list), not something a "reset" should touch.
+
+    `indexes`, if given, restricts the reset to just those indexes
+    (e.g. one config tab's own items) instead of every index in
+    `config` -- used by a per-tab "Set defaults..." button so resetting
+    one tab doesn't touch items shown on another.
+
+    Returns the list of indexes actually changed, so the caller can
+    refresh their widgets and react the same way a live edit would
+    (see Game.config_item_changed())."""
+    changed = []
+    for index in config.keys() if indexes is None else indexes:
+        item = config.get(index)
+        if item is None or item.read_only:
+            continue
+        if keep_masked and item.type is ConfigType.MASKED_STRING:
+            continue
+        default_item = defaults.get(index)
+        if default_item is None or item.value == default_item.value:
+            continue
+        try:
+            item.set(default_item.value)
+        except (TypeError, ValueError):
+            # Shouldn't normally happen (the default came from this
+            # same item's own schema), but don't let one bad item
+            # abort the whole reset.
+            continue
+        changed.append(index)
+    return changed

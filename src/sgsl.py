@@ -6,7 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from config.config_item import ConfigType
 from config.tab_spec import TabSpec
-from config.toml_config import Config, TomlConfigParser
+from config.toml_config import Config, TomlConfigParser, reset_to_defaults
 from app.version import VERSION
 import ui.widgets as ui
 import ui.terminal as terminal
@@ -204,39 +204,6 @@ def save_config():
 
 def on_save_config():
     save_config()
-
-
-def _reset_config_to_defaults(
-    config: Config, defaults: Config, keep_masked: bool
-) -> list:
-    """Reset every non-read_only item in `config` to its value in
-    `defaults`, in place (so already-registered UI widgets/game state
-    referencing this exact dict keep working) -- except MASKED_STRING
-    items (passwords/keys) when `keep_masked` is True, which are left
-    untouched. read_only items are skipped, the same as
-    TomlConfigParser: they're always recomputed fresh (e.g. a detected
-    maps list), not something a "reset" should touch. Returns the list
-    of indexes actually changed, so the caller can refresh their
-    widgets and react the same way a live edit would (see
-    Game.config_item_changed())."""
-    changed = []
-    for index, item in config.items():
-        if item.read_only:
-            continue
-        if keep_masked and item.type is ConfigType.MASKED_STRING:
-            continue
-        default_item = defaults.get(index)
-        if default_item is None or item.value == default_item.value:
-            continue
-        try:
-            item.set(default_item.value)
-        except (TypeError, ValueError):
-            # Shouldn't normally happen (the default came from this
-            # same item's own schema), but don't let one bad item
-            # abort the whole reset.
-            continue
-        changed.append(index)
-    return changed
 
 
 _GithubUrl = "https://github.com/lenosisnickerboa/sgsl"
@@ -637,6 +604,7 @@ def setup_detected_game_server(game: Game):
         game.config_tabs(),
         g_game_config,
         on_config_item_changed,
+        defaults_factory=game.config_defaults,
     )
 
     def send_rcon_command(command: str) -> str:
@@ -698,6 +666,7 @@ def setup_detected_game_server(game: Game):
         ],
         g_app_config,
         on_app_config_item_changed,
+        defaults_factory=build_app_defaults,
     )
 
     def on_set_defaults():
@@ -720,7 +689,7 @@ def setup_detected_game_server(game: Game):
 
         keep_masked = choice == "all_excluding_masked"
 
-        app_changed = _reset_config_to_defaults(
+        app_changed = reset_to_defaults(
             g_app_config, build_app_defaults(), keep_masked
         )
         app_affected = set(app_changed)
@@ -731,7 +700,7 @@ def setup_detected_game_server(game: Game):
         app_ui_builder.config_changed(list(app_affected), g_app_config)
 
         if g_game_config is not None:
-            game_changed = _reset_config_to_defaults(
+            game_changed = reset_to_defaults(
                 g_game_config, game.config_defaults(), keep_masked
             )
             game_affected = set(game_changed)
