@@ -318,7 +318,10 @@ class CS2Game(Game):
         # A LAN-only server logs in anonymously instead -- see
         # cvar_overrides below, which always forces the actual sv_lan
         # cvar to 0 regardless of this toggle.
-        if not config[ConfigIndex.SV_LAN].value and config[ConfigIndex.STEAM_GSLT].value:
+        if (
+            not config[ConfigIndex.SV_LAN].value
+            and config[ConfigIndex.STEAM_GSLT].value
+        ):
             args.append("+sv_setsteamaccount")
             args.append(config[ConfigIndex.STEAM_GSLT].value)
         if config[ConfigIndex.STEAM_API_AUTH_KEY].value:
@@ -860,7 +863,9 @@ class CS2Game(Game):
             ),
         ]
 
-    def _remove_orphaned_workshop_content(self, current_workshop_maps: list[str]) -> None:
+    def _remove_orphaned_workshop_content(
+        self, current_workshop_maps: list[str]
+    ) -> None:
         """Delete the downloaded content directory for any workshop
         map id that's no longer in `current_workshop_maps` (i.e. the
         user just removed it from WORKSHOP_MAPS), so it doesn't keep
