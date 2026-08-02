@@ -331,20 +331,6 @@ def on_toggle_rcon_window():
     g_rcon_window.toggle()
 
 
-def _update_rcon_button_state():
-    """Keep the RCON button's enabled state in sync with whether the
-    server is currently running -- there's nothing to send a command
-    to otherwise (see sgsl.send_rcon_command()'s own is_running()
-    check). A no-op if this game doesn't support RCON, so no button
-    was ever created."""
-    if g_rcon_open_close is None:
-        return
-    if g_server_should_be_running:
-        g_rcon_open_close.enable()
-    else:
-        g_rcon_open_close.disable()
-
-
 def on_toggle_app_configure_window():
     global g_app_configure_is_open
     g_app_configure_is_open = not g_app_configure_is_open
@@ -371,7 +357,6 @@ def on_start_stop_game_server(game: Game):
         g_start_stop_server.set_name(name="Stop")
         g_start_stop_server.set_tooltip(tooltip="Stop server")
         g_update_open_close.disable()
-        _update_rcon_button_state()
         print_to_terminal(
             f"Started game server for {game.get_long_name()} in directory {game.get_directory()}..."
         )
@@ -392,7 +377,6 @@ def on_start_stop_game_server(game: Game):
         g_start_stop_server.set_name(name="Start")
         g_start_stop_server.set_tooltip(tooltip="Start server")
         g_update_open_close.enable()
-        _update_rcon_button_state()
         print_to_terminal(
             f"Stopped game server for {game.get_long_name()} in directory {game.get_directory()}..."
         )
@@ -408,7 +392,6 @@ def on_game_server_crashed(game: Game):
     g_start_stop_server.set_name(name="Start")
     g_start_stop_server.set_tooltip(tooltip="Start server")
     g_update_open_close.enable()
-    _update_rcon_button_state()
     set_status_line(f"Game server {game.get_long_name()} crashed...")
     print_to_terminal(
         f"Game server for {game.get_long_name()} in directory {game.get_directory()} crashed..."
@@ -426,7 +409,6 @@ def on_game_map_load_failed(game: Game):
     g_start_stop_server.set_name(name="Start")
     g_start_stop_server.set_tooltip(tooltip="Start server")
     g_update_open_close.enable()
-    _update_rcon_button_state()
     set_status_line(f"Game server {game.get_long_name()} stopped (map load failed)...")
     print_to_terminal(
         f"Game server for {game.get_long_name()} in directory {game.get_directory()} stopped after map load failure..."
@@ -538,7 +520,6 @@ def setup_detected_game_server(game: Game):
             command=lambda _value: on_toggle_rcon_window(),
         )
         g_rcon_open_close.pack()
-        _update_rcon_button_state()
 
     # Anchored to the right of game_frame, as a group, so Start stays
     # pinned to the left while these sit flush against the right edge.

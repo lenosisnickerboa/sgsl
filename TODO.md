@@ -8,8 +8,6 @@ Specially for the vu-mapvote case where a patch is applied during install/update
 
 ## Rember window positions and sizes
 
-# RCON client
-
 ## Improve how toggles are shown disabled
 
 Hard (impossible) to see now if a toggle is disabled.
@@ -54,8 +52,13 @@ Current filtering should be moved as defaults for filtering stdout
 
 ## Mod support?
 
+## RCON client
+
 # VU
 
 ## General mod support?
 
 Instead of hardcoded ones
+
+## RCON client
+

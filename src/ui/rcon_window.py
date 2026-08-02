@@ -6,6 +6,39 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.scrolled import ScrolledText
 from ui.widgets import SnapWindow, make_tooltip
 
+# sgsl's own curated shortlist of the 20 most commonly used CS2/
+# Source-engine dedicated server admin console commands (no
+# authoritative usage-frequency source exists) -- covering match
+# control, player admin, and core server settings. Shown as quick-
+# insert buttons below the output log; most of these take an argument
+# (a map name, a player id, ...) the user still has to type, so a
+# click inserts the command rather than sending it immediately.
+_QuickCommands = [
+    "status",
+    "changelevel",
+    "map",
+    "mp_restartgame",
+    "mp_warmup_start",
+    "mp_warmup_end",
+    "mp_pause_match",
+    "mp_unpause_match",
+    "kick",
+    "kickid",
+    "banid",
+    "removeid",
+    "sv_cheats",
+    "sv_password",
+    "rcon_password",
+    "say",
+    "bot_kick",
+    "bot_add",
+    "sv_gravity",
+    "mp_maxrounds",
+]
+
+# Quick-command buttons per row -- 20 commands over this many columns.
+_QuickCommandColumns = 10
+
 
 class RconWindow(SnapWindow, tb.Toplevel):
     """An interactive RCON console window: a command entry + Send
@@ -30,7 +63,7 @@ class RconWindow(SnapWindow, tb.Toplevel):
     ):
         super().__init__(master)
         self.title(title)
-        self.geometry("700x500")
+        self.geometry("1100x800")
 
         self.on_close = on_close
         self.command_callback = command_callback
@@ -68,6 +101,24 @@ class RconWindow(SnapWindow, tb.Toplevel):
         save_button = tb.Button(entry_row, text="Save", command=self.save_to_file)
         save_button.pack(side=LEFT, padx=(5, 0))
         make_tooltip(save_button, text="Save the current log to a timestamped file")
+
+        # Packed after entry_row (also side=BOTTOM), so it claims the
+        # region just above it -- between the output log and the
+        # command entry, as intended.
+        quick_commands_frame = tb.Frame(self)
+        quick_commands_frame.pack(side=BOTTOM, fill=X, padx=5, pady=(0, 5))
+        for index, quick_command in enumerate(_QuickCommands):
+            row, column = divmod(index, _QuickCommandColumns)
+            button = tb.Button(
+                quick_commands_frame,
+                text=quick_command,
+                bootstyle="secondary",
+                command=lambda c=quick_command: self._insert_quick_command(c),
+            )
+            button.grid(row=row, column=column, padx=1, pady=1, sticky="ew")
+            make_tooltip(button, text=f'Insert "{quick_command}" into the command entry')
+        for column in range(_QuickCommandColumns):
+            quick_commands_frame.columnconfigure(column, weight=1)
 
         self.output = ScrolledText(
             self, padding=5, autohide=False, height=20, vbar=True
@@ -143,6 +194,14 @@ class RconWindow(SnapWindow, tb.Toplevel):
     def _set_command_text(self, text: str) -> None:
         self.command_var.set(text)
         self.entry.icursor(END)
+
+    def _insert_quick_command(self, command: str) -> None:
+        """Fill the command entry with `command` (plus a trailing
+        space, ready for an argument) rather than sending it right
+        away -- most quick commands take one (a map name, a player id,
+        ...) the user still has to type."""
+        self._set_command_text(f"{command} ")
+        self.entry.focus_set()
 
     def _append(self, text: str, tag: str) -> None:
         timestamp = datetime.now().strftime("%Y.%m.%d %H:%M:%S")
