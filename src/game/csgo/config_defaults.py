@@ -188,7 +188,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="When enabled, bots only fill in after a human player joins",
-            value=True,
+            value=False,
         ),
         ConfigIndex.BOT_ALL_WEAPONS: ConfigItem(
             name="bot_all_weapons",
@@ -306,7 +306,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Warmup length, in seconds. 0 -> disable warmup",
-            value=0,
+            value=10,
             range=Range(min_value=0, max_value=900),
         ),
         ConfigIndex.MP_WARMUP_PAUSETIMER: ConfigItem(
@@ -323,7 +323,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Controls whether the warmup phase happens in offline matches meaning games against bots or local practice matches",
-            value=False,
+            value=True,
         ),
         ConfigIndex.MP_RESPAWN_ON_DEATH_CT: ConfigItem(
             name="mp_respawn_on_death_ct",
