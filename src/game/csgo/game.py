@@ -39,6 +39,11 @@ GameExeWithPath = Path(GameExe)
 AppId = 740
 NewAppId = 4465480
 
+# Preferred default map -- most servers ship it, and it's a familiar
+# choice for a first-time setup. Falls back to the first detected map
+# (see config_defaults()) if it isn't installed.
+_DefaultMap = "de_dust2"
+
 
 class CSGOGame(Game):
     def __init__(self, directory: Union[str, Path], terminal):
@@ -705,7 +710,10 @@ class CSGOGame(Game):
         # (config_loaded()), which would otherwise silently mutate
         # ORDINARY_MAPS.value too since lists are shared by reference.
         defaults[ConfigIndex.SELECTED_MAP].allowed_values = list(maps)
-        defaults[ConfigIndex.SELECTED_MAP].value = maps[0] if len(maps) else ""
+        if _DefaultMap in maps:
+            defaults[ConfigIndex.SELECTED_MAP].value = _DefaultMap
+        else:
+            defaults[ConfigIndex.SELECTED_MAP].value = maps[0] if len(maps) else ""
         defaults[ConfigIndex.WORKSHOP_MAPS].value = self._workshop_maps()
         username = getpass.getuser()  # current logged-in user
         hostname = socket.gethostname()  # machine's hostname

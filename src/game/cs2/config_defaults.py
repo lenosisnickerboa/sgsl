@@ -85,7 +85,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.STRING_LIST,
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Currently selected game mode",
-            value="Casual",
+            value="DeathMatch",
             allowed_values=[
                 "Casual",
                 "Competitive",
