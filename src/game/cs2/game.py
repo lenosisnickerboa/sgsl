@@ -596,7 +596,13 @@ class CS2Game(Game):
             entry
             for entry in entries
             if not (
-                isinstance(entry, ConfigEntry) and self._AddedByComment in entry.comment
+                (isinstance(entry, ConfigEntry) and self._AddedByComment in entry.comment)
+                # A bare command with no value (e.g. mp_warmup_end --
+                # see below) can't be a ConfigEntry, so it's appended as
+                # a plain verbatim string with the same marker as a
+                # trailing comment instead; strip those too so they
+                # don't pile up across runs the same as any other item.
+                or (isinstance(entry, str) and self._AddedByComment in entry)
             )
         ]
 
@@ -614,6 +620,13 @@ class CS2Game(Game):
                 )
             )
             written_names.add(item.name)
+            if item is config[ConfigIndex.MP_WARMUP_TIME] and item.value == 0:
+                # mp_warmuptime 0 doesn't actually skip warmup the way
+                # sgsl's own UI implies -- _cvar_value() writes a small
+                # positive value instead (see there), and this extra
+                # bare command ends it immediately, right as the match
+                # starts, achieving the same effect.
+                entries.append(f"mp_warmup_end\t// {self._AddedByComment} {timestamp}")
         # Overrides with no matching SERVER_CFG_FILE item (e.g.
         # mp_match_end_changelevel/mp_match_end_restart) still need to
         # be written -- the loop above only covers ones that do.
@@ -649,6 +662,13 @@ class CS2Game(Game):
             # allowed_values), but the game cvar takes its list position
             # as an integer.
             return str(item.allowed_values.index(item.value))
+        if item.name == "mp_warmuptime" and item.value == 0:
+            # 0 doesn't mean "no warmup" to the engine the way it does
+            # in sgsl's own UI (tooltip aside) -- write the smallest
+            # positive value instead and let the extra mp_warmup_end
+            # command _update_gamemode_cfg() appends right after this
+            # one end it immediately instead.
+            return "1"
         if item.type is ConfigType.BOOLEAN:
             return "1" if item.value else "0"
         return str(item.value)
@@ -943,6 +963,7 @@ class CS2Game(Game):
                     ConfigIndex.MP_LIMIT_TEAMS,
                     ConfigIndex.MP_WARMUP_TIME,
                     ConfigIndex.MP_WARMUP_PAUSETIMER,
+                    ConfigIndex.MP_WARMUPTIME_ALL_PLAYERS_CONNECTED,
                     ConfigIndex.MP_RESPAWN_ON_DEATH_CT,
                     ConfigIndex.MP_RESPAWN_ON_DEATH_T,
                 ],
@@ -1062,7 +1083,6 @@ class CS2Game(Game):
         elif config_item is config[ConfigIndex.MP_WARMUP_TIME]:
             if config[ConfigIndex.MP_WARMUP_TIME].value == 0:
                 config[ConfigIndex.MP_WARMUP_PAUSETIMER].set(False)
-                config[ConfigIndex.MP_DO_WARMUP_OFFLINE].set(False)
         return []
 
     def error_report_files(self) -> list[str]:

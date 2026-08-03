@@ -95,10 +95,10 @@ def build_game_defaults() -> Config[ConfigIndex]:
             ],
         ),
         ConfigIndex.PLAYER_COUNT: ConfigItem(
-            name="sv_maxplayers",
+            name="maxplayers",
             visible_name="Players",
             type=ConfigType.INTEGER,
-            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Max number of players",
             value=4,
             range=Range(min_value=1, max_value=64),
@@ -306,7 +306,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Warmup length, in seconds. 0 -> disable warmup",
-            value=10,
+            value=0,
             range=Range(min_value=0, max_value=900),
         ),
         ConfigIndex.MP_WARMUP_PAUSETIMER: ConfigItem(
@@ -317,13 +317,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="When enabled, warmup won't end until manually started",
             value=False,
         ),
-        ConfigIndex.MP_DO_WARMUP_OFFLINE: ConfigItem(
-            name="mp_do_warmup_offline",
-            visible_name="Do warmup offline",
-            type=ConfigType.BOOLEAN,
+        ConfigIndex.MP_WARMUPTIME_ALL_PLAYERS_CONNECTED: ConfigItem(
+            name="mp_warmuptime_all_players_connected",
+            visible_name="Warmup time once all players connected",
+            type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Controls whether the warmup phase happens in offline matches meaning games against bots or local practice matches",
-            value=True,
+            tooltip="Warmup length, in seconds, once every player has connected. "
+            "0 -> disable",
+            value=0,
+            range=Range(min_value=0, max_value=900),
         ),
         ConfigIndex.MP_RESPAWN_ON_DEATH_CT: ConfigItem(
             name="mp_respawn_on_death_ct",

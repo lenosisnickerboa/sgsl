@@ -81,7 +81,6 @@ class ConfigIndex(IntEnum):
 
     CUSTOM_RUN_COMMAND_PRE = 47
     CUSTOM_RUN_COMMAND_POST = 48
-    MP_DO_WARMUP_OFFLINE = 49
 
     ORDINARY_MAPGROUPS = 50
     WORKSHOP_MAPGROUPS = 51
@@ -99,6 +98,8 @@ class ConfigIndex(IntEnum):
     MAPVOTE_ENDMATCH_DURATION = 59
     MAPVOTE_ALLOW_VOTES = 60
     MAPVOTE_MATCH_RESTART_DELAY = 61
+
+    MP_WARMUPTIME_ALL_PLAYERS_CONNECTED = 62
 
 
 _values = [item.value for item in ConfigIndex]
