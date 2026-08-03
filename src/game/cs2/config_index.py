@@ -101,6 +101,11 @@ class ConfigIndex(IntEnum):
 
     MP_WARMUPTIME_ALL_PLAYERS_CONNECTED = 62
 
+    MP_RESPAWN_IMMUNITYTIME = 66
+    MP_BUY_DURING_IMMUNITY = 67
+    MP_ROUND_RESTART_DELAY = 68
+    MP_TEAM_INTRO_TIME = 69
+
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"
