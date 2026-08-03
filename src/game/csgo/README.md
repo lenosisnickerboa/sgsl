@@ -26,14 +26,14 @@ I tried connecting using the console (connect localhost) and also the in-game se
    Start it up and make sure you can run multiplayer.
    This info taken from [here](https://store.steampowered.com/app/4465480/CounterStrikeGlobal_Offensive/)
 1. Drop sgsl.exe into an empty folder where you want your CSGO game server installed and click sgsl.exe. 
-1. When sgsl.exe launches, select csgo and click the install button. I recommend first opening the terminal (Toggle to the far right).
+1. When sgsl.exe launches, select csgo and click the install button.
 1. ENJOY!
 
-Your friends can now connect to you using the console command "connect <your-ip>" or by connecting via the local server browser steam://open/servers. You can create a Windows shortcut with target "steam://open/servers" and name "CSGO local servers" or simply run it with WIN+R, enter steam://open/servers and press ENTER.
+Your friends should now be able to connect to you using the console command "connect <your-ip>" (but it didn't work for me) or by connecting via the local server browser steam://open/servers. You can create a Windows shortcut with target "steam://open/servers" and name "CSGO local servers" or simply run it with WIN+R, enter steam://open/servers and press ENTER.
 
 ### I want workshop maps
 
-I'm not sure what the exact requirements are after googling, AI:ing, ... Some suggest you need a GSLT, some an API auth key. I eventually configured both to get it working. 
+I'm not sure what the exact requirements are after googling, AI:ing, ... Some suggest you need a GSLT, some an API auth key. I didn't have to configure any of them but here's a description on how to configure both should you not get workshop maps working.
 
 1. Get your original csgo working as described above.
 1. Register some stuff with Valve, like [GSLT](https://zap-hosting.com/guides/docs/csgo-gslt/) which can be done [here](http://steamcommunity.com/dev/managegameservers) and [API auth key](https://steamcommunity.com/dev/apikey). Use 4465480 for the appId.
@@ -80,10 +80,9 @@ Reference: https://steamcommunity.com/app/730/discussions/0/4335356354422173537/
 
 Or you can just try and see if it works for you. This seems to be a moving target and your mileage may vary.
 
-
 ## Custom user config
 
-If there is some special tweak you want to add, not supported by sgsl.exe, it can be accomplished by adding your own config file in <install -path>\server\game\csgo\cfg and naming it gamemode_<gamemode>_append.cfg. All config from this file will be added last to the gamemode_<gamemode>.cfg file prior to starting the game allowing you to add or override whatever you like. Same format is used as in the original config file.
+If there is some special tweak you want to add, not supported by sgsl.exe, first of all you can of course request it by opening an issue. It can also be accomplished by adding your own config file in <install -path>\server\game\csgo\cfg and naming it gamemode_<gamemode>_append.cfg. All config from this file will be added last to the gamemode_<gamemode>.cfg file prior to starting the game allowing you to add or override whatever you like. Same format is used as in the original config file.
 
 ## Finding workshop content
 
@@ -93,7 +92,7 @@ Also, read the [cs2 docs](../cs2/README.md) for more info.
 
 ## Quirks
 
-Sometimes, for no reason, I get very low fps. Restarting the cs2 client GUI helps. Don't know why.
+Sometimes, for no reason, I get very low fps. Restarting the csgo client GUI helps. Don't know why.
 
 ## LAN only play
 
