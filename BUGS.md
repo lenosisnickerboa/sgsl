@@ -1,6 +1,4 @@
 
-# Set defaults doesn't reset workshop mapgroups
-
 # UI stuff
 
 ## UI widgets not centered vertically
