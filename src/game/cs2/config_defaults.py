@@ -585,6 +585,14 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value=True,
         ),
         # -- Map vote --
+        ConfigIndex.MAPVOTE_ALLOW_VOTES: ConfigItem(
+            name="sv_allow_votes",
+            visible_name="Allow votes",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
+            tooltip="Master switch for all voting, including the end-of-match map vote",
+            value=True,
+        ),
         ConfigIndex.MAPVOTE_ENDMATCH_ENABLE: ConfigItem(
             name="mp_endmatch_votenextmap",
             visible_name="Vote for next map at match end",
@@ -592,6 +600,16 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Let players vote for the next map once the current match ends",
             value=True,
+        ),
+        ConfigIndex.MAPVOTE_MATCH_RESTART_DELAY: ConfigItem(
+            name="mp_match_restart_delay",
+            visible_name="Match restart delay (s)",
+            type=ConfigType.INTEGER,
+            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
+            tooltip="How long to wait, in seconds, after a match ends before restarting "
+            "or advancing to the next map",
+            value=15,
+            range=Range(min_value=0),
         ),
         ConfigIndex.MAPVOTE_ENDMATCH_DURATION: ConfigItem(
             name="mp_endmatch_votenextleveltime",
@@ -601,43 +619,6 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="How long the end-of-match next-map vote stays open, in seconds",
             value=20,
             range=Range(min_value=0, max_value=120),
-        ),
-        ConfigIndex.MAPVOTE_NEXTLEVEL_ALLOWED: ConfigItem(
-            name="sv_vote_issue_nextlevel_allowed",
-            visible_name="Allow mid-match map vote",
-            type=ConfigType.BOOLEAN,
-            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Let players call a vote mid-match to pick the next map, rather than "
-            "waiting for the end-of-match vote",
-            value=True,
-        ),
-        ConfigIndex.MAPVOTE_TIMER_DURATION: ConfigItem(
-            name="sv_vote_timer_duration",
-            visible_name="Vote timer duration (s)",
-            type=ConfigType.INTEGER,
-            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="How long any vote, including a map vote, stays open before being "
-            "decided, in seconds",
-            value=20,
-            range=Range(min_value=1, max_value=120),
-        ),
-        ConfigIndex.MAPVOTE_ALLOW_SPECTATORS: ConfigItem(
-            name="sv_vote_allow_spectators",
-            visible_name="Spectators can vote",
-            type=ConfigType.BOOLEAN,
-            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Allow spectators to take part in votes, including the map vote",
-            value=True,
-        ),
-        ConfigIndex.MAPVOTE_QUORUM_RATIO: ConfigItem(
-            name="sv_vote_quorum_ratio",
-            visible_name="Vote quorum ratio",
-            type=ConfigType.FLOAT,
-            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Fraction of connected players that must vote for an outcome (e.g. a "
-            "specific next map) for a vote to pass",
-            value=0.3,
-            range=Range(min_value=0.0, max_value=1.0),
         ),
     }
     _link_map_group_schema_fields(defaults)

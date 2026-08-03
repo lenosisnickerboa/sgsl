@@ -418,22 +418,23 @@ class CS2Game(Game):
             # A workshop map group is a Steam Workshop collection id,
             # not a locally-defined map list — Steam itself resolves
             # and rotates through the collection's maps, so there's no
-            # mapcyclefile to write here, unlike an ordinary map group.
+            # mapgroups.txt to write here, unlike an ordinary map group.
             self._append_workshop_host_args(
                 args, "host_workshop_collection", workshop_collection_id
             )
         else:
             map_group = self._active_map_group(config)
             if map_group:
-                self._write_map_cycle(map_group)
-                args.append("+mapcyclefile")
-                args.append(self._MapCycleFileName)
+                selected_map_group = config[ConfigIndex.SELECTED_MAP_GROUP].value
+                self._write_map_groups(selected_map_group, map_group)
+                args.append("+mapgroup")
+                args.append(selected_map_group)
                 launch_map = map_group[0]["name"]
                 cvar_overrides.update(
                     {
                         # Without these the engine just restarts the same map
-                        # at match end instead of advancing through
-                        # mapcyclefile — see _update_gamemode_cfg().
+                        # at match end instead of advancing through the map
+                        # group — see _update_gamemode_cfg().
                         "mp_match_end_changelevel": "1",
                         "mp_match_end_restart": "0",
                     }
@@ -462,23 +463,54 @@ class CS2Game(Game):
         super().start_server(args, self._filter_stdout)
         return True
 
-    _MapCycleFileName = "mapcycle.txt"
+    _MapGroupsFileName = "gamemodes_server.txt"
+    # CS2 dropped support for the old CS:GO mapcyclefile mechanism —
+    # +mapgroup + a gamemodes_server.txt KeyValues file (see
+    # _write_map_groups()) is what actually rotates through an
+    # ordinary map group's maps now.
+    # A generic placeholder -- sgsl has no per-group icon/display-name
+    # data of its own to put here, and neither one affects server
+    # behavior (purely cosmetic, used by CS2's own in-game server
+    # browser UI).
+    _MapGroupImageName = "img-group_active"
 
-    def _map_cycle_path(self) -> Path:
-        return self.server_root / "game" / "csgo" / self._MapCycleFileName
+    def _map_groups_path(self) -> Path:
+        return self.server_root / "game" / "csgo" / self._MapGroupsFileName
 
-    def _write_map_cycle(self, group: list[dict]) -> None:
-        """CS2's mapcyclefile format: one token per line — a map name,
-        or a bare workshop id for a workshop map."""
-        lines = [
+    def _write_map_groups(self, group_name: str, group: list[dict]) -> None:
+        """Write `group`'s maps as CS2's gamemodes_server.txt KeyValues
+        format: a "GameModes_Server.txt" -> "mapgroups" block
+        containing one group, named `group_name` (the currently
+        selected ORDINARY_MAPGROUPS entry's own key -- see run(),
+        which also passes that same name to +mapgroup), with a "maps"
+        block listing one entry per map ("1", meaning enabled -- CS2's
+        own convention, not really a boolean toggle sgsl has any
+        control over). A workshop map is listed by its bare workshop
+        id, same as the old mapcyclefile format did, since a
+        "workshop\\<id>\\<name>" entry isn't itself a real map name
+        CS2 would recognize here."""
+        maps = {
             (
                 str(self._get_workshop_id(entry["name"]))
                 if self._is_workshop_map(entry["name"])
                 else entry["name"]
-            )
+            ): "1"
             for entry in group
-        ]
-        self._map_cycle_path().write_text("\n".join(lines) + "\n", encoding="utf-8")
+        }
+        ValveConfigParser.write(
+            self._map_groups_path(),
+            {
+                "GameModes_Server.txt": {
+                    "mapgroups": {
+                        group_name: {
+                            "imagename": self._MapGroupImageName,
+                            "name": group_name,
+                            "maps": maps,
+                        }
+                    }
+                }
+            },
+        )
 
     def _append_workshop_host_args(
         self,
@@ -953,12 +985,10 @@ class CS2Game(Game):
             TabSpec(
                 title="MapVote",
                 items=[
+                    ConfigIndex.MAPVOTE_ALLOW_VOTES,
                     ConfigIndex.MAPVOTE_ENDMATCH_ENABLE,
+                    ConfigIndex.MAPVOTE_MATCH_RESTART_DELAY,
                     ConfigIndex.MAPVOTE_ENDMATCH_DURATION,
-                    ConfigIndex.MAPVOTE_NEXTLEVEL_ALLOWED,
-                    ConfigIndex.MAPVOTE_TIMER_DURATION,
-                    ConfigIndex.MAPVOTE_ALLOW_SPECTATORS,
-                    ConfigIndex.MAPVOTE_QUORUM_RATIO,
                 ],
             ),
             TabSpec(
