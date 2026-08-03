@@ -222,7 +222,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Buy time length, in seconds",
-            value=20,
+            value=10,
         ),
         ConfigIndex.MP_MAXROUNDS: ConfigItem(
             name="mp_maxrounds",
@@ -333,7 +333,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="How long, in seconds, a player is immune to damage after respawning",
-            value=0,
+            value=10,
             range=Range(min_value=0),
         ),
         ConfigIndex.MP_BUY_DURING_IMMUNITY: ConfigItem(
@@ -342,7 +342,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Let players buy while still immune after respawning",
-            value=False,
+            value=True,
         ),
         ConfigIndex.MP_ROUND_RESTART_DELAY: ConfigItem(
             name="mp_round_restart_delay",
@@ -350,7 +350,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="How long, in seconds, to wait before restarting the round once it ends",
-            value=0,
+            value=5,
             range=Range(min_value=0),
         ),
         ConfigIndex.MP_TEAM_INTRO_TIME: ConfigItem(
