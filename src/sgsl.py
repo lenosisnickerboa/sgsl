@@ -59,12 +59,11 @@ g_app_config = None
 g_app_config_file = None
 g_game_config = None
 g_game_config_file = None
-# The current game's config_version() -- cached here, rather than
-# keeping a global reference to the Game itself, since
-# _write_config_files() (called from save_config()/on_restart_
-# application(), both module-level) needs it but only
-# setup_detected_game_server(game) ever has `game` in scope.
-g_game_config_version = None
+# The current Game instance -- needed by module-level functions (e.g.
+# _write_config_files(), on_toggle_rcon_window()) that only ever run
+# after setup_detected_game_server(game) has set this, since `game`
+# itself is just a local/closure variable there.
+g_game = None
 g_ui_builder = None
 
 
@@ -199,7 +198,7 @@ def _write_config_files() -> None:
     TomlConfigParser.write(g_app_config_file, g_app_config, version=APP_CONFIG_VERSION)
     if g_game_config is not None:
         TomlConfigParser.write(
-            g_game_config_file, g_game_config, version=g_game_config_version
+            g_game_config_file, g_game_config, version=g_game.config_version()
         )
 
 
@@ -336,6 +335,22 @@ def on_toggle_configure_window():
 
 def on_toggle_rcon_window():
     global g_rcon_is_open
+    if not g_rcon_is_open and not (
+        g_game.rcon_enabled(g_game_config)
+        and g_game.rcon_password_configured(g_game_config)
+    ):
+        # Only checked when *opening* -- closing an already-open
+        # window should never be blocked, even if RCON was disabled
+        # out from under it since it was opened. The checkbutton
+        # itself already flipped to "on" by the time this runs (see
+        # ui.CheckButton.on_event()) -- snap it back to reflect that
+        # the window is staying closed.
+        g_rcon_open_close.off()
+        ok_dialog(
+            "In order to use RCON you need to enable it the server and "
+            "configure an RCON password"
+        )
+        return
     g_rcon_is_open = not g_rcon_is_open
     g_rcon_window.toggle()
 
@@ -496,6 +511,8 @@ def setup_install_game(dir: str):
 
 def setup_detected_game_server(game: Game):
     global g_main_frame
+    global g_game
+    g_game = game
     game_frame = ui.EditGroupFrame(master=g_main_frame, name=game.get_long_name())
     game_frame.pack()
 
@@ -584,7 +601,6 @@ def setup_detected_game_server(game: Game):
 
     global g_game_config
     global g_game_config_file
-    global g_game_config_version
     g_game_config_file = game.get_directory() / "game.toml"
     g_game_config = TomlConfigParser.read(g_game_config_file, game.config_defaults())
     apply_upgraders(
@@ -592,7 +608,6 @@ def setup_detected_game_server(game: Game):
         TomlConfigParser.read_version(g_game_config_file),
         game.config_upgraders(),
     )
-    g_game_config_version = game.config_version()
     game.config_loaded(g_game_config)
 
     # A saved value (e.g. a previously edited AVAILABLE_MAPS list) may

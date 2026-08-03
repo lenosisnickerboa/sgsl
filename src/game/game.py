@@ -303,6 +303,15 @@ class Game(ABC):
         as send_rcon_command()."""
         raise NotImplementedError
 
+    def rcon_password_configured(self, config: Config[IndexT]) -> bool:
+        """True if `config` has everything RCON needs to actually work
+        beyond just being enabled (see rcon_enabled()) -- e.g. a
+        non-empty password. True by default (nothing else to check);
+        override for a game whose RCON setup has such a requirement.
+        Only ever called when supports_rcon() is True, the same as
+        rcon_enabled()."""
+        return True
+
     def send_rcon_command(self, command: str, config: Config[IndexT]) -> str:
         """Send `command` over RCON to the running server and return
         its response text; may raise (e.g. RuntimeError if RCON isn't

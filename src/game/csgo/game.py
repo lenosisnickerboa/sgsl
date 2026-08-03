@@ -77,6 +77,9 @@ class CSGOGame(Game):
     def rcon_enabled(self, config: Config[IndexT]) -> bool:
         return config[ConfigIndex.RCON_ENABLE].value
 
+    def rcon_password_configured(self, config: Config[IndexT]) -> bool:
+        return bool(config[ConfigIndex.RCON_PASSWORD].value)
+
     def rcon_quick_commands(self) -> list[str]:
         return RconQuickCommands
 
