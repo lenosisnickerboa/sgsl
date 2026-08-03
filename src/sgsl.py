@@ -14,7 +14,11 @@ import ui.terminal as terminal
 import ui.rcon_window as rcon_window
 from game.game import Game, OperationResult, TerminalLineResult
 from game.game_factory import GameFactory
-from app.config_defaults import build_app_defaults, APP_CONFIG_VERSION, APP_CONFIG_UPGRADERS
+from app.config_defaults import (
+    build_app_defaults,
+    APP_CONFIG_VERSION,
+    APP_CONFIG_UPGRADERS,
+)
 from app.config_index import ConfigIndex
 from ui_builder.ui_builder import UiBuilder
 from support.browser import open_url
@@ -347,7 +351,7 @@ def on_toggle_rcon_window():
         # the window is staying closed.
         g_rcon_open_close.off()
         ok_dialog(
-            "In order to use RCON you need to enable it the server and "
+            "In order to use the RCON client you need to enable RCON in the server and "
             "configure an RCON password"
         )
         return
@@ -720,9 +724,7 @@ def setup_detected_game_server(game: Game):
 
         keep_masked = choice == "all_excluding_masked"
 
-        app_changed = reset_to_defaults(
-            g_app_config, build_app_defaults(), keep_masked
-        )
+        app_changed = reset_to_defaults(g_app_config, build_app_defaults(), keep_masked)
         app_affected = set(app_changed)
         for index in app_changed:
             app_affected.update(
