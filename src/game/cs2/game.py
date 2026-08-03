@@ -17,7 +17,7 @@ from game.cs2.config_parser.valve_gamemode_config_parser import (
     ConfigEntry,
     ValveGamemodeConfigParser,
 )
-from game.game import Game, OperationResult, TerminalLineResult
+from game.game import ExtraResetOption, Game, OperationResult, TerminalLineResult
 from support import bat_runner
 from support.dialog import edit_string_dialog_box
 from support.rcon_client import run_rcon_command
@@ -818,6 +818,50 @@ class CS2Game(Game):
         #     )
         # ]
         return []
+
+    def extra_reset_options(self) -> list[ExtraResetOption]:
+        # None of these three have a fixed "default" the normal reset
+        # pass could restore anyway: WORKSHOP_MAPS' own "default" is
+        # just whatever's currently downloaded (so a normal reset never
+        # empties it), and while ORDINARY_MAPGROUPS/WORKSHOP_MAPGROUPS
+        # technically default to [], wiping out a user's hand-built map
+        # groups as a side effect of resetting some unrelated setting
+        # would be surprising -- so all three are excluded from the
+        # normal pass and only touched if explicitly checked here.
+        return [
+            ExtraResetOption(
+                label="Remove downloaded workshop maps",
+                tooltip="Delete all downloaded workshop map content and clear the "
+                "workshop maps list",
+                index=ConfigIndex.WORKSHOP_MAPS,
+                action=self._remove_downloaded_workshop_maps,
+            ),
+            ExtraResetOption(
+                label="Remove custom map groups",
+                tooltip="Clear all user-defined ordinary map groups",
+                index=ConfigIndex.ORDINARY_MAPGROUPS,
+                action=self._remove_ordinary_map_groups,
+            ),
+            ExtraResetOption(
+                label="Remove workshop map groups",
+                tooltip="Clear all configured Steam Workshop map groups",
+                index=ConfigIndex.WORKSHOP_MAPGROUPS,
+                action=self._remove_workshop_map_groups,
+            ),
+        ]
+
+    def _remove_downloaded_workshop_maps(self, config: Config[IndexT]) -> list[IndexT]:
+        self._remove_orphaned_workshop_content([])
+        config[ConfigIndex.WORKSHOP_MAPS].value = []
+        return [ConfigIndex.WORKSHOP_MAPS]
+
+    def _remove_ordinary_map_groups(self, config: Config[IndexT]) -> list[IndexT]:
+        config[ConfigIndex.ORDINARY_MAPGROUPS].value = []
+        return [ConfigIndex.ORDINARY_MAPGROUPS]
+
+    def _remove_workshop_map_groups(self, config: Config[IndexT]) -> list[IndexT]:
+        config[ConfigIndex.WORKSHOP_MAPGROUPS].value = []
+        return [ConfigIndex.WORKSHOP_MAPGROUPS]
 
     def _get_workshop_ids(self, maps: list[str]) -> list[int]:
         installed_ids = []

@@ -677,6 +677,112 @@ class ChoiceDialog(EnableDisableMixin, ttk.Toplevel):
         return self._result
 
 
+class ChoiceDialogWithToggles(EnableDisableMixin, ttk.Toplevel):
+    """Like ChoiceDialog, but with an extra column of independent,
+    unchecked-by-default checkboxes shown above the button row --
+    each with its own tooltip, and each toggled on its own regardless
+    of which button ends up clicked. Used where a handful of opt-in
+    side effects (e.g. "also remove ...") are orthogonal to the actual
+    choice being made (e.g. All/All excluding masked/Cancel), rather
+    than deserving their own dedicated button each.
+
+    show() returns (choice_value, {key: bool, ...}) -- the toggle
+    dict always reflects every toggle's final checked state, even if
+    the dialog was closed via its own close button (in which case
+    choice_value is `cancel_value`, the same as ChoiceDialog)."""
+
+    def __init__(
+        self,
+        title: str,
+        message: str,
+        toggles: list[tuple[str, str, str]],
+        choices: list[tuple[str, str, object]],
+        cancel_value=None,
+        **kwargs,
+    ):
+        """`toggles` is a list of (key, label, tooltip) tuples, one per
+        checkbox, top to bottom -- `key` identifies it in show()'s
+        returned dict. `choices` is the same (label, tooltip, value)
+        shape ChoiceDialog takes."""
+        super().__init__(title=title, **kwargs)
+        # Parked off-screen until _center_on_master() repositions it --
+        # same reasoning as Window.__init__: avoids a flash at the
+        # window manager's default placement before centering.
+        self.geometry("+8000+8000")
+
+        self._result = cancel_value
+        self._cancel_value = cancel_value
+        self._toggle_vars = {key: ttk.BooleanVar(value=False) for key, _, _ in toggles}
+
+        self.resizable(False, False)
+        self.protocol("WM_DELETE_WINDOW", self._handle_close)
+
+        frame = ttk.Frame(self, padding=20)
+        frame.pack(fill=BOTH, expand=YES)
+
+        label = ttk.Label(frame, text=message, wraplength=480, justify=LEFT)
+        label.pack(fill=X, pady=(0, 15))
+
+        if toggles:
+            toggles_frame = ttk.Frame(frame)
+            toggles_frame.pack(fill=X, pady=(0, 15), anchor=W)
+            for key, toggle_label, tooltip in toggles:
+                checkbutton = ttk.Checkbutton(
+                    toggles_frame, text=toggle_label, variable=self._toggle_vars[key]
+                )
+                checkbutton.pack(anchor=W)
+                make_tooltip(checkbutton, text=tooltip)
+
+        button_row = ttk.Frame(frame)
+        button_row.pack()
+
+        for index, (label_text, tooltip, value) in enumerate(choices):
+            button = ttk.Button(
+                button_row,
+                text=label_text,
+                command=lambda v=value: self._handle_choice(v),
+                bootstyle="primary" if index == 0 else None,
+            )
+            button.pack(side=LEFT, padx=(0 if index == 0 else 5, 0))
+            make_tooltip(button, text=tooltip)
+            if index == 0:
+                button.focus_set()
+
+        self._center_on_master()
+
+        # Modal: block interaction with other windows until closed.
+        self.transient(self.master)
+        self.grab_set()
+
+    def _center_on_master(self):
+        master = self.master
+        if master is None:
+            return
+        master.update_idletasks()
+        self.update_idletasks()
+        x = master.winfo_x() + (master.winfo_width() - self.winfo_width()) // 2
+        y = master.winfo_y() + (master.winfo_height() - self.winfo_height()) // 2
+        self.geometry(f"+{x}+{y}")
+
+    def _handle_choice(self, value) -> None:
+        self._result = value
+        self.grab_release()
+        self.destroy()
+
+    def _handle_close(self) -> None:
+        self._result = self._cancel_value
+        self.grab_release()
+        self.destroy()
+
+    def show(self):
+        """Block the calling code until the dialog is dismissed, then
+        return (choice_value, {key: bool, ...}) -- see class
+        docstring."""
+        self.wait_window(self)
+        toggle_states = {key: var.get() for key, var in self._toggle_vars.items()}
+        return self._result, toggle_states
+
+
 class EditStringDialog(EnableDisableMixin, ttk.Toplevel):
     """A modal dialog for editing a single string: shows `title`, an
     Entry pre-filled with `value`, and OK/Cancel buttons. Appears

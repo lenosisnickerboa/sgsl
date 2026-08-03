@@ -22,7 +22,12 @@ from app.config_defaults import (
 from app.config_index import ConfigIndex
 from ui_builder.ui_builder import UiBuilder
 from support.browser import open_url
-from support.dialog import choice_dialog, link_dialog, ok_dialog, ok_dialog_exit
+from support.dialog import (
+    choice_dialog_with_toggles,
+    link_dialog,
+    ok_dialog,
+    ok_dialog_exit,
+)
 from support.set_status_line import (
     init_status_line,
     set_status_line,
@@ -705,8 +710,14 @@ def setup_detected_game_server(game: Game):
     )
 
     def on_set_defaults():
-        choice = choice_dialog(
+        extra_options = game.extra_reset_options() if g_game_config is not None else []
+        toggles = [
+            (str(i), option.label, option.tooltip)
+            for i, option in enumerate(extra_options)
+        ]
+        choice, toggle_states = choice_dialog_with_toggles(
             "Set config back to default values?",
+            toggles=toggles,
             title="Set defaults",
             choices=[
                 ("All", "All config items including masked", "all"),
@@ -733,11 +744,29 @@ def setup_detected_game_server(game: Game):
         app_ui_builder.config_changed(list(app_affected), g_app_config)
 
         if g_game_config is not None:
+            # Indexes with their own opt-in "remove ..." toggle (see
+            # Game.extra_reset_options()) are excluded from this normal
+            # pass regardless of whether that toggle is checked -- a
+            # game with such content (e.g. downloaded workshop maps,
+            # user-defined map groups) doesn't have a sensible "default"
+            # for it that a routine reset should silently restore.
+            excluded_indexes = {option.index for option in extra_options}
+            game_reset_indexes = [
+                index for index in g_game_config if index not in excluded_indexes
+            ]
             game_changed = reset_to_defaults(
-                g_game_config, game.config_defaults(), keep_masked
+                g_game_config,
+                game.config_defaults(),
+                keep_masked,
+                indexes=game_reset_indexes,
             )
-            game_affected = set(game_changed)
-            for index in game_changed:
+            extra_changed = []
+            for i, option in enumerate(extra_options):
+                if toggle_states.get(str(i)):
+                    extra_changed.extend(option.action(g_game_config))
+
+            game_affected = set(game_changed) | set(extra_changed)
+            for index in list(game_changed) + extra_changed:
                 game_affected.update(
                     game.config_item_changed(g_game_config[index], g_game_config)
                 )

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unicodedata
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Callable, Optional, Union
@@ -36,6 +37,27 @@ class TerminalLineResult(Enum):
 
     OK = "OK"
     MAP_LOAD_FAILED = "MAP_LOAD_FAILED"
+
+
+@dataclass
+class ExtraResetOption:
+    """One opt-in "remove ..." toggle offered by the application's
+    top-level Set Defaults dialog -- see Game.extra_reset_options().
+
+    `index` is the config index this option governs; it's excluded
+    from the dialog's normal reset pass unconditionally, whether or
+    not this option's own toggle ends up checked.
+
+    `action`, called only if the toggle is checked (after the normal
+    reset pass has already run), performs the actual removal --
+    including any side effect beyond the config value itself, e.g.
+    deleting downloaded files -- and returns the indexes changed, the
+    same contract as Game.config_item_changed()."""
+
+    label: str
+    tooltip: str
+    index: IndexT
+    action: Callable[[Config[IndexT]], list[IndexT]]
 
 
 class Game(ABC):
@@ -273,6 +295,21 @@ class Game(ABC):
         """Migrations to apply, in order, to a saved config from an
         older config_version() -- see
         config.config_upgrader.apply_upgraders(). Empty by default."""
+        return []
+
+    def extra_reset_options(self) -> list[ExtraResetOption]:
+        """Opt-in "remove ..." toggles offered by the application's
+        top-level Set Defaults dialog, for bulk content a routine
+        reset-to-defaults shouldn't touch just because it's unrelated
+        to whatever the user actually meant to reset -- e.g. downloaded
+        workshop maps, or user-defined map groups (see
+        ExtraResetOption). Each returned option's `index` is excluded
+        from that dialog's normal All/All-excluding-masked reset pass
+        regardless of whether its own toggle is checked, so the only
+        way to actually clear it is to check that toggle explicitly.
+
+        Empty by default -- nothing excluded, the normal reset covers
+        every index, same as a game with no such content at all."""
         return []
 
     def error_report_files(self) -> list[str]:

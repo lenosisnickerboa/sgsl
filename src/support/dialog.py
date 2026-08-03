@@ -11,7 +11,9 @@ buttons and returns the edited value or None.
 confirm_dialog() shows a message with OK/Cancel buttons and returns
 whether OK was pressed. choice_dialog() shows a message with an
 arbitrary row of custom-labeled buttons and returns which one's value
-was clicked.
+was clicked. choice_dialog_with_toggles() is the same as choice_dialog()
+plus a column of independent checkboxes, returning their final states
+alongside the clicked button's value.
 """
 
 import sys
@@ -90,6 +92,32 @@ def choice_dialog(
     dialog = ui.ChoiceDialog(
         title=title,
         message=message,
+        choices=choices,
+        cancel_value=cancel_value,
+        master=master,
+    )
+    return dialog.show()
+
+
+def choice_dialog_with_toggles(
+    message: str,
+    toggles: list[tuple[str, str, str]],
+    choices: list[tuple[str, str, Any]],
+    title: str = "Choose",
+    cancel_value: Any = None,
+    master: Optional[Any] = None,
+) -> tuple[Any, dict[str, bool]]:
+    """Like choice_dialog(), but with an extra (key, label, tooltip)
+    checkbox per entry in `toggles`, shown above the button row --
+    unchecked by default, and independent of which button is clicked.
+    Returns (choice_value, {key: bool, ...}); the toggle dict always
+    reflects the final checked state of every toggle, even if the
+    dialog was closed (in which case choice_value is `cancel_value`,
+    same as choice_dialog())."""
+    dialog = ui.ChoiceDialogWithToggles(
+        title=title,
+        message=message,
+        toggles=toggles,
         choices=choices,
         cancel_value=cancel_value,
         master=master,
