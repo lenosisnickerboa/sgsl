@@ -9,6 +9,7 @@ terminal_logs/**
 error_reports/**
 server/**
 .claude/**
+cfg/**
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
