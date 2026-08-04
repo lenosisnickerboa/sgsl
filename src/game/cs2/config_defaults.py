@@ -367,8 +367,9 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Allow buying anywhere",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Let players buy from anywhere on the map, not just buy zones",
-            value=False,
+            tooltip="Let players buy from anywhere on the map, not just buy zones. "
+            "Recommended to be enable when bots are included, or they tend to stand still forever.",
+            value=True,
         ),
         ConfigIndex.MP_BUY_ALLOW_GUNS: ConfigItem(
             name="mp_buy_allow_guns",
