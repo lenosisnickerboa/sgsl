@@ -6,6 +6,8 @@
 
 Just a general note; installation takes time and terminal output is not continous (it is buffered) so you will just have to be patient. For me an install takes about 30 minutes.
 
+Another note; There are a gazillion config items in cs2 (cvars) and the documentation is really hard to understand. I have selected the ones I think are relevant and some others which sound like they could be useful as well. Some config items are only valid for certain game modes, you have to read the documentation to get it right. I have tried to set sane defaults but not sure I succeeded everywhere.
+
 Depending on how you want to run your server, here comes some scenarios.
 
 ### Simplest possible, LAN only, no workshop maps, just want to play locally with friends
