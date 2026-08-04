@@ -1,7 +1,5 @@
 # General improvements
 
-## If I click one snapped window all snapped windows should move to the front
-
 ## RCON shortcuts configurable
 
 ## Archive functionality for everything downloaded

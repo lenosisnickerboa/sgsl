@@ -949,22 +949,24 @@ class CSGOGame(Game):
                 ],
             ),
             TabSpec(
-                title="Match Rules",
+                title="Times",
                 items=[
                     ConfigIndex.MP_ROUNDTIME,
                     ConfigIndex.MP_FREEZETIME,
-                    ConfigIndex.MP_BUYTIME,
                     ConfigIndex.MP_MAXROUNDS,
                     ConfigIndex.MP_HALFTIME,
                     ConfigIndex.MP_OVERTIME_ENABLE,
                     ConfigIndex.MP_OVERTIME_MAXROUNDS,
-                    ConfigIndex.MP_STARTMONEY,
-                    ConfigIndex.MP_MAXMONEY,
+                    ConfigIndex.MP_WARMUP_TIME,
+                    ConfigIndex.MP_WARMUP_PAUSETIMER,
+                ],
+            ),
+            TabSpec(
+                title="Misc",
+                items=[
                     ConfigIndex.MP_FRIENDLYFIRE,
                     ConfigIndex.MP_AUTO_TEAM_BALANCE,
                     ConfigIndex.MP_LIMIT_TEAMS,
-                    ConfigIndex.MP_WARMUP_TIME,
-                    ConfigIndex.MP_WARMUP_PAUSETIMER,
                     ConfigIndex.MP_RESPAWN_ON_DEATH_CT,
                     ConfigIndex.MP_RESPAWN_ON_DEATH_T,
                 ],
@@ -972,6 +974,9 @@ class CSGOGame(Game):
             TabSpec(
                 title="Economy",
                 items=[
+                    ConfigIndex.MP_STARTMONEY,
+                    ConfigIndex.MP_MAXMONEY,
+                    ConfigIndex.MP_BUYTIME,
                     ConfigIndex.MP_FREE_ARMOR,
                     ConfigIndex.MP_AFTERROUNDMONEY,
                     ConfigIndex.MP_DEATH_DROP_GUN,
