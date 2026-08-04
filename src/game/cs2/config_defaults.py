@@ -100,7 +100,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Max number of players",
-            value=4,
+            value=9,
             range=Range(min_value=1, max_value=64),
         ),
         ConfigIndex.SV_VISIBLEMAXPLAYERS: ConfigItem(
@@ -153,7 +153,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Max number of of bots",
-            value=32,
+            value=20,
             range=Range(min_value=0, max_value=64),
         ),
         ConfigIndex.BOT_QUOTA_MODE: ConfigItem(

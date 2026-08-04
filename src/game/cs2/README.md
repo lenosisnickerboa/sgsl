@@ -2,11 +2,17 @@
 
 # Counter-Strike 2 [Publisher docs](https://store.steampowered.com/app/730/CounterStrike_2/)
 
+## Some general observations first
+
+There are a lot of notes about restarting the server or the client to see if that solves the problem. It seems to be quite common that when things stop working, a restart fixes things. Hmmm...
+
+Installation takes time and terminal output is not continous (it is buffered) so you will just have to be patient. For me an install takes about 30 minutes.
+
+There are a gazillion config items in cs2 (cvars) and the documentation is really hard to understand. I have selected the ones I think are relevant and some others which sound like they could be useful as well. Some config items are only valid for certain game modes, you have to read the documentation to get it right. I have tried to set sane defaults but not sure I succeeded everywhere. Either create an issue and suggest improvements or fix it by adding custom pre/post commands or adding "_append" config files.
+
+If you think something seems fishy, make sure both the server and client is properly updated. Again, it may be necessary to restart server and/or client to make it realize it needs an update. Again hmmm...
+
 ## Installation [Publisher docs](https://developer.valvesoftware.com/wiki/Counter-Strike_2/Dedicated_Servers)
-
-Just a general note; installation takes time and terminal output is not continous (it is buffered) so you will just have to be patient. For me an install takes about 30 minutes.
-
-Another note; There are a gazillion config items in cs2 (cvars) and the documentation is really hard to understand. I have selected the ones I think are relevant and some others which sound like they could be useful as well. Some config items are only valid for certain game modes, you have to read the documentation to get it right. I have tried to set sane defaults but not sure I succeeded everywhere.
 
 Depending on how you want to run your server, here comes some scenarios.
 

@@ -87,6 +87,13 @@ class TerminalWindow(SnapWindow, tb.Toplevel):
         self.after(0, self._append, full_text, tag)
 
     def _append(self, text, tag):
+        # The stdout/stderr reader threads (see process_handler) can
+        # still have buffered lines in flight when the app is closed --
+        # by the time this queued after() callback runs, the window (or
+        # the whole app) may already be destroyed, which would otherwise
+        # raise "invalid command name" trying to touch the dead widget.
+        if not self.winfo_exists():
+            return
         self.output.text.insert("end", text + "\n", tag)
         self._trim_to_max_lines()
         self.output.text.see("end")
