@@ -106,6 +106,9 @@ class ConfigIndex(IntEnum):
     MP_ROUND_RESTART_DELAY = 68
     MP_TEAM_INTRO_TIME = 69
 
+    MP_ROUNDTIME_DEFUSE = 70
+    MP_ROUNDTIME_HOSTAGE = 71
+
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"

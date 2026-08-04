@@ -997,6 +997,8 @@ class CS2Game(Game):
                 title="Match Rules",
                 items=[
                     ConfigIndex.MP_ROUNDTIME,
+                    ConfigIndex.MP_ROUNDTIME_DEFUSE,
+                    ConfigIndex.MP_ROUNDTIME_HOSTAGE,
                     ConfigIndex.MP_FREEZETIME,
                     ConfigIndex.MP_BUYTIME,
                     ConfigIndex.MP_MAXROUNDS,
