@@ -401,11 +401,7 @@ class CSGOGame(Game):
         game_mode = config[ConfigIndex.GAME_MODE].value
         args[3], args[5] = self._game_type_and_mode_codes(game_mode)
         args[7] = args[9] = str(config[ConfigIndex.PLAYER_COUNT].value)
-        # A LAN-only server also logs in anonymously.
-        if (
-            not config[ConfigIndex.SV_LAN].value
-            and config[ConfigIndex.STEAM_GSLT].value
-        ):
+        if config[ConfigIndex.STEAM_GSLT].value:
             args.append("+sv_setsteamaccount")
             args.append(config[ConfigIndex.STEAM_GSLT].value)
         if config[ConfigIndex.STEAM_API_AUTH_KEY].value:
