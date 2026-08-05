@@ -752,16 +752,23 @@ class CSGOGame(Game):
         defaults = build_game_defaults()
         maps = self._ordinary_maps()
         defaults[ConfigIndex.ORDINARY_MAPS].value = maps
+        workshop_maps = self._workshop_maps()
+        defaults[ConfigIndex.WORKSHOP_MAPS].value = workshop_maps
         # A separate list, not the same object as ORDINARY_MAPS.value —
         # SELECTED_MAP.allowed_values gets extended in place elsewhere
         # (config_loaded()), which would otherwise silently mutate
         # ORDINARY_MAPS.value too since lists are shared by reference.
-        defaults[ConfigIndex.SELECTED_MAP].allowed_values = list(maps)
+        # Already-installed workshop maps are included here too (not
+        # just in config_loaded()) so a saved SELECTED_MAP pointing at
+        # one of them still validates when TomlConfigParser.read() loads
+        # it further up the call chain, before config_loaded() ever runs
+        # -- otherwise it'd be rejected as not in allowed_values yet and
+        # silently fall back to the default map.
+        defaults[ConfigIndex.SELECTED_MAP].allowed_values = list(maps) + workshop_maps
         if _DefaultMap in maps:
             defaults[ConfigIndex.SELECTED_MAP].value = _DefaultMap
         else:
             defaults[ConfigIndex.SELECTED_MAP].value = maps[0] if len(maps) else ""
-        defaults[ConfigIndex.WORKSHOP_MAPS].value = self._workshop_maps()
         username = getpass.getuser()  # current logged-in user
         hostname = socket.gethostname()  # machine's hostname
         defaults[ConfigIndex.HOSTNAME].value = f"My server {username}@{hostname}"
@@ -883,9 +890,13 @@ class CSGOGame(Game):
         config[ConfigIndex.WORKSHOP_MAPS].value = (
             installed_ws_maps + not_installed_ws_maps
         )
-        config[ConfigIndex.SELECTED_MAP].allowed_values += (
-            installed_ws_maps + not_installed_ws_maps
-        )
+        # installed_ws_maps is already in allowed_values -- config_defaults()
+        # put it there so a saved SELECTED_MAP pointing at an already-
+        # installed workshop map still validates when TomlConfigParser.read()
+        # loads it, before this method ever runs. Only not_installed_ws_maps
+        # (freshly loaded from the saved config, unknown at config_defaults()
+        # time) is new here.
+        config[ConfigIndex.SELECTED_MAP].allowed_values += not_installed_ws_maps
         # Picks up whatever map groups were just loaded from the saved
         # config, since config_defaults() alone only ever sees an
         # empty ORDINARY_MAPGROUPS (the TOML values haven't been

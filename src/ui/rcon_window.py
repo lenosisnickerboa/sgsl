@@ -66,13 +66,13 @@ class RconWindow(SnapWindow, tb.Toplevel):
         send_button.pack(side=LEFT, padx=(5, 0))
         make_tooltip(send_button, text="Send this command over RCON")
 
-        clear_button = tb.Button(entry_row, text="Clear", command=self.clear)
-        clear_button.pack(side=LEFT, padx=(5, 0))
-        make_tooltip(clear_button, text="Clear the log")
-
         save_button = tb.Button(entry_row, text="Save", command=self.save_to_file)
         save_button.pack(side=LEFT, padx=(5, 0))
         make_tooltip(save_button, text="Save the current log to a timestamped file")
+
+        clear_button = tb.Button(entry_row, text="Clear", command=self.clear)
+        clear_button.pack(side=LEFT, padx=(5, 0))
+        make_tooltip(clear_button, text="Clear the log")
 
         # Packed after entry_row (also side=BOTTOM), so it claims the
         # region just above it -- between the output log and the
