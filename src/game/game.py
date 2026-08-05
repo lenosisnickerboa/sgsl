@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 import unicodedata
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
@@ -127,6 +128,7 @@ class Game(ABC):
         self.print(
             f'Starting game server {self.get_long_name()} with executable "{self.get_server_binary_path()}" and arguments "{args}"...'
         )
+        self._write_run_bat(args)
         pid = handler.start(
             args,
             no_window=True,
@@ -135,6 +137,20 @@ class Game(ABC):
             on_exit=self.handle_done,
         )
         self.print(f"Started game server {self.get_long_name()} with pid {pid}")
+
+    _RunBatFileName = "run_game_server.bat"
+
+    def _write_run_bat(self, args) -> None:
+        """Write a run_game_server.bat in the install folder containing
+        the exact command line start_server() is about to launch -- lets a
+        user start the server the same way sgsl would, without sgsl itself
+        (e.g. from a scheduled task, or a machine sgsl isn't installed on)."""
+        command_line = subprocess.list2cmdline(
+            [str(self.get_server_binary_path())] + list(args)
+        )
+        (self.directory / self._RunBatFileName).write_text(
+            command_line + "\r\n", encoding="utf-8"
+        )
 
     def stop_server(self) -> bool:
         self.print(
