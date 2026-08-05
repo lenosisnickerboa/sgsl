@@ -155,6 +155,13 @@ class FrostbiteRconClient:
     def close(self) -> None:
         if self._sock is not None:
             try:
+                # An abortive (RST) close instead of the default graceful
+                # FIN-based one -- see support/rcon_client.py's
+                # RconClient.close() for why (same fix, same reasoning,
+                # for VU's dedicated RCON port instead of Source RCON's).
+                self._sock.setsockopt(
+                    socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0)
+                )
                 self._sock.close()
             finally:
                 self._sock = None

@@ -162,6 +162,18 @@ class RconClient:
     def close(self) -> None:
         if self._sock is not None:
             try:
+                # An abortive (RST) close instead of the default graceful
+                # FIN-based one -- srcds/CS2 doesn't reliably close its
+                # own end of a short-lived RCON connection promptly,
+                # leaving it dangling in CLOSE_WAIT (with our side stuck
+                # in FIN_WAIT_2, which Windows doesn't time out on its
+                # own) until the server eventually reaps it, if ever.
+                # Every command here is single-shot and already fully
+                # read by this point, so there's nothing left to lose by
+                # not waiting for a graceful close.
+                self._sock.setsockopt(
+                    socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0)
+                )
                 self._sock.close()
             finally:
                 self._sock = None
