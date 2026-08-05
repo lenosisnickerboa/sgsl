@@ -407,10 +407,14 @@ class CSGOGame(Game):
         if config[ConfigIndex.STEAM_API_AUTH_KEY].value:
             args.append("-authkey")
             args.append(config[ConfigIndex.STEAM_API_AUTH_KEY].value)
-        args.append("-ip")
-        args.append(config[ConfigIndex.LISTEN_ADDRESS].value)
-        args.append("-port")
-        args.append(str(config[ConfigIndex.LISTEN_PORT].value))
+        listen_address = config[ConfigIndex.LISTEN_ADDRESS].value
+        if listen_address and listen_address != "0.0.0.0":
+            args.append("-ip")
+            args.append(listen_address)
+        listen_port = config[ConfigIndex.LISTEN_PORT].value
+        if listen_port and listen_port != 27015:
+            args.append("-port")
+            args.append(str(listen_port))
         args.append("-tickrate")
         args.append(config[ConfigIndex.SERVER_FREQUENCY].value)
 
@@ -544,8 +548,6 @@ class CSGOGame(Game):
         host_cvar: str,
         workshop_id: int,
     ) -> None:
-        args.append("+map")  # dummy map seems to be needed when hosting from workshop
-        args.append("de_dust2")
         args.append(f"+{host_cvar}")
         args.append(str(workshop_id))
 
