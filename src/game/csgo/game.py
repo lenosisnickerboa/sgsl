@@ -341,7 +341,16 @@ class CSGOGame(Game):
 
     def update(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
-        self._install_or_update(result_callback)
+
+        def on_result(result: OperationResult):
+            if result is OperationResult.OK:
+                # An update can overwrite steam.inf with the same
+                # unpatched app id install() had to patch -- see
+                # _patch_steam_inf().
+                self._patch_steam_inf()
+            result_callback(result)
+
+        self._install_or_update(on_result)
 
     def _filter_stdout(self, line: str) -> str:
         if (
