@@ -521,6 +521,12 @@ class CS2Game(Game):
         host_cvar: str,
         workshop_id: int,
     ) -> None:
+        # Without this dummy +map, hosting from a workshop map/collection
+        # simply doesn't work -- the server starts but never actually
+        # loads the workshop content, host_cvar or not. Cause unknown;
+        # this is just the workaround observed to fix it.
+        args.append("+map")
+        args.append("de_dust2")
         args.append(f"+{host_cvar}")
         args.append(str(workshop_id))
 
