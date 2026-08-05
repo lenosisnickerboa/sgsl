@@ -401,7 +401,13 @@ class CSGOGame(Game):
         game_mode = config[ConfigIndex.GAME_MODE].value
         args[3], args[5] = self._game_type_and_mode_codes(game_mode)
         args[7] = args[9] = str(config[ConfigIndex.PLAYER_COUNT].value)
-        if config[ConfigIndex.STEAM_GSLT].value:
+        # A LAN-only server logs in anonymously instead -- see
+        # cvar_overrides below, which always forces the actual sv_lan
+        # cvar to 0 regardless of this toggle.
+        if (
+            not config[ConfigIndex.SV_LAN].value
+            and config[ConfigIndex.STEAM_GSLT].value
+        ):
             args.append("+sv_setsteamaccount")
             args.append(config[ConfigIndex.STEAM_GSLT].value)
         if config[ConfigIndex.STEAM_API_AUTH_KEY].value:
@@ -427,6 +433,13 @@ class CSGOGame(Game):
         cvar_overrides = (
             {} if config[ConfigIndex.RCON_ENABLE].value else {"rcon_password": ""}
         )
+        # Always written as 0 -- Source's own "sv_lan 1" local mode is
+        # never actually enabled. SV_LAN (see above) instead controls
+        # whether we log in with a GSLT at all: skipping
+        # +sv_setsteamaccount (an anonymous login) is what keeps a
+        # "LAN only" server off the public server browser, so the cvar
+        # itself doesn't need to (and shouldn't) also flip to 1.
+        cvar_overrides["sv_lan"] = "0"
 
         # A map group only ever supplies which maps to cycle through —
         # CS:GO only supports one game mode/round limit per running
