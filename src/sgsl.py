@@ -8,6 +8,7 @@ from config.config_item import ConfigType
 from config.tab_spec import TabSpec
 from config.toml_config import Config, TomlConfigParser, reset_to_defaults
 from config.config_upgrader import apply_upgraders
+from app.resources import resource_path
 from app.version import VERSION
 import ui.widgets as ui
 import ui.terminal as terminal
@@ -919,7 +920,23 @@ def on_check_for_updates():
 
 # main
 
-root = ui.Window(title="Simple Game Server Launcher" + " " + VERSION)
+# Bundled by build-for-test.bat only (via a PyInstaller --add-data entry),
+# containing the build timestamp -- so a build-for-test.bat build's main
+# window title can be told apart from a release build's or a plain
+# from-source run's, both of which lack this marker.
+_TestBuildMarker = "app/assets/test_build.marker"
+
+
+def _main_window_title() -> str:
+    title = "Simple Game Server Launcher" + " " + VERSION
+    marker = resource_path(_TestBuildMarker)
+    if marker.exists():
+        timestamp = marker.read_text(encoding="utf-8").strip()
+        title += f" (Build for test {timestamp})"
+    return title
+
+
+root = ui.Window(title=_main_window_title())
 root.protocol("WM_DELETE_WINDOW", on_close_main_window)
 
 current_dir = os.getcwd()

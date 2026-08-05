@@ -379,6 +379,8 @@ class CSGOGame(Game):
             "MODE",
             "-maxplayers",
             "<number>",
+            "-maxplayers_override",
+            "<number>",
         ]
         if config[ConfigIndex.CONSOLE_ENABLED].value:
             args.append("-console")
@@ -389,7 +391,7 @@ class CSGOGame(Game):
             args.append("-usercon")
         game_mode = config[ConfigIndex.GAME_MODE].value
         args[3], args[5] = self._game_type_and_mode_codes(game_mode)
-        args[7] = str(config[ConfigIndex.PLAYER_COUNT].value)
+        args[7] = args[9] = str(config[ConfigIndex.PLAYER_COUNT].value)
         # A LAN-only server also logs in anonymously.
         if (
             not config[ConfigIndex.SV_LAN].value
@@ -425,8 +427,7 @@ class CSGOGame(Game):
         if workshop_collection_id is not None:
             # A workshop map group is a Steam Workshop collection id,
             # not a locally-defined map list — Steam itself resolves
-            # and rotates through the collection's maps, so there's no
-            # mapcyclefile to write here, unlike an ordinary map group.
+            # and rotates through the collection's maps.
             self._append_workshop_host_args(
                 args, "host_workshop_collection", workshop_collection_id
             )
@@ -434,25 +435,19 @@ class CSGOGame(Game):
             map_group = self._active_map_group(config)
             if map_group:
                 group_key = config[ConfigIndex.SELECTED_MAP_GROUP].value
-                self._write_map_cycle(map_group)
                 self._write_map_groups(game_mode, group_key, map_group)
-                args.append("+mapcyclefile")
-                args.append(self._MapCycleFileName)
                 # mp_endmatch_votenextmap only offers a real choice of
                 # candidate maps when an actual mapgroup -- registered in
                 # gamemodes_server.txt by _write_map_groups() above -- is
-                # active. With just +mapcyclefile the engine has no group
-                # to draw vote candidates from and just falls back to
-                # changelevel/restart behavior instead of ever putting up
-                # a vote.
+                # active and selected here via +mapgroup.
                 args.append("+mapgroup")
                 args.append(group_key)
                 launch_map = map_group[0]["name"]
                 cvar_overrides.update(
                     {
                         # Without these the engine just restarts the same map
-                        # at match end instead of advancing through
-                        # mapcyclefile — see _update_gamemode_cfg().
+                        # at match end instead of advancing through the map
+                        # group — see _update_gamemode_cfg().
                         "mp_match_end_changelevel": "1",
                         "mp_match_end_restart": "0",
                     }
@@ -480,24 +475,6 @@ class CSGOGame(Game):
             args = split_run_command(edited)
         super().start_server(args, self._filter_stdout)
         return True
-
-    _MapCycleFileName = "mapcycle.txt"
-
-    def _map_cycle_path(self) -> Path:
-        return self.server_root / "csgo" / self._MapCycleFileName
-
-    def _write_map_cycle(self, group: list[dict]) -> None:
-        """CS:GO's mapcyclefile format: one token per line — a map name,
-        or a bare workshop id for a workshop map."""
-        lines = [
-            (
-                str(self._get_workshop_id(entry["name"]))
-                if self._is_workshop_map(entry["name"])
-                else entry["name"]
-            )
-            for entry in group
-        ]
-        self._map_cycle_path().write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     _GamemodesServerFileName = "gamemodes_server.txt"
 
@@ -544,7 +521,7 @@ class CSGOGame(Game):
         doc = root.setdefault("GameModes_Server.txt", {})
         doc.setdefault("mapgroups", {})[group_key] = {
             "name": group_key,
-            "maps": {entry["name"]: "1" for entry in group},
+            "maps": {entry["name"]: "" for entry in group},
         }
         game_type_key, game_mode_key = self._GameModeServerKeys[game_mode]
         mode_block = (
@@ -553,7 +530,7 @@ class CSGOGame(Game):
             .setdefault("gameModes", {})
             .setdefault(game_mode_key, {})
         )
-        mode_block.setdefault("mapgroupsMP", {})[group_key] = "1"
+        mode_block.setdefault("mapgroupsMP", {})[group_key] = ""
         ValveConfigParser.write(path, root)
 
     def _append_workshop_host_args(
