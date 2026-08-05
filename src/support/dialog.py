@@ -21,6 +21,37 @@ from typing import Any, Optional
 
 import ui.widgets as ui
 
+# Set (via default_dialog_master()) around a ConfigItem.set() call whose
+# transform may pop up one of this module's dialogs several calls removed
+# from any window reference (e.g. confirm_workshop_item(), reached through
+# a WORKSHOP_MAPS/WORKSHOP_MAPGROUPS item's transform) -- lets that dialog
+# still center on the configuration window it was triggered from, rather
+# than always falling back to the application's main window. See
+# UiBuilder._apply_edit().
+_default_master: Optional[Any] = None
+
+
+class default_dialog_master:
+    """Context manager: makes `master` the default parent window for any
+    of this module's dialogs invoked without an explicit `master` of
+    their own, for the duration of the `with` block."""
+
+    def __init__(self, master: Optional[Any]):
+        self.master = master
+
+    def __enter__(self) -> None:
+        global _default_master
+        self._previous = _default_master
+        _default_master = self.master
+
+    def __exit__(self, *exc_info) -> None:
+        global _default_master
+        _default_master = self._previous
+
+
+def _resolve_master(master: Optional[Any]) -> Optional[Any]:
+    return master if master is not None else _default_master
+
 
 def ok_dialog(message: str, title: str = "Message") -> None:
     """Show `message` in a modal dialog with an OK button, and block
@@ -59,14 +90,26 @@ def edit_string_dialog_box(title: str, value: str) -> Optional[str]:
 
 
 def confirm_dialog(
-    message: str, title: str = "Confirm", ok_text: str = "OK", cancel_text: str = "Cancel"
+    message: str,
+    title: str = "Confirm",
+    ok_text: str = "OK",
+    cancel_text: str = "Cancel",
+    master: Optional[Any] = None,
 ) -> bool:
     """Show `message` (may be multi-line) in a modal dialog with OK/
     Cancel buttons, and block until the user dismisses it. Returns
     True if OK was pressed, or False if Cancel was pressed (or the
-    dialog was closed via its own close button)."""
+    dialog was closed via its own close button).
+
+    `master`, same as choice_dialog()'s, is the window the dialog
+    centers itself on -- falls back to whatever default_dialog_master()
+    last set, then to the application's main window, if omitted."""
     dialog = ui.ConfirmDialog(
-        title=title, message=message, ok_text=ok_text, cancel_text=cancel_text
+        title=title,
+        message=message,
+        ok_text=ok_text,
+        cancel_text=cancel_text,
+        master=_resolve_master(master),
     )
     return dialog.show()
 

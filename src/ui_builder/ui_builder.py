@@ -4,7 +4,7 @@ from config.config_item import ConfigItem, ConfigType, SchemaField, describe_def
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT, reset_to_defaults
 import ui.widgets as ui
-from support.dialog import choice_dialog
+from support.dialog import choice_dialog, default_dialog_master
 
 # Fallback bounds for an INTEGER/FLOAT item that declares no range, so
 # IntegerSpinbox/FloatSpinbox always has something usable to pass as from_/to.
@@ -365,7 +365,14 @@ class UiBuilder:
         effects, and reset-button visibility, all included."""
         previous = item.value
         try:
-            item.set(new_value)
+            # item.set() may run a transform (e.g. confirm_workshop_item(),
+            # via WORKSHOP_MAPS/WORKSHOP_MAPGROUPS) that pops up a dialog
+            # of its own several calls removed from any window reference
+            # -- this lets it still center on whichever window `widget`
+            # actually lives in (a configuration window, or the main
+            # window for a shortcut) instead of always the main window.
+            with default_dialog_master(widget.winfo_toplevel()):
+                item.set(new_value)
         except (TypeError, ValueError):
             # Reject the edit and snap the widget back to the last
             # valid value rather than leaving item/widget out of sync.
