@@ -14,7 +14,7 @@ from game.vu.config_parser.lua_config_parser import (
     ConfigEntry as LuaConfigEntry,
     LuaConfigParser,
 )
-from game.game import Game, OperationResult, TerminalLineResult
+from game.game import ExtraResetOption, Game, OperationResult, TerminalLineResult
 from support import bat_runner
 from support.dialog import edit_string_dialog_box
 from support.frostbite_rcon_client import run_rcon_command
@@ -427,6 +427,26 @@ class VUGame(Game):
             if entry["key"] == key:
                 return entry["value"]
         return None
+
+    def extra_reset_options(self) -> list[ExtraResetOption]:
+        # ORDINARY_MAPGROUPS technically defaults to [], but wiping out
+        # a user's hand-built map groups as a side effect of resetting
+        # some unrelated setting would be surprising -- so it's excluded
+        # from the normal reset pass and only touched if explicitly
+        # checked here (same reasoning as CS2Game/CSGOGame's own
+        # extra_reset_options()).
+        return [
+            ExtraResetOption(
+                label="Remove custom map groups",
+                tooltip="Clear all user-defined map groups",
+                index=ConfigIndex.ORDINARY_MAPGROUPS,
+                action=self._remove_ordinary_map_groups,
+            ),
+        ]
+
+    def _remove_ordinary_map_groups(self, config: Config[IndexT]) -> list[IndexT]:
+        config[ConfigIndex.ORDINARY_MAPGROUPS].value = []
+        return [ConfigIndex.ORDINARY_MAPGROUPS]
 
     # Both fixed (see _install_or_update()'s --strip-components=1
     # extraction), unlike the archives' own top-level folder names,

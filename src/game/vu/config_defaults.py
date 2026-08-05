@@ -53,7 +53,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Player count",
-            value=4,
+            value=9,
             range=Range(min_value=2, max_value=64),
         ),
         ConfigIndex.PLAYER_COUNT_START_ROUND: ConfigItem(
