@@ -433,9 +433,20 @@ class CSGOGame(Game):
         else:
             map_group = self._active_map_group(config)
             if map_group:
+                group_key = config[ConfigIndex.SELECTED_MAP_GROUP].value
                 self._write_map_cycle(map_group)
+                self._write_map_groups(game_mode, group_key, map_group)
                 args.append("+mapcyclefile")
                 args.append(self._MapCycleFileName)
+                # mp_endmatch_votenextmap only offers a real choice of
+                # candidate maps when an actual mapgroup -- registered in
+                # gamemodes_server.txt by _write_map_groups() above -- is
+                # active. With just +mapcyclefile the engine has no group
+                # to draw vote candidates from and just falls back to
+                # changelevel/restart behavior instead of ever putting up
+                # a vote.
+                args.append("+mapgroup")
+                args.append(group_key)
                 launch_map = map_group[0]["name"]
                 cvar_overrides.update(
                     {
@@ -487,6 +498,63 @@ class CSGOGame(Game):
             for entry in group
         ]
         self._map_cycle_path().write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    _GamemodesServerFileName = "gamemodes_server.txt"
+
+    # Which (gameType, gameMode) keyvalues pair gamemodes_server.txt uses
+    # for each of our GAME_MODE values -- mirrors _game_type_and_mode_codes()
+    # above, since these are the same game_type/game_mode split into their
+    # gamemodes_server.txt key names rather than numeric launch codes.
+    _GameModeServerKeys: dict[str, tuple[str, str]] = {
+        "Casual": ("classic", "casual"),
+        "Competitive": ("classic", "competitive"),
+        "ArmsRace": ("gungame", "gungameprogressive"),
+        "DeathMatch": ("gungame", "deathmatch"),
+        "Demolition": ("gungame", "gungametrbomb"),
+    }
+
+    def _gamemodes_server_path(self) -> Path:
+        return self.server_root / "csgo" / self._GamemodesServerFileName
+
+    def _write_map_groups(
+        self, game_mode: str, group_key: str, group: list[dict]
+    ) -> None:
+        """Register the currently selected map group in gamemodes_server.txt
+        so mp_endmatch_votenextmap actually has candidate maps to build an
+        end-of-match vote from. +mapgroup alone isn't enough -- the group
+        also has to be defined under this file's top-level "mapgroups"
+        block AND listed in the active game mode's own "mapgroupsMP"
+        block, e.g.:
+
+        "GameModes_Server.txt"
+        {
+            "gameTypes" { "classic" { "gameModes" { "competitive" {
+                "mapgroupsMP" { "mg_custom" "" }
+            } } } }
+            "mapgroups" { "mg_custom" { "name" "mg_custom" "maps" {
+                "de_dust2" ""
+            } } }
+        }
+
+        Only this group's own entries are added/overwritten -- anything
+        else already in the file (other modes' mapgroupsMP lists, other
+        mapgroup definitions) is left alone."""
+        path = self._gamemodes_server_path()
+        root = ValveConfigParser.read(path) if path.exists() else {}
+        doc = root.setdefault("GameModes_Server.txt", {})
+        doc.setdefault("mapgroups", {})[group_key] = {
+            "name": group_key,
+            "maps": {entry["name"]: "1" for entry in group},
+        }
+        game_type_key, game_mode_key = self._GameModeServerKeys[game_mode]
+        mode_block = (
+            doc.setdefault("gameTypes", {})
+            .setdefault(game_type_key, {})
+            .setdefault("gameModes", {})
+            .setdefault(game_mode_key, {})
+        )
+        mode_block.setdefault("mapgroupsMP", {})[group_key] = "1"
+        ValveConfigParser.write(path, root)
 
     def _append_workshop_host_args(
         self,
@@ -561,10 +629,11 @@ class CSGOGame(Game):
         append") so they too get replaced cleanly on the next run.
 
         `cvar_overrides`, if given, replaces (or adds, for cvars with
-        no matching config item, e.g. mp_match_end_changelevel) specific
-        cvar values on top of the usual SERVER_CFG_FILE items — used
-        when a map group is active, since its rotation cvars need to
-        win over an item's own separately-configured value."""
+        no matching config item) specific cvar values on top of the
+        usual SERVER_CFG_FILE items — used when a map group is active,
+        since its rotation cvars (mp_match_end_changelevel/
+        mp_match_end_restart) need to win over those items' own
+        separately-configured values."""
         cvar_overrides = cvar_overrides or {}
         path = self._gamemode_cfg_path(config)
         entries = ValveGamemodeConfigParser.read(path)
@@ -590,8 +659,7 @@ class CSGOGame(Game):
                 )
             )
             written_names.add(item.name)
-        # Overrides with no matching SERVER_CFG_FILE item (e.g.
-        # mp_match_end_changelevel/mp_match_end_restart) still need to
+        # Overrides with no matching SERVER_CFG_FILE item still need to
         # be written -- the loop above only covers ones that do.
         for name, value in cvar_overrides.items():
             if name in written_names:
@@ -934,7 +1002,6 @@ class CSGOGame(Game):
                     ConfigIndex.BOT_QUOTA,
                     ConfigIndex.BOT_QUOTA_MODE,
                     ConfigIndex.BOT_CHATTER,
-                    ConfigIndex.BOT_WALK,
                     ConfigIndex.BOT_JOIN_AFTER_PLAYER,
                     ConfigIndex.BOT_ALL_WEAPONS,
                 ],
@@ -968,6 +1035,7 @@ class CSGOGame(Game):
                     ConfigIndex.MP_STARTMONEY,
                     ConfigIndex.MP_MAXMONEY,
                     ConfigIndex.MP_BUYTIME,
+                    ConfigIndex.MP_BUY_ANYWHERE,
                     ConfigIndex.MP_FREE_ARMOR,
                     ConfigIndex.MP_AFTERROUNDMONEY,
                     ConfigIndex.MP_DEATH_DROP_GUN,
@@ -1003,12 +1071,12 @@ class CSGOGame(Game):
             TabSpec(
                 title="MapVote",
                 items=[
+                    ConfigIndex.SV_ALLOW_VOTES,
+                    ConfigIndex.MP_MATCH_END_RESTART,
                     ConfigIndex.MAPVOTE_ENDMATCH_ENABLE,
                     ConfigIndex.MAPVOTE_ENDMATCH_DURATION,
-                    ConfigIndex.MAPVOTE_NEXTLEVEL_ALLOWED,
-                    ConfigIndex.MAPVOTE_TIMER_DURATION,
-                    ConfigIndex.MAPVOTE_ALLOW_SPECTATORS,
-                    ConfigIndex.MAPVOTE_QUORUM_RATIO,
+                    ConfigIndex.MP_ENDMATCH_VOTENEXTMAP_KEEPCURRENT,
+                    ConfigIndex.MP_MATCH_END_CHANGELEVEL,
                 ],
             ),
             TabSpec(
@@ -1081,7 +1149,6 @@ class CSGOGame(Game):
         elif config_item is config[ConfigIndex.MP_WARMUP_TIME]:
             if config[ConfigIndex.MP_WARMUP_TIME].value == 0:
                 config[ConfigIndex.MP_WARMUP_PAUSETIMER].set(False)
-                config[ConfigIndex.MP_DO_WARMUP_OFFLINE].set(False)
         return []
 
     def error_report_files(self) -> list[str]:

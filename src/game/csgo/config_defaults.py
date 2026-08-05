@@ -95,10 +95,10 @@ def build_game_defaults() -> Config[ConfigIndex]:
             ],
         ),
         ConfigIndex.PLAYER_COUNT: ConfigItem(
-            name="sv_maxplayers",
+            name="maxplayers",
             visible_name="Players",
             type=ConfigType.INTEGER,
-            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Max number of players",
             value=9,
             range=Range(min_value=1, max_value=64),
@@ -174,14 +174,6 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value="off",
             allowed_values=["off", "radio", "minimal", "normal"],
         ),
-        ConfigIndex.BOT_WALK: ConfigItem(
-            name="bot_walk",
-            visible_name="Bots always walk",
-            type=ConfigType.BOOLEAN,
-            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Bots always walk instead of run",
-            value=False,
-        ),
         ConfigIndex.BOT_JOIN_AFTER_PLAYER: ConfigItem(
             name="bot_join_after_player",
             visible_name="Bots join after player",
@@ -224,13 +216,21 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Buy time length, in seconds",
             value=20,
         ),
+        ConfigIndex.MP_BUY_ANYWHERE: ConfigItem(
+            name="mp_buy_anywhere",
+            visible_name="Allow buying anywhere",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
+            tooltip="Let players buy from anywhere on the map, not just buy zones",
+            value=True,
+        ),
         ConfigIndex.MP_MAXROUNDS: ConfigItem(
             name="mp_maxrounds",
             visible_name="Max rounds",
             type=ConfigType.INTEGER,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="Rounds per map, 0 = unlimited",
-            value=0,
+            value=1,
             range=Range(min_value=0, max_value=24),
         ),
         ConfigIndex.MP_HALFTIME: ConfigItem(
@@ -316,14 +316,6 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
             tooltip="When enabled, warmup won't end until manually started",
             value=False,
-        ),
-        ConfigIndex.MP_DO_WARMUP_OFFLINE: ConfigItem(
-            name="mp_do_warmup_offline",
-            visible_name="Do warmup offline",
-            type=ConfigType.BOOLEAN,
-            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Controls whether the warmup phase happens in offline matches meaning games against bots or local practice matches",
-            value=True,
         ),
         ConfigIndex.MP_RESPAWN_ON_DEATH_CT: ConfigItem(
             name="mp_respawn_on_death_ct",
@@ -603,42 +595,39 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value=20,
             range=Range(min_value=0, max_value=120),
         ),
-        ConfigIndex.MAPVOTE_NEXTLEVEL_ALLOWED: ConfigItem(
-            name="sv_vote_issue_nextlevel_allowed",
-            visible_name="Allow mid-match map vote",
+        ConfigIndex.SV_ALLOW_VOTES: ConfigItem(
+            name="sv_allow_votes",
+            visible_name="Allow voting",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Let players call a vote mid-match to pick the next map, rather than "
-            "waiting for the end-of-match vote",
+            tooltip="Master switch for the server's voting system, including the map vote",
             value=True,
         ),
-        ConfigIndex.MAPVOTE_TIMER_DURATION: ConfigItem(
-            name="sv_vote_timer_duration",
-            visible_name="Vote timer duration (s)",
-            type=ConfigType.INTEGER,
-            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="How long any vote, including a map vote, stays open before being "
-            "decided, in seconds",
-            value=20,
-            range=Range(min_value=1, max_value=120),
-        ),
-        ConfigIndex.MAPVOTE_ALLOW_SPECTATORS: ConfigItem(
-            name="sv_vote_allow_spectators",
-            visible_name="Spectators can vote",
+        ConfigIndex.MP_MATCH_END_RESTART: ConfigItem(
+            name="mp_match_end_restart",
+            visible_name="Restart match at match end",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Allow spectators to take part in votes, including the map vote",
+            tooltip="Restart the same match instead of advancing to the next map when "
+            "the match ends",
+            value=False,
+        ),
+        ConfigIndex.MP_ENDMATCH_VOTENEXTMAP_KEEPCURRENT: ConfigItem(
+            name="mp_endmatch_votenextmap_keepcurrent",
+            visible_name="Keep current map as vote option",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
+            tooltip="Include the currently played map as a candidate in the end-of-match "
+            "next-map vote",
             value=True,
         ),
-        ConfigIndex.MAPVOTE_QUORUM_RATIO: ConfigItem(
-            name="sv_vote_quorum_ratio",
-            visible_name="Vote quorum ratio",
-            type=ConfigType.FLOAT,
+        ConfigIndex.MP_MATCH_END_CHANGELEVEL: ConfigItem(
+            name="mp_match_end_changelevel",
+            visible_name="Change level at match end",
+            type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.SERVER_CFG_FILE,
-            tooltip="Fraction of connected players that must vote for an outcome (e.g. a "
-            "specific next map) for a vote to pass",
-            value=0.3,
-            range=Range(min_value=0.0, max_value=1.0),
+            tooltip="Advance to the next map (per the map cycle/vote) when the match ends",
+            value=True,
         ),
     }
     _link_map_group_schema_fields(defaults)
