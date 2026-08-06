@@ -67,6 +67,7 @@ class ConfigIndex(IntEnum):
     ORDINARY_MAPS = 40
     WORKSHOP_MAPS = 41
     WORKSHOP_MAPS_HELP_TEXT = 65
+    WORKSHOP_MAPS_MANUAL = 76
 
     # -- Steam --
     STEAM_API_AUTH_KEY = 42

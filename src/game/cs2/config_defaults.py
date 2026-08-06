@@ -518,6 +518,19 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value="You can find maps to download here: https://steamcommunity.com/app/730/workshop/",
             read_only=True,
         ),
+        ConfigIndex.WORKSHOP_MAPS_MANUAL: ConfigItem(
+            name="workshop_maps_manual",
+            visible_name="Download workshop map",
+            type=ConfigType.ARRAY,
+            item_type=ConfigType.STRING,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Immediately download a workshop map via steamcmd and install it as an "
+            "ordinary map (filename prefixed lw_), rather than relying on the server to "
+            "fetch it on demand via +host_workshop_map. Same id/url/confirmation as "
+            "Workshop maps above; this list is just a log of what's been downloaded this way.",
+            value=[],
+            transform=_normalize_workshop_map,
+        ),
         ConfigIndex.STEAM_API_AUTH_KEY: ConfigItem(
             name="api_auth_key",
             visible_name="API auth key",

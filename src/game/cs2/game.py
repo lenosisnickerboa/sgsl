@@ -80,6 +80,10 @@ class CS2Game(Game):
         # ran yet), when install-time troubleshooting toggles simply
         # aren't available to the user.
         self.config: Optional[Config[IndexT]] = None
+        # Tracks WORKSHOP_MAPS_MANUAL's own value so config_item_changed()
+        # can tell which entry (if any) was just added and only download
+        # that one -- see _download_workshop_map_manually().
+        self._known_manual_workshop_maps: set[str] = set()
 
     def detect(self) -> bool:
         return self.server_binary.exists()
@@ -708,7 +712,7 @@ class CS2Game(Game):
         return self.server_binary
 
     def _ordinary_maps(self) -> list[str]:
-        maps_dir = Path(self.server_root) / "game" / "csgo" / "maps"
+        maps_dir = self._ordinary_maps_dir()
         return [p.stem for p in maps_dir.glob("*.vpk")] + [
             p.stem for p in maps_dir.glob("*.bsp")
         ]
@@ -768,6 +772,88 @@ class CS2Game(Game):
             maps.append(f"workshop\\{map_id}\\legacy_{map_id}")
 
         return maps
+
+    def _ordinary_maps_dir(self) -> Path:
+        return Path(self.server_root) / "game" / "csgo" / "maps"
+
+    # Filename prefix applied to a manually-downloaded workshop map's
+    # file(s) once copied into ORDINARY_MAPS' own directory -- the
+    # community convention for a workshop map installed as if it were
+    # an ordinary one ("legacy workshop").
+    _ManualWorkshopMapPrefix = "lw_"
+
+    def _manual_workshop_download_dir(self, workshop_id: str) -> Path:
+        # Where "+force_install_dir {server_root} ... +workshop_download_item"
+        # actually places downloaded content -- unrelated to
+        # _workshop_content_dir() above, which is where CS2's own
+        # Steamworks-based auto-download (via +host_workshop_map) puts
+        # it instead, nested under the game binary's own Steam library
+        # context rather than server_root.
+        return (
+            self.server_root
+            / "steamapps"
+            / "workshop"
+            / "content"
+            / str(AppId)
+            / workshop_id
+        )
+
+    def _copy_manual_workshop_map(self, workshop_id: str) -> None:
+        """Copy every map file (.vpk -- possibly split into numbered
+        parts sharing this id, see _WorkshopMapFilePattern -- or .bsp)
+        steamcmd just downloaded for `workshop_id` into ORDINARY_MAPS'
+        own directory, prefixed "lw_" so it reads as a workshop map
+        installed locally, by convention, rather than colliding with
+        an existing same-named map."""
+        content_dir = self._manual_workshop_download_dir(workshop_id)
+        map_files = list(content_dir.glob("**/*.vpk")) + list(
+            content_dir.glob("**/*.bsp")
+        )
+        if not map_files:
+            self.print(
+                f"No map files found in {content_dir} after downloading workshop "
+                f"item {workshop_id} -- it may not be a valid map"
+            )
+            return
+        maps_dir = self._ordinary_maps_dir()
+        maps_dir.mkdir(parents=True, exist_ok=True)
+        for map_file in map_files:
+            dest = maps_dir / f"{self._ManualWorkshopMapPrefix}{map_file.name}"
+            shutil.copy2(map_file, dest)
+            self.print(f"Installed {dest.name} from workshop item {workshop_id}")
+
+    def _download_workshop_map_manually(self, entry: str) -> None:
+        """Fetch `entry` (a "workshop\\<id>\\<name>" WORKSHOP_MAPS_MANUAL
+        entry) via steamcmd, then copy the result into ORDINARY_MAPS'
+        own directory (see _copy_manual_workshop_map()). Runs on a
+        background thread (see bat_runner.run()) -- returns immediately,
+        progress/result is reported via self.print() as it happens."""
+        workshop_id = str(self._get_workshop_id(entry))
+        steamcmd_dir = self.directory / "steamcmd"
+        steamcmd_dir.mkdir(parents=True, exist_ok=True)
+        self.print(f"Downloading workshop item {workshop_id} via steamcmd...")
+
+        def on_output(line):
+            self.print(line)
+
+        def on_result(exit_code):
+            if exit_code != 0:
+                self.print(
+                    f"steamcmd exited with code {exit_code} while downloading "
+                    f"workshop item {workshop_id}"
+                )
+            self._copy_manual_workshop_map(workshop_id)
+
+        bat_runner.run(
+            [
+                f"cd {steamcmd_dir}",
+                f"steamcmd +force_install_dir {self.server_root} +login anonymous "
+                f"+workshop_download_item {AppId} {workshop_id} +quit",
+            ],
+            self.directory,
+            on_output,
+            on_result,
+        )
 
     def config_defaults(self) -> Config[IndexT]:
         defaults = build_game_defaults()
@@ -899,6 +985,12 @@ class CS2Game(Game):
 
     def config_loaded(self, config: Config[IndexT]) -> None:
         self.config = config
+        # Whatever was already saved is assumed already downloaded --
+        # only an entry added later, in this running session, should
+        # trigger a fresh download (see config_item_changed()).
+        self._known_manual_workshop_maps = set(
+            config[ConfigIndex.WORKSHOP_MAPS_MANUAL].value
+        )
         installed_ws_maps = self._workshop_maps()
         installed_ws_maps_ids = self._get_workshop_ids(installed_ws_maps)
         not_installed_ws_maps = []
@@ -1089,6 +1181,7 @@ class CS2Game(Game):
                     ConfigIndex.ORDINARY_MAPS,
                     ConfigIndex.WORKSHOP_MAPS,
                     ConfigIndex.WORKSHOP_MAPS_HELP_TEXT,
+                    ConfigIndex.WORKSHOP_MAPS_MANUAL,
                 ],
             ),
             TabSpec(
@@ -1150,6 +1243,13 @@ class CS2Game(Game):
             if maps and config[ConfigIndex.SELECTED_MAP].value not in maps:
                 config[ConfigIndex.SELECTED_MAP].set(maps[0])
             return [ConfigIndex.SELECTED_MAP]
+        elif config_item is config[ConfigIndex.WORKSHOP_MAPS_MANUAL]:
+            current = set(config_item.value)
+            new_entries = current - self._known_manual_workshop_maps
+            self._known_manual_workshop_maps = current
+            for entry in new_entries:
+                self._download_workshop_map_manually(entry)
+            return []
         elif config_item is config[ConfigIndex.ORDINARY_MAPGROUPS]:
             self._refresh_map_group_choices(config)
             # Covers the case where the removed/renamed group was the
