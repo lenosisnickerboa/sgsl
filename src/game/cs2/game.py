@@ -98,6 +98,14 @@ class CS2Game(Game):
     def get_developer_url(self) -> str:
         return "https://store.steampowered.com/app/730/CounterStrike_2/"
 
+    # Both observed accompanying a broken/crashed server that's still
+    # technically running (an unrecoverable bad map, or an engine-level
+    # assertion) -- see Game.suspicious_terminal_line_patterns().
+    _SuspiciousTerminalLinePatterns = ["Map error!", ":Assertion failed"]
+
+    def suspicious_terminal_line_patterns(self) -> list[str]:
+        return self._SuspiciousTerminalLinePatterns
+
     def supports_rcon(self) -> bool:
         return True
 

@@ -80,6 +80,29 @@ class Game(ABC):
     def get_directory(self) -> Path:
         return self.directory
 
+    def suspicious_terminal_line_patterns(self) -> list[str]:
+        """Substrings that, if found anywhere in a line of this game's
+        own terminal output, indicate something has likely gone wrong
+        server-side (e.g. an internal engine assertion or crash) worth
+        flagging to the user, even though the server process itself
+        may still technically be running. Purely a list of strings to
+        look for -- no UI concern of any kind belongs in this class;
+        it's up to the caller (see sgsl.py's on_terminal_line(), which
+        polls every line through find_suspicious_terminal_line_pattern()
+        below) to decide what to do about a match, e.g. show a dialog.
+        Empty by default; override for a game with known telltale
+        strings like this (e.g. CS2Game's "Map error!"/":Assertion
+        failed")."""
+        return []
+
+    def find_suspicious_terminal_line_pattern(self, line: str) -> Optional[str]:
+        """Whichever of suspicious_terminal_line_patterns() appears in
+        `line`, or None if none do."""
+        for pattern in self.suspicious_terminal_line_patterns():
+            if pattern in line:
+                return pattern
+        return None
+
     def handle_stdout_output(self, line: str):
         if _is_blank_line(line):
             return

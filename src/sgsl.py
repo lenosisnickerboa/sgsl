@@ -57,6 +57,13 @@ g_install_open_close = None
 g_update_open_close = None
 g_start_stop_server = None
 g_check_for_update_button = None
+# Which of the current game's suspicious_terminal_line_patterns() have
+# already triggered a dialog this run -- reset whenever the server is
+# (re)started -- see on_terminal_line(). A crash/assertion pattern
+# typically repeats every subsequent line/tick once it starts, so
+# without this a single bad moment would otherwise queue up an endless
+# wall of identical modal dialogs.
+g_shown_suspicious_line_patterns: set = set()
 # Whether the current game is expected to be running (started, and not
 # yet stopped/crashed) -- checked by poll_game_running() against
 # game.is_running() to notice a crash.
@@ -374,9 +381,10 @@ def on_toggle_app_configure_window():
 
 
 def on_start_stop_game_server(game: Game):
-    global g_start_stop_server, g_server_should_be_running
+    global g_start_stop_server, g_server_should_be_running, g_shown_suspicious_line_patterns
 
     if not game.is_running():
+        g_shown_suspicious_line_patterns = set()
         _write_config_files()
         print_to_terminal(
             f"Starting game server for {game.get_long_name()} in directory {game.get_directory()}..."
@@ -1104,12 +1112,29 @@ def on_terminal_line(line: str):
         return
     result = game.interpret_terminal_line(line)
     if result == TerminalLineResult.OK:
-        return
-    if result == TerminalLineResult.MAP_DOWNLOAD_FAILED:
-        return
-    if result == TerminalLineResult.MAP_LOAD_FAILED:
+        pass
+    elif result == TerminalLineResult.MAP_DOWNLOAD_FAILED:
+        pass
+    elif result == TerminalLineResult.MAP_LOAD_FAILED:
         on_game_map_load_failed(game)
+    _check_suspicious_terminal_line(game, line)
+
+
+def _check_suspicious_terminal_line(game: Game, line: str) -> None:
+    """Show a dialog the first time (per server run -- see
+    g_shown_suspicious_line_patterns) `line` matches one of `game`'s
+    own suspicious_terminal_line_patterns()."""
+    global g_shown_suspicious_line_patterns
+    pattern = game.find_suspicious_terminal_line_pattern(line)
+    if pattern is None or pattern in g_shown_suspicious_line_patterns:
         return
+    g_shown_suspicious_line_patterns.add(pattern)
+    ok_dialog(
+        "Something suspicious has happened on the server:\n\n"
+        f"{line}\n\n"
+        "The server may be broken.",
+        title="Suspicious server output detected",
+    )
 
 
 g_terminal_window.register_listener(on_terminal_line)
