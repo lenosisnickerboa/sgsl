@@ -9,7 +9,7 @@ update without having to actually run steamcmd.
 Compares the "buildid" recorded in the app's own
 steamapps/appmanifest_<appid>.acf (written by steamcmd/Steam itself
 after every install/update) against Steam's public, unauthenticated
-ISteamApps/UpToDateCheck1 Web API -- the same one Steam's own client
+ISteamApps/UpToDateCheck Web API -- the same one Steam's own client
 and various community tools use for this exact purpose.
 """
 
@@ -22,7 +22,7 @@ from typing import Optional
 
 from game.cs2.config_parser.valve_config_parser import ValveConfigParser
 
-_UpToDateCheckUrl = "https://api.steampowered.com/ISteamApps/UpToDateCheck1/v0001/"
+_UpToDateCheckUrl = "https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001/"
 
 
 def read_installed_build_id(manifest_path: Path) -> Optional[str]:
