@@ -26,6 +26,7 @@ def download(
     target_path: Union[str, Path],
     error_printer: Callable[[str], None],
     progress_callback: Optional[Callable[[int, Optional[int]], None]] = None,
+    command_printer: Optional[Callable[[str], None]] = None,
 ) -> Path:
     """
     Download the file at `url` to `target_path`, streaming it to disk
@@ -47,6 +48,11 @@ def download(
         If given, called after each chunk is written as
         progress_callback(bytes_downloaded, total_bytes), where
         total_bytes is None if the server didn't report a Content-Length.
+    command_printer : Optional[Callable[[str], None]]
+        If given, called once up front with the equivalent wget-style
+        command line, before the request is made -- e.g. so a caller
+        can echo it to a terminal/log window the same way bat_runner
+        echoes the batch commands it runs.
 
     Returns
     -------
@@ -61,6 +67,8 @@ def download(
         If the server returns an error status.
     """
     target_path = Path(target_path)
+    if command_printer is not None:
+        command_printer(f'wget "{url}" -O "{target_path}"')
     target_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Download to a temp file first so a failed/interrupted download never
@@ -91,6 +99,8 @@ def download(
         raise
 
     tmp_path.replace(target_path)
+    if command_printer is not None:
+        command_printer("OK")
     return target_path
 
 
@@ -99,6 +109,7 @@ def download_with_return(
     target_path: Union[str, Path],
     error_printer: Callable[[str], None],
     progress_callback: Optional[Callable[[int, Optional[int]], None]] = None,
+    command_printer: Optional[Callable[[str], None]] = None,
 ) -> bool:
     """
     Same as download(), but never raises: returns True on success and
@@ -116,6 +127,8 @@ def download_with_return(
         Same as download()'s error_printer.
     progress_callback : Optional[Callable[[int, Optional[int]], None]]
         Same as download()'s progress_callback.
+    command_printer : Optional[Callable[[str], None]]
+        Same as download()'s command_printer.
 
     Returns
     -------
@@ -123,7 +136,7 @@ def download_with_return(
         True if the file was downloaded successfully, False otherwise.
     """
     try:
-        download(url, target_path, error_printer, progress_callback)
+        download(url, target_path, error_printer, progress_callback, command_printer)
         return True
     except Exception:
         return False

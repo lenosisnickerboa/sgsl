@@ -19,6 +19,7 @@ from game.cs2.config_parser.valve_gamemode_config_parser import (
 )
 from game.game import ExtraResetOption, Game, OperationResult, TerminalLineResult
 from support import bat_runner
+from support import command_log
 from support.dialog import edit_string_dialog_box
 from support.rcon_client import run_rcon_command
 from support.run_command import split_run_command
@@ -210,8 +211,10 @@ class CS2Game(Game):
             if source is None:
                 self.print(f"Could not find {dll_name} under {steam_dir}; skipping")
                 continue
-            shutil.copy2(source, dest_dir / dll_name)
-            self.print(f"Copied {dll_name} from {source} to {dest_dir}")
+            dest = dest_dir / dll_name
+            command_log.run(
+                self.print, f'copy "{source}" "{dest}"', lambda: shutil.copy2(source, dest)
+            )
 
     def _disk_space_failure_reason(self, steamcmd_dir: Path) -> Optional[str]:
         content_log = steamcmd_dir / "logs" / "content_log.txt"
@@ -255,8 +258,9 @@ class CS2Game(Game):
         ):
             manifest_file = self._appmanifest_path()
             if manifest_file.exists():
-                manifest_file.unlink()
-                self.print(f"Removed stale Steam app manifest {manifest_file}")
+                command_log.run(
+                    self.print, f'del "{manifest_file}"', manifest_file.unlink
+                )
 
         def on_output(l):
             self.print(l)
@@ -819,7 +823,9 @@ class CS2Game(Game):
         maps_dir.mkdir(parents=True, exist_ok=True)
         for map_file in map_files:
             dest = maps_dir / f"{self._ManualWorkshopMapPrefix}{map_file.name}"
-            shutil.copy2(map_file, dest)
+            command_log.run(
+                self.print, f'copy "{map_file}" "{dest}"', lambda: shutil.copy2(map_file, dest)
+            )
             self.print(f"Installed {dest.name} from workshop item {workshop_id}")
 
     def _download_workshop_map_manually(self, entry: str) -> None:
@@ -1227,8 +1233,16 @@ class CS2Game(Game):
                 continue
             if int(entry.name) in current_ids:
                 continue
-            shutil.rmtree(entry, ignore_errors=True)
-            self.print(f"Removed downloaded workshop content for id {entry.name}")
+            # Best-effort (reraise=False): one locked/in-use directory
+            # (e.g. still open in another process) shouldn't abort the
+            # rest of this cleanup pass -- its failure is still logged,
+            # just not raised.
+            command_log.run(
+                self.print,
+                f'rmdir /s /q "{entry}"',
+                lambda: shutil.rmtree(entry),
+                reraise=False,
+            )
 
     def config_item_changed(self, config_item, config: Config[IndexT]) -> list[IndexT]:
         if config_item is config[ConfigIndex.WORKSHOP_MAPS]:

@@ -45,9 +45,11 @@ def run(
     output_callback : Optional[Callable[[str], None]]
         If given, called once (synchronously, before run() returns)
         for each line in `commands` as it's written to the .bat file,
-        then again with each line of the batch file's combined
-        stdout/stderr (newline stripped) as it arrives. Runs on a
-        background thread -- keep it fast/thread-safe.
+        then once more with the exact command used to execute it, then
+        again with each line of the batch file's combined stdout/stderr
+        (newline stripped) as it arrives, and finally once more with
+        the batch file's exit code. Runs on a background thread --
+        keep it fast/thread-safe.
     done_callback : Optional[Callable[[int], None]]
         If given, called once as done_callback(exit_code) after the
         batch file has finished. Called after output has been fully
@@ -60,15 +62,20 @@ def run(
 
     with tempfile.NamedTemporaryFile("w", suffix=".bat", delete=False) as f:
         bat_path = Path(f.name)
+        _emit(f"Writing batch file {bat_path}:")
         for command in commands:
             f.write(command + "\r\n")
-            _emit(command)
+            _emit(f"  {command}")
 
     def _run_in_background():
         try:
+            exec_command = str(bat_path)
+            _emit(
+                f'"{exec_command}"' + (f" (in {cwd})" if cwd is not None else "")
+            )
             try:
                 process = subprocess.Popen(
-                    [str(bat_path)],
+                    [exec_command],
                     cwd=str(cwd) if cwd is not None else None,
                     creationflags=CREATE_NO_WINDOW,
                     stdout=subprocess.PIPE if output_callback else subprocess.DEVNULL,
@@ -78,6 +85,7 @@ def run(
                 )
             except Exception as exc:
                 _emit(f"Failed to start batch file: {exc}")
+                _emit("Exit code: 1")
                 if done_callback is not None:
                     done_callback(1)
                 return
@@ -94,6 +102,7 @@ def run(
                 exit_code = 1
                 _emit(f"Batch file execution failed: {exc}")
 
+            _emit(f"Exit code: {exit_code}")
             if done_callback is not None:
                 done_callback(exit_code)
         finally:

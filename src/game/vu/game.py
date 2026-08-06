@@ -16,6 +16,7 @@ from game.vu.config_parser.lua_config_parser import (
 )
 from game.game import ExtraResetOption, Game, OperationResult, TerminalLineResult
 from support import bat_runner
+from support import command_log
 from support.dialog import edit_string_dialog_box
 from support.frostbite_rcon_client import run_rcon_command
 from support.run_command import split_run_command
@@ -238,18 +239,23 @@ class VUGame(Game):
         def on_output(line: str) -> None:
             self.print(line)
 
+        def _remove_archive(path: Path) -> None:
+            command_log.run(
+                self.print, f'del "{path}"', lambda: path.unlink(missing_ok=True)
+            )
+
         def on_result(exit_code: int) -> None:
-            archive_path.unlink(missing_ok=True)
+            _remove_archive(archive_path)
             if fun_bots_enabled:
-                fun_bots_archive_path.unlink(missing_ok=True)
+                _remove_archive(fun_bots_archive_path)
             if votemap_enabled:
-                votemap_archive_path.unlink(missing_ok=True)
+                _remove_archive(votemap_archive_path)
             if votemap_patch_enabled:
-                votemap_patch_archive_path.unlink(missing_ok=True)
+                _remove_archive(votemap_patch_archive_path)
             if more_gore_enabled:
-                more_gore_archive_path.unlink(missing_ok=True)
+                _remove_archive(more_gore_archive_path)
             if head_hit_sounds_enabled:
-                head_hit_sounds_archive_path.unlink(missing_ok=True)
+                _remove_archive(head_hit_sounds_archive_path)
 
             if not self.server_binary.exists():
                 self.print(
