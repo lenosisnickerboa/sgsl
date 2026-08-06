@@ -193,7 +193,7 @@ class RconWindow(SnapWindow, tb.Toplevel):
     def save_to_file(self):
         log_dir = self.install_dir / "rcon_output"
         log_dir.mkdir(parents=True, exist_ok=True)
-        filename = datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".txt"
+        filename = "rcon-" + datetime.now().strftime("%Y-%m-%d_%H-%M-%S") + ".txt"
         file_path = log_dir / filename
         file_path.write_text(self.get_content(), encoding="utf-8")
         self._append(f"Saved RCON output to {file_path}", "info")
