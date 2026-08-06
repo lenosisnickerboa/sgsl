@@ -823,21 +823,17 @@ class CS2Game(Game):
     def _ordinary_maps_dir(self) -> Path:
         return Path(self.server_root) / "game" / "csgo" / "maps"
 
-    def _workshop_predownload_dir(self, workshop_id: str) -> Path:
+    def _workshop_predownload_content_dir(self) -> Path:
         # Where "+force_install_dir {server_root} ... +workshop_download_item"
         # actually places downloaded content -- unrelated to
         # _workshop_content_dir() above, which is where CS2's own
         # Steamworks-based auto-download (via +host_workshop_map) puts
         # it instead, nested under the game binary's own Steam library
         # context rather than server_root.
-        return (
-            self.server_root
-            / "steamapps"
-            / "workshop"
-            / "content"
-            / str(AppId)
-            / workshop_id
-        )
+        return self.server_root / "steamapps" / "workshop" / "content" / str(AppId)
+
+    def _workshop_predownload_dir(self, workshop_id: str) -> Path:
+        return self._workshop_predownload_content_dir() / workshop_id
 
     def _workshop_map_cache_dir(self, workshop_id: str) -> Path:
         # maps/workshop/<id>/ -- see _ordinary_maps()'s matching glob.
@@ -1341,15 +1337,20 @@ class CS2Game(Game):
         itself downloaded to its own directory (see _workshop_maps()'s
         docstring reference in _normalize_workshop_map()).
 
-        Covers both places a map's content can actually live: CS2's
-        own Steamworks-based auto-download cache (_workshop_content_dir())
-        and, if it was ever pre-downloaded (see PRE_DOWNLOAD_WORKSHOP_MAPS/
+        Covers every place a map's content can actually live: CS2's
+        own Steamworks-based auto-download cache (_workshop_content_dir()),
+        steamcmd's own +workshop_download_item output
+        (_workshop_predownload_dir()'s parent -- normally cleared out
+        right after a pre-download finishes copying from it, but left
+        behind by e.g. a cancelled or killed-mid-copy one), and, if it
+        was ever pre-downloaded (see PRE_DOWNLOAD_WORKSHOP_MAPS/
         _predownload_workshop_map()), its maps/workshop/<id>/ cache
-        directory (_workshop_map_cache_dir()) -- either, both, or
-        neither may exist for a given id."""
+        directory (_workshop_map_cache_dir()) -- any, all, or none may
+        exist for a given id."""
         current_ids = {self._get_workshop_id(m) for m in current_workshop_maps}
         for content_dir in (
             self._workshop_content_dir(),
+            self._workshop_predownload_content_dir(),
             self._ordinary_maps_dir() / "workshop",
         ):
             self._remove_orphaned_workshop_ids(content_dir, current_ids)
