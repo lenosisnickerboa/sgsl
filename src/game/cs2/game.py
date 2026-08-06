@@ -345,7 +345,9 @@ class CS2Game(Game):
         return self.server_root / "steamapps" / f"appmanifest_{AppId}.acf"
 
     def check_for_server_update(self) -> Optional[bool]:
-        return check_for_steam_app_update(AppId, self._appmanifest_path())
+        return check_for_steam_app_update(
+            AppId, self._appmanifest_path(), printer=self.print
+        )
 
     def supports_game_update_check(self) -> bool:
         return True

@@ -14,13 +14,13 @@ and various community tools use for this exact purpose.
 """
 
 import json
-import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
-from typing import Optional
+from typing import Callable, Optional
 
 from game.cs2.config_parser.valve_config_parser import ValveConfigParser
+from support import command_log
 
 _UpToDateCheckUrl = "https://api.steampowered.com/ISteamApps/UpToDateCheck/v0001/"
 
@@ -44,22 +44,35 @@ def read_installed_build_id(manifest_path: Path) -> Optional[str]:
 
 
 def check_for_steam_app_update(
-    appid: int, manifest_path: Path, timeout: float = 5.0
+    appid: int,
+    manifest_path: Path,
+    timeout: float = 5.0,
+    printer: Optional[Callable[[str], None]] = None,
 ) -> Optional[bool]:
     """True if a newer build of `appid` is available on Steam than the
     one recorded in `manifest_path`, False if that's still the current
     build, or None if it couldn't be determined (not installed yet,
     offline, API hiccup, ...). Never raises -- this is a best-effort,
-    non-critical check that must not affect startup either way."""
+    non-critical check that must not affect startup either way.
+
+    `printer`, if given, is used to log the request (see
+    support.command_log.run()) the same way bat_runner logs a batch
+    command -- the request URL, then "OK"/"FAILED: <error>"."""
     build_id = read_installed_build_id(manifest_path)
     if build_id is None:
         return None
     query = urllib.parse.urlencode({"appid": appid, "version": build_id})
-    request = urllib.request.Request(f"{_UpToDateCheckUrl}?{query}")
-    try:
+    url = f"{_UpToDateCheckUrl}?{query}"
+    request = urllib.request.Request(url)
+
+    def do_request():
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            payload = json.load(response)
-    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+            return json.load(response)
+
+    payload = command_log.run(
+        printer or (lambda _line: None), f"GET {url}", do_request, reraise=False
+    )
+    if payload is None:
         return None
 
     result = payload.get("response")

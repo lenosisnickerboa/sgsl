@@ -925,7 +925,7 @@ def _check_for_update_in_background(manual: bool = False) -> None:
     print_to_terminal("Checking for a newer sgsl version...")
 
     def worker():
-        result = check_for_update(VERSION)
+        result = check_for_update(VERSION, printer=print_to_terminal)
 
         def finish():
             if result is not None:

@@ -8,9 +8,10 @@ needed for a public repo).
 
 import json
 import re
-import urllib.error
 import urllib.request
-from typing import Optional
+from typing import Callable, Optional
+
+from support import command_log
 
 _LatestReleaseUrl = (
     "https://api.github.com/repos/lenosisnickerboa/sgsl/releases/latest"
@@ -33,9 +34,15 @@ def _parse_version(text: str) -> Optional[tuple[int, ...]]:
 
 
 def check_for_update(
-    current_version: str, timeout: float = 5.0
+    current_version: str,
+    timeout: float = 5.0,
+    printer: Optional[Callable[[str], None]] = None,
 ) -> Optional[tuple[str, str]]:
     """Check GitHub for the latest sgsl release.
+
+    `printer`, if given, is used to log the request (see
+    support.command_log.run()) the same way bat_runner logs a batch
+    command -- the request URL, then "OK"/"FAILED: <error>".
 
     Returns (new_version, release_url) if it's newer than
     current_version, or None if it isn't, the check failed (offline,
@@ -46,10 +53,18 @@ def check_for_update(
         _LatestReleaseUrl,
         headers={"User-Agent": _UserAgent, "Accept": "application/vnd.github+json"},
     )
-    try:
+
+    def do_request():
         with urllib.request.urlopen(request, timeout=timeout) as response:
-            payload = json.load(response)
-    except (urllib.error.URLError, TimeoutError, OSError, ValueError):
+            return json.load(response)
+
+    payload = command_log.run(
+        printer or (lambda _line: None),
+        f"GET {_LatestReleaseUrl}",
+        do_request,
+        reraise=False,
+    )
+    if payload is None:
         return None
 
     tag_name = payload.get("tag_name")
