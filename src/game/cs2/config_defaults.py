@@ -520,7 +520,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ),
         ConfigIndex.WORKSHOP_MAPS_MANUAL: ConfigItem(
             name="workshop_maps_manual",
-            visible_name="Download workshop map",
+            visible_name="Downloaded workshop maps",
             type=ConfigType.ARRAY,
             item_type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,

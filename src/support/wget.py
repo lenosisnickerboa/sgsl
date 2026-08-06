@@ -67,8 +67,9 @@ def download(
         If the server returns an error status.
     """
     target_path = Path(target_path)
+    command = f'wget "{url}" -O "{target_path}"'
     if command_printer is not None:
-        command_printer(f'wget "{url}" -O "{target_path}"')
+        command_printer(command)
     target_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Download to a temp file first so a failed/interrupted download never
@@ -95,12 +96,12 @@ def download(
                 tmp_path.unlink(missing_ok=True)
                 raise
     except Exception as e:
-        error_printer(f"Failed to download {url}: {e}")
+        error_printer(f"Failed to download {url}: {e} ({command})")
         raise
 
     tmp_path.replace(target_path)
     if command_printer is not None:
-        command_printer("OK")
+        command_printer(f"OK ({command})")
     return target_path
 
 

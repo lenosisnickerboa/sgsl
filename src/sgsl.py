@@ -925,7 +925,21 @@ def _check_for_update_in_background(manual: bool = False) -> None:
     print_to_terminal("Checking for a newer sgsl version...")
 
     def worker():
-        result = check_for_update(VERSION, printer=print_to_terminal)
+        try:
+            result = check_for_update(VERSION, printer=print_to_terminal)
+        except Exception as e:
+            # check_for_update() is documented to never raise -- this is
+            # a last-resort safety net so a bug in it (or in a
+            # print_to_terminal() listener it triggers, e.g.
+            # Game.interpret_terminal_line()) surfaces here instead of
+            # silently killing this daemon thread with nothing printed
+            # anywhere. Falls back to a plain print() if even
+            # print_to_terminal() itself is what's failing.
+            try:
+                print_to_terminal(f"Update check failed unexpectedly: {e}")
+            except Exception:
+                print(f"Update check failed unexpectedly: {e}")
+            return
 
         def finish():
             if result is not None:
@@ -984,7 +998,17 @@ def _check_for_server_update_in_background(game: Game, manual: bool = False) -> 
     print_to_terminal(f"Checking for a {game.get_long_name()} server update...")
 
     def worker():
-        needs_update = game.check_for_server_update()
+        try:
+            needs_update = game.check_for_server_update()
+        except Exception as e:
+            # check_for_server_update() is documented to never raise --
+            # see _check_for_update_in_background()'s matching try/except
+            # for why this safety net exists.
+            try:
+                print_to_terminal(f"Server update check failed unexpectedly: {e}")
+            except Exception:
+                print(f"Server update check failed unexpectedly: {e}")
+            return
 
         def finish():
             if needs_update:
@@ -1054,7 +1078,13 @@ g_terminal_window = terminal.TerminalWindow(
 print_to_terminal(f"sgsl.exe {VERSION} starting...")
 
 if g_app_config[ConfigIndex.AUTOMATIC_UPDATE_CHECK].value:
-    _check_for_update_in_background()
+    # Deferred via root.after() rather than called directly: it starts
+    # a background thread that calls back into Tk (print_to_terminal())
+    # as soon as it starts, which errors out ("main thread is not in
+    # main loop") if that happens before root.mainloop() (below) has
+    # actually started running -- scheduling it through root.after()
+    # instead guarantees it only fires once the loop is live.
+    root.after(0, _check_for_update_in_background)
 
 g_status_line = ui.StatusLine(master=root, initial_text="Ready")
 g_status_line.pack()
@@ -1091,7 +1121,9 @@ else:
     if game.automatic_update_check_enabled(
         g_game_config
     ) and not g_server_should_be_running:
-        _check_for_server_update_in_background(game)
+        # See the AUTOMATIC_UPDATE_CHECK root.after() above for why
+        # this is deferred rather than called directly.
+        root.after(0, lambda: _check_for_server_update_in_background(game))
 
 root.center_on_screen()
 

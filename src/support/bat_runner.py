@@ -84,8 +84,8 @@ def run(
                     bufsize=1,
                 )
             except Exception as exc:
-                _emit(f"Failed to start batch file: {exc}")
-                _emit("Exit code: 1")
+                _emit(f"Failed to start batch file: {exc} ({exec_command})")
+                _emit(f"Exit code: 1 ({exec_command})")
                 if done_callback is not None:
                     done_callback(1)
                 return
@@ -100,9 +100,9 @@ def run(
                 exit_code = process.wait()
             except Exception as exc:
                 exit_code = 1
-                _emit(f"Batch file execution failed: {exc}")
+                _emit(f"Batch file execution failed: {exc} ({exec_command})")
 
-            _emit(f"Exit code: {exit_code}")
+            _emit(f"Exit code: {exit_code} ({exec_command})")
             if done_callback is not None:
                 done_callback(exit_code)
         finally:
