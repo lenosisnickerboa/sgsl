@@ -86,6 +86,9 @@ class VUGame(Game):
     def rcon_enabled(self, config: Config[IndexT]) -> bool:
         return config[ConfigIndex.RCON_ENABLE].value
 
+    def rcon_password_configured(self, config: Config[IndexT]) -> bool:
+        return bool(config[ConfigIndex.RCON_PASSWORD].value)
+
     def rcon_quick_commands(self) -> list[str]:
         return RconQuickCommands
 
@@ -94,15 +97,17 @@ class VUGame(Game):
         # Frostbite "Plasma" protocol over its own dedicated port
         # (LISTEN_PORT_RCON, -RemoteAdminPort) and takes a list of
         # words rather than a single command string -- see
-        # support.frostbite_rcon_client for both, including a note on
-        # why this logs in with SERVER_PASSWORD (VU has no RCON-
-        # specific password of its own).
+        # support.frostbite_rcon_client for both. Logs in with
+        # RCON_PASSWORD (admin.password), a dedicated admin password
+        # distinct from SERVER_PASSWORD (vars.gamePassword, required
+        # just to join the server) -- see admin.password in the
+        # Frostbite RCON protocol docs.
         return run_rcon_command(
             split_run_command(command),
             enabled=config[ConfigIndex.RCON_ENABLE].value,
             host=config[ConfigIndex.LISTEN_ADDRESS].value,
             port=config[ConfigIndex.LISTEN_PORT_RCON].value,
-            password=config[ConfigIndex.SERVER_PASSWORD].value,
+            password=config[ConfigIndex.RCON_PASSWORD].value,
         )
 
     def install(self, result_callback: Callable[[OperationResult], None]) -> None:
@@ -637,6 +642,7 @@ class VUGame(Game):
                     ConfigIndex.LISTEN_PORT_HARMONY,
                     ConfigIndex.RCON_ENABLE,
                     ConfigIndex.LISTEN_PORT_RCON,
+                    ConfigIndex.RCON_PASSWORD,
                 ],
             ),
             TabSpec(

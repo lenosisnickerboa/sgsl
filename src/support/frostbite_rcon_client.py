@@ -7,10 +7,16 @@ servers use for remote admin) -- a different, word-based binary
 protocol from Valve's Source RCON (see support/rcon_client.py, used by
 cs2/csgo), sent over VU's own dedicated RCON port (-RemoteAdminPort /
 ConfigIndex.LISTEN_PORT_RCON) rather than the game's main listen port.
+Logs in with ConfigIndex.RCON_PASSWORD (admin.password) -- VU's own
+dedicated admin password, distinct from the server join password.
 
-Packet format (all integers little-endian uint32):
-    sequence (bit 31 set => this is a response; bit 30 set => the
-        packet originated from the server, e.g. an unsolicited event)
+Packet format (all integers little-endian uint32), per the BF3 PC
+Server Remote Administration Protocol spec (the protocol VU's RCON is
+modeled on):
+    sequence: bit 31 set => this request/response pair originated on
+        the client (vs. the server, e.g. an unsolicited event); bit 30
+        set => this packet is a response (vs. a request); bits 29..0
+        => sequence number, unique per connection
     total packet size, including this 12-byte header
     word count
     for each word: word length, word bytes (UTF-8), one trailing NUL
@@ -19,23 +25,25 @@ A command is a list of words, e.g. ["login.plainText", "<password>"];
 the response is likewise a list of words, whose first word is "OK" on
 success or an error code (e.g. "InvalidPassword") otherwise.
 
-NOTE: this implementation is based on the publicly documented
-Frostbite/Plasma RCON protocol (as used by BF3/BF4 admin tools, which
-VU's own RCON is modeled on) -- it has not been verified against a
-live Venice Unleashed server. In particular, VU has no config item of
-its own for a dedicated RCON password; this client logs in with
-ConfigIndex.SERVER_PASSWORD (vars.gamePassword), matching Frostbite's
-usual single-password remote-admin convention -- if VU actually
-expects something else, that's the one place to change (see
-VUGame.send_rcon_command()).
+Every request -- including an unsolicited one the server itself sends
+(e.g. a player-join event, only if admin.eventsEnabled was turned on
+for this connection) -- must be acknowledged with a response, or the
+server may close the connection without warning; command() acks any
+such event with a bare "OK" as it drains them while waiting for its
+own request's actual response.
 """
 
 import socket
 import struct
 from typing import Optional
 
-_ResponseFlag = 0x80000000
-_ServerOriginatedFlag = 0x40000000
+# Bit 31: 1 = this request/response pair originated on the client
+# (this class only ever originates requests, so every request it sends
+# has this set; a response echoes back whatever the original request
+# had, and an unsolicited server-originated event has it clear).
+_ClientOriginatedFlag = 0x80000000
+# Bit 30: 1 = this packet is a response (vs. a request).
+_ResponseFlag = 0x40000000
 _SequenceMask = 0x3FFFFFFF
 
 
@@ -48,8 +56,12 @@ class RconAuthError(RconError):
     """Raised specifically when the server rejects the RCON password."""
 
 
-def _encode_packet(sequence: int, is_response: bool, words: list[str]) -> bytes:
-    header_flags = _ResponseFlag if is_response else 0
+def _encode_packet(
+    sequence: int, *, client_originated: bool, is_response: bool, words: list[str]
+) -> bytes:
+    header_flags = (_ClientOriginatedFlag if client_originated else 0) | (
+        _ResponseFlag if is_response else 0
+    )
     word_bytes = b""
     for word in words:
         encoded = word.encode("utf-8")
@@ -72,8 +84,9 @@ def _recv_exact(sock: socket.socket, size: int) -> bytes:
     return b"".join(chunks)
 
 
-def _recv_packet(sock: socket.socket) -> tuple[int, bool, list[str]]:
+def _recv_packet(sock: socket.socket) -> tuple[int, bool, bool, list[str]]:
     raw_sequence, total_size, word_count = struct.unpack("<III", _recv_exact(sock, 12))
+    client_originated = bool(raw_sequence & _ClientOriginatedFlag)
     is_response = bool(raw_sequence & _ResponseFlag)
     sequence = raw_sequence & _SequenceMask
     body = _recv_exact(sock, total_size - 12)
@@ -84,7 +97,7 @@ def _recv_packet(sock: socket.socket) -> tuple[int, bool, list[str]]:
         offset += 4
         words.append(body[offset : offset + word_len].decode("utf-8", errors="replace"))
         offset += word_len + 1  # + trailing NUL
-    return sequence, is_response, words
+    return sequence, client_originated, is_response, words
 
 
 class FrostbiteRconClient:
@@ -136,19 +149,40 @@ class FrostbiteRconClient:
         self._next_sequence += 1
         try:
             self._sock.sendall(
-                _encode_packet(sequence, is_response=False, words=list(words))
+                _encode_packet(
+                    sequence, client_originated=True, is_response=False, words=list(words)
+                )
             )
             while True:
-                response_sequence, is_response, response_words = _recv_packet(
-                    self._sock
-                )
-                if is_response and response_sequence == sequence:
-                    return response_words
+                (
+                    response_sequence,
+                    client_originated,
+                    is_response,
+                    response_words,
+                ) = _recv_packet(self._sock)
+                if is_response:
+                    if client_originated and response_sequence == sequence:
+                        return response_words
+                    # A response to some other, already-abandoned
+                    # request (e.g. a stale one from before a timeout) --
+                    # not ours, keep waiting for the real one.
+                    continue
                 # Anything else is a server-originated, unsolicited
-                # event packet (e.g. a player join notification) --
-                # this client never subscribes to those, but skip
-                # (rather than choke on) one if it shows up anyway,
-                # and keep waiting for our own command's response.
+                # event packet (e.g. a player join notification, only
+                # if admin.eventsEnabled was turned on for this
+                # connection) -- this client never subscribes to those,
+                # but every request must still be acknowledged or the
+                # server may close the connection (see module
+                # docstring), so ack it with a bare "OK" and keep
+                # waiting for our own command's actual response.
+                self._sock.sendall(
+                    _encode_packet(
+                        response_sequence,
+                        client_originated=client_originated,
+                        is_response=True,
+                        words=["OK"],
+                    )
+                )
         except (OSError, struct.error) as e:
             raise RconError(f"RCON command failed: {e}") from e
 

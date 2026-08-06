@@ -126,6 +126,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Enable remote administration, RCON",
             value=True,
         ),
+        ConfigIndex.RCON_PASSWORD: ConfigItem(
+            name="admin.password",
+            visible_name="RCON password",
+            type=ConfigType.MASKED_STRING,
+            config_type=ConfigDeliveryType.SERVER_CFG_FILE,
+            tooltip="The RCON password for remote administration, only takes effect while "
+            "RCON is enabled -- distinct from the server (join) password above",
+            value="",
+        ),
         ConfigIndex.SERVER_NAME: ConfigItem(
             name="vars.serverName",
             visible_name="Server Name",
