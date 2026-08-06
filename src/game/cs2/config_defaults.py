@@ -524,10 +524,11 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.ARRAY,
             item_type=ConfigType.STRING,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Immediately download a workshop map via steamcmd and install it as an "
-            "ordinary map (filename prefixed lw_), rather than relying on the server to "
-            "fetch it on demand via +host_workshop_map. Same id/url/confirmation as "
-            "Workshop maps above; this list is just a log of what's been downloaded this way.",
+            tooltip="Immediately download a workshop map via steamcmd and install it into "
+            "maps/workshop/<id>/ (Valve's own convention for a locally cached workshop map), "
+            "rather than relying on the server to fetch it on demand via "
+            "+host_workshop_map. Same id/url/confirmation as Workshop maps above; this list "
+            "is just a log of what's been downloaded this way.",
             value=[],
             transform=_normalize_workshop_map,
         ),

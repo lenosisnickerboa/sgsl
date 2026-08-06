@@ -213,7 +213,9 @@ class CS2Game(Game):
                 continue
             dest = dest_dir / dll_name
             command_log.run(
-                self.print, f'copy "{source}" "{dest}"', lambda: shutil.copy2(source, dest)
+                self.print,
+                f'copy "{source}" "{dest}"',
+                lambda: shutil.copy2(source, dest),
             )
 
     def _disk_space_failure_reason(self, steamcmd_dir: Path) -> Optional[str]:
@@ -235,14 +237,28 @@ class CS2Game(Game):
         )
 
     def _is_workshop_map(self, map: str) -> bool:
-        return map.startswith("workshop\\")
+        # Both separators: "workshop\<id>\<name>" is WORKSHOP_MAPS' own
+        # form; "workshop/<id>/<name>" is _downloaded_workshop_maps()'
+        # (an already-downloaded map, still launched via
+        # +host_workshop_map like any other workshop map -- see run()
+        # -- just spelled with forward slashes so it reads distinctly
+        # from a WORKSHOP_MAPS entry, e.g. in SELECTED_MAP's dropdown).
+        return map.startswith("workshop\\") or map.startswith("workshop/")
 
     def _get_workshop_id(self, map: str) -> int:
-        match = re.search(r"workshop\\(\d+)\\", map)
+        match = re.search(r"workshop[\\/](\d+)[\\/]", map)
         if match:
             return int(match.group(1))
         else:
             return -1
+
+    def _get_workshop_name(self, map: str) -> Optional[str]:
+        """The name half of a "workshop\\<id>\\<name>" entry (see
+        _normalize_workshop_map()) -- the map's title as reported by
+        the Steam Web API when the entry was added, or "unknown" if
+        that lookup failed at the time."""
+        match = re.search(r"workshop\\\d+\\(.+)$", map)
+        return match.group(1) if match else None
 
     def _install_or_update(
         self, result_callback: Callable[[OperationResult], None]
@@ -628,7 +644,10 @@ class CS2Game(Game):
             entry
             for entry in entries
             if not (
-                (isinstance(entry, ConfigEntry) and self._AddedByComment in entry.comment)
+                (
+                    isinstance(entry, ConfigEntry)
+                    and self._AddedByComment in entry.comment
+                )
                 # A bare command with no value (e.g. mp_warmup_end --
                 # see below) can't be a ConfigEntry, so it's appended as
                 # a plain verbatim string with the same marker as a
@@ -719,9 +738,45 @@ class CS2Game(Game):
 
     def _ordinary_maps(self) -> list[str]:
         maps_dir = self._ordinary_maps_dir()
-        return [p.stem for p in maps_dir.glob("*.vpk")] + [
+        names = [p.stem for p in maps_dir.glob("*.vpk")] + [
             p.stem for p in maps_dir.glob("*.bsp")
         ]
+        names += self._downloaded_workshop_maps()
+        return names
+
+    def _downloaded_workshop_maps(self) -> list[str]:
+        """Every workshop map downloaded and installed via
+        WORKSHOP_MAPS_MANUAL (see _copy_manual_workshop_map()), found
+        under maps/workshop/ -- Valve's own convention for a workshop
+        map cached locally rather than hosted on demand (the same
+        layout the engine itself uses once a workshop map has been
+        subscribed/downloaded).
+
+        Matched by "<name>_dir.vpk"/"<name>_dir.bsp" specifically (not
+        every .vpk/.bsp under there) so a multi-part map only counts
+        once: "_dir.vpk" is the one file every split .vpk map has
+        (the numbered "_NNN.vpk" pak chunks alongside it are useless
+        without it, so they'd otherwise show up as bogus extra maps of
+        their own) -- <name> is recovered by stripping that suffix
+        back off.
+
+        Returned as "workshop/<id>/<name>" -- forward slashes,
+        deliberately not WORKSHOP_MAPS' own "workshop\\<id>\\<name>"
+        backslash form, so it reads distinctly (e.g. in SELECTED_MAP's
+        dropdown) while _is_workshop_map()/_get_workshop_id() still
+        recognize it as a workshop map -- run() always launches any
+        workshop map via +host_workshop_map <id>, downloaded or not,
+        never a direct +map, so only the id is actually load-bearing
+        here."""
+        maps_dir = self._ordinary_maps_dir() / "workshop"
+        entries = []
+        for path in list(maps_dir.glob("**/*_dir.vpk")) + list(
+            maps_dir.glob("**/*_dir.bsp")
+        ):
+            workshop_id = path.parent.name
+            name = path.stem[: -len("_dir")]
+            entries.append(f"workshop\\{workshop_id}\\{name}")
+        return entries
 
     # A map's .vpk/.bsp can be split into numbered parts sharing its
     # workshop id, e.g. "<id>_000.vpk", "<id>_001.vpk" — strip that
@@ -782,12 +837,6 @@ class CS2Game(Game):
     def _ordinary_maps_dir(self) -> Path:
         return Path(self.server_root) / "game" / "csgo" / "maps"
 
-    # Filename prefix applied to a manually-downloaded workshop map's
-    # file(s) once copied into ORDINARY_MAPS' own directory -- the
-    # community convention for a workshop map installed as if it were
-    # an ordinary one ("legacy workshop").
-    _ManualWorkshopMapPrefix = "lw_"
-
     def _manual_workshop_download_dir(self, workshop_id: str) -> Path:
         # Where "+force_install_dir {server_root} ... +workshop_download_item"
         # actually places downloaded content -- unrelated to
@@ -804,39 +853,87 @@ class CS2Game(Game):
             / workshop_id
         )
 
-    def _copy_manual_workshop_map(self, workshop_id: str) -> None:
-        """Copy every map file (.vpk -- possibly split into numbered
-        parts sharing this id, see _WorkshopMapFilePattern -- or .bsp)
-        steamcmd just downloaded for `workshop_id` into ORDINARY_MAPS'
-        own directory, prefixed "lw_" so it reads as a workshop map
-        installed locally, by convention, rather than colliding with
-        an existing same-named map."""
+    def _manual_workshop_map_dir(self, workshop_id: str) -> Path:
+        # maps/workshop/<id>/ -- see _ordinary_maps()'s matching glob.
+        return self._ordinary_maps_dir() / "workshop" / workshop_id
+
+    # Characters Windows filenames can't contain, plus control chars.
+    _UnsafeFilenameCharsPattern = re.compile(r'[<>:"/\\|?*\x00-\x1f]')
+
+    def _sanitize_map_name(self, name: str) -> str:
+        """A Steam Workshop title as reported by the Steam Web API can
+        contain arbitrary characters/whitespace -- neither valid in a
+        Windows filename nor usable as a Source engine map name (e.g.
+        for +map <name>), so collapse whitespace to underscores and
+        strip anything else that isn't."""
+        sanitized = self._UnsafeFilenameCharsPattern.sub("_", name.strip())
+        sanitized = re.sub(r"\s+", "_", sanitized)
+        sanitized = sanitized.strip("._")
+        return sanitized or "unknown"
+
+    # A .vpk map is often split into a "<name>_dir.vpk" directory file
+    # plus numbered "<name>_NNN.vpk" pak chunks, all of which must keep
+    # sharing the exact same <name> for the engine to find them as one
+    # map -- matched here so renaming preserves whichever suffix (if
+    # any) a given file has instead of replacing the whole stem.
+    _MapFileSuffixPattern = re.compile(r"^(.*)(_dir|_\d+)$")
+
+    def _renamed_map_filename(self, original: Path, new_name: str) -> str:
+        match = self._MapFileSuffixPattern.match(original.stem)
+        suffix = match.group(2) if match else ""
+        return f"{new_name}{suffix}{original.suffix}"
+
+    def _copy_manual_workshop_map(self, workshop_id: str, map_name: str) -> None:
+        """Copy every file (not just the map itself -- whatever else
+        steamcmd downloaded alongside it, e.g. publish_data.txt) for
+        `workshop_id` into its own maps/workshop/<workshop_id>/
+        subfolder -- Valve's own convention for a workshop map cached
+        locally rather than hosted on demand, so the engine finds it
+        there without sgsl needing to flatten anything.
+
+        Only the actual map file(s) (.vpk/.bsp) are renamed to
+        `map_name` (sanitized -- see _sanitize_map_name()), the title
+        the Steam Web API reported for this workshop item when it was
+        added to WORKSHOP_MAPS_MANUAL, rather than whatever filename
+        the uploader originally used -- anything else downloaded
+        alongside them keeps its own name, unreferenced by either."""
         content_dir = self._manual_workshop_download_dir(workshop_id)
-        map_files = list(content_dir.glob("**/*.vpk")) + list(
-            content_dir.glob("**/*.bsp")
-        )
-        if not map_files:
+        source_files = [p for p in content_dir.rglob("*") if p.is_file()]
+        if not source_files:
             self.print(
-                f"No map files found in {content_dir} after downloading workshop "
+                f"No files found in {content_dir} after downloading workshop "
                 f"item {workshop_id} -- it may not be a valid map"
             )
             return
-        maps_dir = self._ordinary_maps_dir()
-        maps_dir.mkdir(parents=True, exist_ok=True)
-        for map_file in map_files:
-            dest = maps_dir / f"{self._ManualWorkshopMapPrefix}{map_file.name}"
+        dest_dir = self._manual_workshop_map_dir(workshop_id)
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        sanitized_name = self._sanitize_map_name(map_name)
+        for source_file in source_files:
+            if source_file.suffix.lower() in (".vpk", ".bsp"):
+                dest = dest_dir / self._renamed_map_filename(
+                    source_file, sanitized_name
+                )
+            else:
+                dest = dest_dir / source_file.relative_to(content_dir)
+            dest.parent.mkdir(parents=True, exist_ok=True)
             command_log.run(
-                self.print, f'copy "{map_file}" "{dest}"', lambda: shutil.copy2(map_file, dest)
+                self.print,
+                f'copy "{source_file}" "{dest}"',
+                lambda source_file=source_file, dest=dest: shutil.copy2(
+                    source_file, dest
+                ),
             )
-            self.print(f"Installed {dest.name} from workshop item {workshop_id}")
+        self.print(f"Installed workshop item {workshop_id} into {dest_dir}")
 
     def _download_workshop_map_manually(self, entry: str) -> None:
         """Fetch `entry` (a "workshop\\<id>\\<name>" WORKSHOP_MAPS_MANUAL
-        entry) via steamcmd, then copy the result into ORDINARY_MAPS'
-        own directory (see _copy_manual_workshop_map()). Runs on a
-        background thread (see bat_runner.run()) -- returns immediately,
-        progress/result is reported via self.print() as it happens."""
+        entry) via steamcmd, then copy the result into its own
+        maps/workshop/<id>/ subfolder (see _copy_manual_workshop_map()).
+        Runs on a background thread (see bat_runner.run()) -- returns
+        immediately, progress/result is reported via self.print() as
+        it happens."""
         workshop_id = str(self._get_workshop_id(entry))
+        map_name = self._get_workshop_name(entry) or "unknown"
         steamcmd_dir = self.directory / "steamcmd"
         steamcmd_dir.mkdir(parents=True, exist_ok=True)
         self.print(f"Downloading workshop item {workshop_id} via steamcmd...")
@@ -850,7 +947,7 @@ class CS2Game(Game):
                     f"steamcmd exited with code {exit_code} while downloading "
                     f"workshop item {workshop_id}"
                 )
-            self._copy_manual_workshop_map(workshop_id)
+            self._copy_manual_workshop_map(workshop_id, map_name)
 
         bat_runner.run(
             [
@@ -1188,8 +1285,8 @@ class CS2Game(Game):
                 items=[
                     ConfigIndex.ORDINARY_MAPS,
                     ConfigIndex.WORKSHOP_MAPS,
-                    ConfigIndex.WORKSHOP_MAPS_HELP_TEXT,
                     ConfigIndex.WORKSHOP_MAPS_MANUAL,
+                    ConfigIndex.WORKSHOP_MAPS_HELP_TEXT,
                 ],
             ),
             TabSpec(
