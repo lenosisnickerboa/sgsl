@@ -1339,9 +1339,24 @@ class CS2Game(Game):
         already removed) are silently skipped. Only applies to
         individual maps -- a WORKSHOP_MAPGROUPS collection id is never
         itself downloaded to its own directory (see _workshop_maps()'s
-        docstring reference in _normalize_workshop_map())."""
+        docstring reference in _normalize_workshop_map()).
+
+        Covers both places a map's content can actually live: CS2's
+        own Steamworks-based auto-download cache (_workshop_content_dir())
+        and, if it was ever pre-downloaded (see PRE_DOWNLOAD_WORKSHOP_MAPS/
+        _predownload_workshop_map()), its maps/workshop/<id>/ cache
+        directory (_workshop_map_cache_dir()) -- either, both, or
+        neither may exist for a given id."""
         current_ids = {self._get_workshop_id(m) for m in current_workshop_maps}
-        content_dir = self._workshop_content_dir()
+        for content_dir in (
+            self._workshop_content_dir(),
+            self._ordinary_maps_dir() / "workshop",
+        ):
+            self._remove_orphaned_workshop_ids(content_dir, current_ids)
+
+    def _remove_orphaned_workshop_ids(
+        self, content_dir: Path, current_ids: set[int]
+    ) -> None:
         if not content_dir.is_dir():
             return
         for entry in content_dir.iterdir():
@@ -1356,7 +1371,7 @@ class CS2Game(Game):
             command_log.run(
                 self.print,
                 f'rmdir /s /q "{entry}"',
-                lambda: shutil.rmtree(entry),
+                lambda entry=entry: shutil.rmtree(entry),
                 reraise=False,
             )
 

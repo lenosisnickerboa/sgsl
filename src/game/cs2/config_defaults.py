@@ -523,7 +523,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
             visible_name="Pre-download workshop maps",
             type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="When a new entry is added to Workshop maps, immediately download it "
+            tooltip="RECOMMENDED: Enabled since hosting workshop maps is very sketchy. "
+            "When a new entry is added to Workshop maps, immediately download it "
             "via steamcmd and install it into maps/workshop/<id>/ (Valve's own convention "
             "for a locally cached workshop map), rather than relying on the server to fetch "
             "it on demand via +host_workshop_map the first time it's hosted.",
