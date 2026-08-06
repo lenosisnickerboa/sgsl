@@ -56,6 +56,7 @@ g_app_configure_open_close = None
 g_install_open_close = None
 g_update_open_close = None
 g_start_stop_server = None
+g_check_for_update_button = None
 # Whether the current game is expected to be running (started, and not
 # yet stopped/crashed) -- checked by poll_game_running() against
 # game.is_running() to notice a crash.
@@ -392,6 +393,8 @@ def on_start_stop_game_server(game: Game):
         g_start_stop_server.set_name(name="Stop")
         g_start_stop_server.set_tooltip(tooltip="Stop server")
         g_update_open_close.disable()
+        if g_check_for_update_button is not None:
+            g_check_for_update_button.disable()
         print_to_terminal(
             f"Started game server for {game.get_long_name()} in directory {game.get_directory()}..."
         )
@@ -412,6 +415,8 @@ def on_start_stop_game_server(game: Game):
         g_start_stop_server.set_name(name="Start")
         g_start_stop_server.set_tooltip(tooltip="Start server")
         g_update_open_close.enable()
+        if g_check_for_update_button is not None:
+            g_check_for_update_button.enable()
         print_to_terminal(
             f"Stopped game server for {game.get_long_name()} in directory {game.get_directory()}..."
         )
@@ -427,6 +432,8 @@ def on_game_server_crashed(game: Game):
     g_start_stop_server.set_name(name="Start")
     g_start_stop_server.set_tooltip(tooltip="Start server")
     g_update_open_close.enable()
+    if g_check_for_update_button is not None:
+        g_check_for_update_button.enable()
     set_status_line(f"Game server {game.get_long_name()} crashed...")
     print_to_terminal(
         f"Game server for {game.get_long_name()} in directory {game.get_directory()} crashed..."
@@ -444,6 +451,8 @@ def on_game_map_load_failed(game: Game):
     g_start_stop_server.set_name(name="Start")
     g_start_stop_server.set_tooltip(tooltip="Start server")
     g_update_open_close.enable()
+    if g_check_for_update_button is not None:
+        g_check_for_update_button.enable()
     set_status_line(f"Game server {game.get_long_name()} stopped (map load failed)...")
     print_to_terminal(
         f"Game server for {game.get_long_name()} in directory {game.get_directory()} stopped after map load failure..."
@@ -545,7 +554,23 @@ def setup_detected_game_server(game: Game):
             command=lambda: on_start_stop_game_server(game),
         )
         set_status_line("Ready")
-    g_start_stop_server.pack()
+    # Explicit side=LEFT (rather than plain pack()'s default side=TOP)
+    # so a subsequent same-row sibling (the "Check for update" button
+    # below) actually lands beside it instead of on its own row.
+    g_start_stop_server.pack(side=ui.LEFT)
+
+    global g_check_for_update_button
+    g_check_for_update_button = None
+    if game.supports_game_update_check():
+        g_check_for_update_button = ui.Button(
+            master=game_frame,
+            name="Check for update",
+            tooltip=f"Manually check whether a newer {game.get_long_name()} server build is available",
+            command=lambda: on_check_for_server_update(game),
+        )
+        g_check_for_update_button.pack(side=ui.LEFT)
+        if g_server_should_be_running:
+            g_check_for_update_button.disable()
 
     # Anchored to the right of game_frame, as a group, so Start stays
     # pinned to the left while these sit flush against the right edge.
@@ -939,14 +964,17 @@ def _show_server_update_available_dialog(game: Game) -> None:
         on_update_game_server(game)
 
 
-def _check_for_server_update_in_background(game: Game) -> None:
+def _check_for_server_update_in_background(game: Game, manual: bool = False) -> None:
     """Check whether a newer server build is available for `game` on a
     background thread (network I/O, must not block startup), then hop
     back to the main thread via root.after() -- same pattern as
     _check_for_update_in_background() above, for sgsl's own updates --
-    to show a dialog if one was found. Silent if no update is
-    available or the check couldn't be completed (offline, not
-    installed yet, this game doesn't support the check, ...)."""
+    to show a dialog if one was found.
+
+    `manual`, if True (a user-triggered check via the "Check for
+    update" button, rather than the silent one done at startup), also
+    gives feedback via the status line when no update is available or
+    the check couldn't be completed, rather than doing nothing visible."""
 
     def worker():
         needs_update = game.check_for_server_update()
@@ -954,10 +982,23 @@ def _check_for_server_update_in_background(game: Game) -> None:
         def finish():
             if needs_update:
                 _show_server_update_available_dialog(game)
+            elif manual:
+                message = (
+                    f"{game.get_long_name()} is already up to date"
+                    if needs_update is not None
+                    else "Could not check for a server update"
+                )
+                set_status_line(message)
+                restore_status_line_delayed()
 
         root.after(0, finish)
 
     threading.Thread(target=worker, daemon=True).start()
+
+
+def on_check_for_server_update(game: Game) -> None:
+    set_status_line(f"Checking for a {game.get_long_name()} server update...")
+    _check_for_server_update_in_background(game, manual=True)
 
 
 # main

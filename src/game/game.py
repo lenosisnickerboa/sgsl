@@ -257,6 +257,15 @@ class Game(ABC):
         ConfigIndex.AUTOMATIC_GAME_UPDATE_CHECK)."""
         return False
 
+    def supports_game_update_check(self) -> bool:
+        """True if check_for_server_update() is actually implemented
+        for this game -- a caller uses this to decide whether to offer
+        a manual "check for update" action at all, the same way
+        supports_rcon() gates an RCON button/window. False by default;
+        override together with check_for_server_update() for a game
+        that supports it."""
+        return False
+
     @abstractmethod
     def run(self, config: Config[IndexT]) -> bool:
         """Launch the game. Returns True if the server was actually

@@ -359,6 +359,9 @@ class CSGOGame(Game):
     def check_for_server_update(self) -> Optional[bool]:
         return check_for_steam_app_update(AppId, self._appmanifest_path())
 
+    def supports_game_update_check(self) -> bool:
+        return True
+
     def automatic_update_check_enabled(self, config: Config[IndexT]) -> bool:
         return config[ConfigIndex.AUTOMATIC_GAME_UPDATE_CHECK].value
 
@@ -977,6 +980,7 @@ class CSGOGame(Game):
                     ConfigIndex.SELECTED_MAP_GROUP,
                     ConfigIndex.SELECTED_MAP,
                     ConfigIndex.PLAYER_COUNT,
+                    ConfigIndex.AUTOMATIC_GAME_UPDATE_CHECK,
                     ConfigIndex.RUN_COMMAND_EDIT,
                     ConfigIndex.CUSTOM_RUN_COMMAND_PRE,
                     ConfigIndex.CUSTOM_RUN_COMMAND_POST,
@@ -1098,7 +1102,6 @@ class CSGOGame(Game):
                 items=[
                     ConfigIndex.REMOVE_MANIFEST_FILE,
                     ConfigIndex.UPDATE_STEAMCMD,
-                    ConfigIndex.AUTOMATIC_GAME_UPDATE_CHECK,
                 ],
             ),
         ]
