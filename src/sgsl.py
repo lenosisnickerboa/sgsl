@@ -922,6 +922,7 @@ def _check_for_update_in_background(manual: bool = False) -> None:
     updates" button, rather than the silent one done at startup), also
     gives feedback via the status line when no update is available,
     rather than doing nothing visible."""
+    print_to_terminal("Checking for a newer sgsl version...")
 
     def worker():
         result = check_for_update(VERSION)
@@ -929,10 +930,15 @@ def _check_for_update_in_background(manual: bool = False) -> None:
         def finish():
             if result is not None:
                 new_version, release_url = result
+                print_to_terminal(
+                    f"A newer sgsl version is available: {new_version} ({release_url})"
+                )
                 _show_update_available_dialog(new_version, release_url)
-            elif manual:
-                set_status_line("You already have the latest version of sgsl")
-                restore_status_line_delayed()
+            else:
+                print_to_terminal("No newer sgsl version found")
+                if manual:
+                    set_status_line("You already have the latest version of sgsl")
+                    restore_status_line_delayed()
 
         root.after(0, finish)
 
@@ -975,21 +981,25 @@ def _check_for_server_update_in_background(game: Game, manual: bool = False) -> 
     update" button, rather than the silent one done at startup), also
     gives feedback via the status line when no update is available or
     the check couldn't be completed, rather than doing nothing visible."""
+    print_to_terminal(f"Checking for a {game.get_long_name()} server update...")
 
     def worker():
         needs_update = game.check_for_server_update()
 
         def finish():
             if needs_update:
+                print_to_terminal(f"A newer {game.get_long_name()} server build is available")
                 _show_server_update_available_dialog(game)
-            elif manual:
+            else:
                 message = (
                     f"{game.get_long_name()} is already up to date"
                     if needs_update is not None
-                    else "Could not check for a server update"
+                    else f"Could not check for a {game.get_long_name()} server update"
                 )
-                set_status_line(message)
-                restore_status_line_delayed()
+                print_to_terminal(message)
+                if manual:
+                    set_status_line(message)
+                    restore_status_line_delayed()
 
         root.after(0, finish)
 
