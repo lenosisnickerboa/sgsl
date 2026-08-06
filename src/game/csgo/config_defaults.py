@@ -501,6 +501,16 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Re-download the latest steamcmd before installing/updating. Disable to reuse the existing steamcmd if steamcmd download fails.",
             value=True,
         ),
+        ConfigIndex.AUTOMATIC_GAME_UPDATE_CHECK: ConfigItem(
+            name="automatic_game_update_check",
+            visible_name="Automatically check for server updates",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Check Steam for a newer server build at startup, and offer to update if "
+            "one is found. Off by default -- the re-released CS:GO's own app id/branch "
+            "situation (see NewAppId) is unofficial, so this check may not always be reliable",
+            value=False,
+        ),
         ConfigIndex.ORDINARY_MAPGROUPS: ConfigItem(
             name="ordinary_mapgroups",
             visible_name="Ordinary map groups",

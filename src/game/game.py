@@ -233,6 +233,30 @@ class Game(ABC):
         exactly once with the outcome (OK, FAIL, or NOT_SUPPORTED)."""
         raise NotImplementedError
 
+    def check_for_server_update(self) -> Optional[bool]:
+        """True if a newer server build is available from this game's
+        distribution platform than what's currently installed, False
+        if already up to date, or None if that can't be determined
+        (not installed yet, offline, this game doesn't support the
+        check, ...) -- a caller treats None the same as False (nothing
+        to report), just without implying the install actually is
+        current. Best-effort and non-critical: must never raise.
+        None by default; override for a game that can actually check
+        (e.g. a Steam app comparing its appmanifest buildid against
+        Steam's public API -- see support/steam_app_update_check.py)."""
+        return None
+
+    def automatic_update_check_enabled(self, config: Config[IndexT]) -> bool:
+        """True if `config` wants check_for_server_update() run
+        automatically at startup -- a caller checks this before
+        bothering to run that check at all, the same way rcon_enabled()
+        gates an RCON action. False by default (also covers a game with
+        no such setting of its own, e.g. because check_for_server_update()
+        is unsupported there too); override together with a config item
+        for a game that offers the toggle (e.g.
+        ConfigIndex.AUTOMATIC_GAME_UPDATE_CHECK)."""
+        return False
+
     @abstractmethod
     def run(self, config: Config[IndexT]) -> bool:
         """Launch the game. Returns True if the server was actually

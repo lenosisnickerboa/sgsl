@@ -102,6 +102,8 @@ class ConfigIndex(IntEnum):
 
     MP_BUY_ANYWHERE = 66
 
+    AUTOMATIC_GAME_UPDATE_CHECK = 67
+
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"

@@ -23,6 +23,7 @@ from support import bat_runner
 from support.dialog import edit_string_dialog_box
 from support.rcon_client import run_rcon_command
 from support.run_command import split_run_command
+from support.steam_app_update_check import check_for_steam_app_update
 
 GameExe = "srcds.exe"
 
@@ -253,7 +254,7 @@ class CSGOGame(Game):
             self.config is not None
             and self.config[ConfigIndex.REMOVE_MANIFEST_FILE].value
         ):
-            manifest_file = self.server_root / "steamapps" / f"appmanifest_{AppId}.acf"
+            manifest_file = self._appmanifest_path()
             if manifest_file.exists():
                 manifest_file.unlink()
                 self.print(f"Removed stale Steam app manifest {manifest_file}")
@@ -351,6 +352,15 @@ class CSGOGame(Game):
             result_callback(result)
 
         self._install_or_update(on_result)
+
+    def _appmanifest_path(self) -> Path:
+        return self.server_root / "steamapps" / f"appmanifest_{AppId}.acf"
+
+    def check_for_server_update(self) -> Optional[bool]:
+        return check_for_steam_app_update(AppId, self._appmanifest_path())
+
+    def automatic_update_check_enabled(self, config: Config[IndexT]) -> bool:
+        return config[ConfigIndex.AUTOMATIC_GAME_UPDATE_CHECK].value
 
     def _filter_stdout(self, line: str) -> str:
         if (
@@ -1088,6 +1098,7 @@ class CSGOGame(Game):
                 items=[
                     ConfigIndex.REMOVE_MANIFEST_FILE,
                     ConfigIndex.UPDATE_STEAMCMD,
+                    ConfigIndex.AUTOMATIC_GAME_UPDATE_CHECK,
                 ],
             ),
         ]

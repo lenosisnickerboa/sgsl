@@ -22,6 +22,7 @@ from support import bat_runner
 from support.dialog import edit_string_dialog_box
 from support.rcon_client import run_rcon_command
 from support.run_command import split_run_command
+from support.steam_app_update_check import check_for_steam_app_update
 from support.unzip import unzip_with_return
 from support.wget import download_with_return
 from thread.run_task import TaskRunner
@@ -30,6 +31,8 @@ GameExe = "cs2.exe"
 
 # All relative to server root directory
 GameExeWithPath = Path("game") / "bin" / "win64" / GameExe
+
+AppId = 730
 
 # Preferred default map -- most servers ship it, and it's a familiar
 # choice for a first-time setup. Falls back to the first detected map
@@ -246,7 +249,7 @@ class CS2Game(Game):
             self.config is not None
             and self.config[ConfigIndex.REMOVE_MANIFEST_FILE].value
         ):
-            manifest_file = self.server_root / "steamapps" / "appmanifest_730.acf"
+            manifest_file = self._appmanifest_path()
             if manifest_file.exists():
                 manifest_file.unlink()
                 self.print(f"Removed stale Steam app manifest {manifest_file}")
@@ -289,7 +292,7 @@ class CS2Game(Game):
         def on_setup_result(exit_code):
             run_update_install(1)
 
-        update_install_bat_line = f"echo steamcmd +force_install_dir {self.server_root} +login anonymous +app_update 730 validate +quit > update_install.bat"
+        update_install_bat_line = f"echo steamcmd +force_install_dir {self.server_root} +login anonymous +app_update {AppId} validate +quit > update_install.bat"
         update_steamcmd = (
             self.config is None or self.config[ConfigIndex.UPDATE_STEAMCMD].value
         )
@@ -329,6 +332,15 @@ class CS2Game(Game):
     def update(self, result_callback: Callable[[OperationResult], None]) -> None:
         self.print(f"Updating {self.get_long_name()} in {self.server_root}")
         self._install_or_update(result_callback)
+
+    def _appmanifest_path(self) -> Path:
+        return self.server_root / "steamapps" / f"appmanifest_{AppId}.acf"
+
+    def check_for_server_update(self) -> Optional[bool]:
+        return check_for_steam_app_update(AppId, self._appmanifest_path())
+
+    def automatic_update_check_enabled(self, config: Config[IndexT]) -> bool:
+        return config[ConfigIndex.AUTOMATIC_GAME_UPDATE_CHECK].value
 
     def _filter_stdout(self, line: str) -> str:
         if (
@@ -718,7 +730,7 @@ class CS2Game(Game):
             / "steamapps"
             / "workshop"
             / "content"
-            / "730"
+            / str(AppId)
         )
 
     def _workshop_maps(self) -> list[str]:
@@ -1093,6 +1105,7 @@ class CS2Game(Game):
                 items=[
                     ConfigIndex.REMOVE_MANIFEST_FILE,
                     ConfigIndex.UPDATE_STEAMCMD,
+                    ConfigIndex.AUTOMATIC_GAME_UPDATE_CHECK,
                 ],
             ),
         ]

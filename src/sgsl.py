@@ -24,6 +24,7 @@ from app.config_index import ConfigIndex
 from ui_builder.ui_builder import UiBuilder
 from support.browser import open_url
 from support.dialog import (
+    choice_dialog,
     choice_dialog_with_toggles,
     link_dialog,
     ok_dialog,
@@ -918,6 +919,47 @@ def on_check_for_updates():
     _check_for_update_in_background(manual=True)
 
 
+def _show_server_update_available_dialog(game: Game) -> None:
+    choice = choice_dialog(
+        f"A newer build of {game.get_long_name()} is available than what's "
+        "currently installed.",
+        title="Server update available",
+        choices=[
+            ("Update now", "Start updating the server now", True),
+            (
+                "Later",
+                "Dismiss -- you can still update anytime via the Update button",
+                False,
+            ),
+        ],
+        cancel_value=False,
+    )
+    if choice:
+        g_update_open_close.on()
+        on_update_game_server(game)
+
+
+def _check_for_server_update_in_background(game: Game) -> None:
+    """Check whether a newer server build is available for `game` on a
+    background thread (network I/O, must not block startup), then hop
+    back to the main thread via root.after() -- same pattern as
+    _check_for_update_in_background() above, for sgsl's own updates --
+    to show a dialog if one was found. Silent if no update is
+    available or the check couldn't be completed (offline, not
+    installed yet, this game doesn't support the check, ...)."""
+
+    def worker():
+        needs_update = game.check_for_server_update()
+
+        def finish():
+            if needs_update:
+                _show_server_update_available_dialog(game)
+
+        root.after(0, finish)
+
+    threading.Thread(target=worker, daemon=True).start()
+
+
 # main
 
 # Bundled by build-for-test.bat only (via a PyInstaller --add-data entry),
@@ -995,6 +1037,10 @@ if game is None:
     setup_install_game(current_dir)
 else:
     setup_detected_game_server(game)
+    if game.automatic_update_check_enabled(
+        g_game_config
+    ) and not g_server_should_be_running:
+        _check_for_server_update_in_background(game)
 
 root.center_on_screen()
 
