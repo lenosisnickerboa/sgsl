@@ -81,10 +81,10 @@ class CS2Game(Game):
         # ran yet), when install-time troubleshooting toggles simply
         # aren't available to the user.
         self.config: Optional[Config[IndexT]] = None
-        # Tracks WORKSHOP_MAPS_MANUAL's own value so config_item_changed()
-        # can tell which entry (if any) was just added and only download
-        # that one -- see _download_workshop_map_manually().
-        self._known_manual_workshop_maps: set[str] = set()
+        # Tracks WORKSHOP_MAPS' own value so config_item_changed() can
+        # tell which entry (if any) was just added and only pre-download
+        # that one -- see _predownload_workshop_map().
+        self._known_workshop_maps: set[str] = set()
 
     def detect(self) -> bool:
         return self.server_binary.exists()
@@ -754,29 +754,6 @@ class CS2Game(Game):
         return names
 
     def _downloaded_workshop_maps(self) -> list[str]:
-        """Every workshop map downloaded and installed via
-        WORKSHOP_MAPS_MANUAL (see _copy_manual_workshop_map()), found
-        under maps/workshop/ -- Valve's own convention for a workshop
-        map cached locally rather than hosted on demand (the same
-        layout the engine itself uses once a workshop map has been
-        subscribed/downloaded).
-
-        Matched by "<name>_dir.vpk"/"<name>_dir.bsp" specifically (not
-        every .vpk/.bsp under there) so a multi-part map only counts
-        once: "_dir.vpk" is the one file every split .vpk map has
-        (the numbered "_NNN.vpk" pak chunks alongside it are useless
-        without it, so they'd otherwise show up as bogus extra maps of
-        their own) -- <name> is recovered by stripping that suffix
-        back off.
-
-        Returned as "workshop/<id>/<name>" -- forward slashes,
-        deliberately not WORKSHOP_MAPS' own "workshop\\<id>\\<name>"
-        backslash form, so it reads distinctly (e.g. in SELECTED_MAP's
-        dropdown) while _is_workshop_map()/_get_workshop_id() still
-        recognize it as a workshop map -- run() always launches any
-        workshop map via +host_workshop_map <id>, downloaded or not,
-        never a direct +map, so only the id is actually load-bearing
-        here."""
         maps_dir = self._ordinary_maps_dir() / "workshop"
         entries = []
         for path in list(maps_dir.glob("**/*_dir.vpk")) + list(
@@ -846,7 +823,7 @@ class CS2Game(Game):
     def _ordinary_maps_dir(self) -> Path:
         return Path(self.server_root) / "game" / "csgo" / "maps"
 
-    def _manual_workshop_download_dir(self, workshop_id: str) -> Path:
+    def _workshop_predownload_dir(self, workshop_id: str) -> Path:
         # Where "+force_install_dir {server_root} ... +workshop_download_item"
         # actually places downloaded content -- unrelated to
         # _workshop_content_dir() above, which is where CS2's own
@@ -862,7 +839,7 @@ class CS2Game(Game):
             / workshop_id
         )
 
-    def _manual_workshop_map_dir(self, workshop_id: str) -> Path:
+    def _workshop_map_cache_dir(self, workshop_id: str) -> Path:
         # maps/workshop/<id>/ -- see _ordinary_maps()'s matching glob.
         return self._ordinary_maps_dir() / "workshop" / workshop_id
 
@@ -892,7 +869,7 @@ class CS2Game(Game):
         suffix = match.group(2) if match else ""
         return f"{new_name}{suffix}{original.suffix}"
 
-    def _copy_manual_workshop_map(self, workshop_id: str, map_name: str) -> None:
+    def _copy_predownloaded_workshop_map(self, workshop_id: str, map_name: str) -> None:
         """Copy every file (not just the map itself -- whatever else
         steamcmd downloaded alongside it, e.g. publish_data.txt) for
         `workshop_id` into its own maps/workshop/<workshop_id>/
@@ -902,11 +879,11 @@ class CS2Game(Game):
 
         Only the actual map file(s) (.vpk/.bsp) are renamed to
         `map_name` (sanitized -- see _sanitize_map_name()), the title
-        the Steam Web API reported for this workshop item when it was
-        added to WORKSHOP_MAPS_MANUAL, rather than whatever filename
-        the uploader originally used -- anything else downloaded
-        alongside them keeps its own name, unreferenced by either."""
-        content_dir = self._manual_workshop_download_dir(workshop_id)
+        the Steam Web API reported for this WORKSHOP_MAPS entry when
+        it was added, rather than whatever filename the uploader
+        originally used -- anything else downloaded alongside them
+        keeps its own name, unreferenced by either."""
+        content_dir = self._workshop_predownload_dir(workshop_id)
         source_files = [p for p in content_dir.rglob("*") if p.is_file()]
         if not source_files:
             self.print(
@@ -914,7 +891,7 @@ class CS2Game(Game):
                 f"item {workshop_id} -- it may not be a valid map"
             )
             return
-        dest_dir = self._manual_workshop_map_dir(workshop_id)
+        dest_dir = self._workshop_map_cache_dir(workshop_id)
         dest_dir.mkdir(parents=True, exist_ok=True)
         sanitized_name = self._sanitize_map_name(map_name)
         for source_file in source_files:
@@ -934,20 +911,26 @@ class CS2Game(Game):
             )
         self.print(f"Installed workshop item {workshop_id} into {dest_dir}")
 
-    def _download_workshop_map_manually(self, entry: str) -> bool:
-        """Fetch `entry` (a "workshop\\<id>\\<name>" WORKSHOP_MAPS_MANUAL
+    def _predownload_workshop_map(self, entry: str) -> bool:
+        """Fetch `entry` (a "workshop\\<id>\\<name>" WORKSHOP_MAPS
         entry) via steamcmd, showing a cancelable "Download map
         <name>..." dialog for the duration, then copy the result into
         its own maps/workshop/<id>/ subfolder (see
-        _copy_manual_workshop_map()) and show a final "Download
+        _copy_predownloaded_workshop_map()) and show a final "Download
         finished" dialog. The download itself runs on a background
         thread (see bat_runner.run()), but this method blocks the
         caller until it finishes or is cancelled.
 
+        Only called when PRE_DOWNLOAD_WORKSHOP_MAPS is enabled (see
+        config_item_changed()) -- with it off, a WORKSHOP_MAPS entry
+        is still fully usable, just fetched on demand via
+        +host_workshop_map the first time it's actually hosted instead
+        of right away.
+
         Returns True if the download actually completed, False if the
         user cancelled it -- in which case nothing was copied, and the
         caller (config_item_changed()) should drop `entry` back out of
-        WORKSHOP_MAPS_MANUAL."""
+        WORKSHOP_MAPS."""
         workshop_id = str(self._get_workshop_id(entry))
         map_name = self._get_workshop_name(entry) or "unknown"
         steamcmd_dir = self.directory / "steamcmd"
@@ -978,7 +961,7 @@ class CS2Game(Game):
             on_result,
         )
         dialog = cancelable_progress_dialog(
-            f"Download map {map_name}...",
+            f"Download map {map_name}...\nThis may take a while...",
             title="Downloading workshop map",
             on_cancel=handle.cancel,
         )
@@ -987,7 +970,7 @@ class CS2Game(Game):
             self.print(f"Download of workshop item {workshop_id} was cancelled")
             return False
 
-        self._copy_manual_workshop_map(workshop_id, map_name)
+        self._copy_predownloaded_workshop_map(workshop_id, map_name)
         ok_dialog("Download finished")
         return True
 
@@ -1007,8 +990,8 @@ class CS2Game(Game):
         # it further up the call chain, before config_loaded() ever runs
         # -- otherwise it'd be rejected as not in allowed_values yet and
         # silently fall back to the default map.
-        defaults[ConfigIndex.SELECTED_MAP].allowed_values = self._unique_preserving_order(
-            list(maps) + workshop_maps
+        defaults[ConfigIndex.SELECTED_MAP].allowed_values = (
+            self._unique_preserving_order(list(maps) + workshop_maps)
         )
         if _DefaultMap in maps:
             defaults[ConfigIndex.SELECTED_MAP].value = _DefaultMap
@@ -1123,12 +1106,6 @@ class CS2Game(Game):
 
     def config_loaded(self, config: Config[IndexT]) -> None:
         self.config = config
-        # Whatever was already saved is assumed already downloaded --
-        # only an entry added later, in this running session, should
-        # trigger a fresh download (see config_item_changed()).
-        self._known_manual_workshop_maps = set(
-            config[ConfigIndex.WORKSHOP_MAPS_MANUAL].value
-        )
         installed_ws_maps = self._workshop_maps()
         installed_ws_maps_ids = self._get_workshop_ids(installed_ws_maps)
         not_installed_ws_maps = []
@@ -1141,6 +1118,11 @@ class CS2Game(Game):
         config[ConfigIndex.WORKSHOP_MAPS].value = (
             installed_ws_maps + not_installed_ws_maps
         )
+        # Whatever's already saved (or auto-detected as already
+        # installed, just above) is assumed already downloaded -- only
+        # an entry added later, in this running session, should
+        # trigger a fresh pre-download (see config_item_changed()).
+        self._known_workshop_maps = set(config[ConfigIndex.WORKSHOP_MAPS].value)
         # installed_ws_maps is already in allowed_values -- config_defaults()
         # put it there so a saved SELECTED_MAP pointing at an already-
         # installed workshop map still validates when TomlConfigParser.read()
@@ -1320,7 +1302,7 @@ class CS2Game(Game):
                 items=[
                     ConfigIndex.ORDINARY_MAPS,
                     ConfigIndex.WORKSHOP_MAPS,
-                    ConfigIndex.WORKSHOP_MAPS_MANUAL,
+                    ConfigIndex.PRE_DOWNLOAD_WORKSHOP_MAPS,
                     ConfigIndex.WORKSHOP_MAPS_HELP_TEXT,
                 ],
             ),
@@ -1381,6 +1363,27 @@ class CS2Game(Game):
     def config_item_changed(self, config_item, config: Config[IndexT]) -> list[IndexT]:
         if config_item is config[ConfigIndex.WORKSHOP_MAPS]:
             self._remove_orphaned_workshop_content(config_item.value)
+            current = set(config_item.value)
+            new_entries = current - self._known_workshop_maps
+            self._known_workshop_maps = current
+            affected = [ConfigIndex.SELECTED_MAP]
+            if new_entries and config[ConfigIndex.PRE_DOWNLOAD_WORKSHOP_MAPS].value:
+                cancelled_entries = {
+                    entry
+                    for entry in new_entries
+                    if not self._predownload_workshop_map(entry)
+                }
+                if cancelled_entries:
+                    # Cancelled -- drop it back out rather than leave
+                    # an entry in the list nothing was ever downloaded
+                    # or hosted for.
+                    config_item.value = [
+                        entry
+                        for entry in config_item.value
+                        if entry not in cancelled_entries
+                    ]
+                    self._known_workshop_maps -= cancelled_entries
+                    affected.append(ConfigIndex.WORKSHOP_MAPS)
             # Keep the selected-map dropdown's choices in sync with
             # the editable map list; if the currently selected map was
             # removed, fall back to the first of what's left.
@@ -1390,25 +1393,7 @@ class CS2Game(Game):
             config[ConfigIndex.SELECTED_MAP].allowed_values = maps
             if maps and config[ConfigIndex.SELECTED_MAP].value not in maps:
                 config[ConfigIndex.SELECTED_MAP].set(maps[0])
-            return [ConfigIndex.SELECTED_MAP]
-        elif config_item is config[ConfigIndex.WORKSHOP_MAPS_MANUAL]:
-            current = set(config_item.value)
-            new_entries = current - self._known_manual_workshop_maps
-            self._known_manual_workshop_maps = current
-            cancelled_entries = {
-                entry
-                for entry in new_entries
-                if not self._download_workshop_map_manually(entry)
-            }
-            if not cancelled_entries:
-                return []
-            # Cancelled -- drop it back out rather than leave an entry
-            # in the list nothing was actually downloaded for.
-            config_item.value = [
-                entry for entry in config_item.value if entry not in cancelled_entries
-            ]
-            self._known_manual_workshop_maps -= cancelled_entries
-            return [ConfigIndex.WORKSHOP_MAPS_MANUAL]
+            return affected
         elif config_item is config[ConfigIndex.ORDINARY_MAPGROUPS]:
             self._refresh_map_group_choices(config)
             # Covers the case where the removed/renamed group was the

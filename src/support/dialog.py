@@ -53,10 +53,16 @@ def _resolve_master(master: Optional[Any]) -> Optional[Any]:
     return master if master is not None else _default_master
 
 
-def ok_dialog(message: str, title: str = "Message") -> None:
+def ok_dialog(
+    message: str, title: str = "Message", master: Optional[Any] = None
+) -> None:
     """Show `message` in a modal dialog with an OK button, and block
-    until the user dismisses it."""
-    dialog = ui.Dialog(title=title, message=message)
+    until the user dismisses it.
+
+    `master`, same as choice_dialog()'s, is the window the dialog
+    centers itself on -- falls back to whatever default_dialog_master()
+    last set, then to the application's main window, if omitted."""
+    dialog = ui.Dialog(title=title, message=message, master=_resolve_master(master))
     dialog.show()
 
 

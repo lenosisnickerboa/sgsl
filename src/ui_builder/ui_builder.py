@@ -364,31 +364,35 @@ class UiBuilder:
         refresh, sibling-widget refresh, config_changed_callback side
         effects, and reset-button visibility, all included."""
         previous = item.value
-        try:
-            # item.set() may run a transform (e.g. confirm_workshop_item(),
-            # via WORKSHOP_MAPS/WORKSHOP_MAPGROUPS) that pops up a dialog
-            # of its own several calls removed from any window reference
-            # -- this lets it still center on whichever window `widget`
-            # actually lives in (a configuration window, or the main
-            # window for a shortcut) instead of always the main window.
-            with default_dialog_master(widget.winfo_toplevel()):
+        # Covers both item.set() (whose transform, e.g.
+        # confirm_workshop_item() via WORKSHOP_MAPS/WORKSHOP_MAPGROUPS,
+        # may pop up a dialog of its own) and config_changed_callback()
+        # below (e.g. Game.config_item_changed() reacting to the new
+        # value, which can do the same -- see CS2Game's workshop map
+        # pre-download flow) -- both are several calls removed from any
+        # window reference, so this lets whatever dialog either of them
+        # shows still center on whichever window `widget` actually
+        # lives in (a configuration window, or the main window for a
+        # shortcut) instead of always the main window.
+        with default_dialog_master(widget.winfo_toplevel()):
+            try:
                 item.set(new_value)
-        except (TypeError, ValueError):
-            # Reject the edit and snap the widget back to the last
-            # valid value rather than leaving item/widget out of sync.
-            widget.update(previous)
-            return
-        # Other widgets built for this same index (e.g. a shortcut
-        # and its counterpart in the config tabs) need to pick up
-        # the new value too.
-        self.config_changed([index], config)
-        if config_changed_callback is not None:
-            # The game may have reacted by mutating other config
-            # items (e.g. narrowing another item's allowed_values)
-            # — refresh their widgets too.
-            affected = config_changed_callback(item, config)
-            if affected:
-                self.config_changed(affected, config)
+            except (TypeError, ValueError):
+                # Reject the edit and snap the widget back to the last
+                # valid value rather than leaving item/widget out of sync.
+                widget.update(previous)
+                return
+            # Other widgets built for this same index (e.g. a shortcut
+            # and its counterpart in the config tabs) need to pick up
+            # the new value too.
+            self.config_changed([index], config)
+            if config_changed_callback is not None:
+                # The game may have reacted by mutating other config
+                # items (e.g. narrowing another item's allowed_values)
+                # — refresh their widgets too.
+                affected = config_changed_callback(item, config)
+                if affected:
+                    self.config_changed(affected, config)
 
     def _build_widget(
         self,

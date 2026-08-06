@@ -518,19 +518,16 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value="You can find maps to download here: https://steamcommunity.com/app/730/workshop/",
             read_only=True,
         ),
-        ConfigIndex.WORKSHOP_MAPS_MANUAL: ConfigItem(
-            name="workshop_maps_manual",
-            visible_name="Downloaded workshop maps",
-            type=ConfigType.ARRAY,
-            item_type=ConfigType.STRING,
+        ConfigIndex.PRE_DOWNLOAD_WORKSHOP_MAPS: ConfigItem(
+            name="pre_download_workshop_maps",
+            visible_name="Pre-download workshop maps",
+            type=ConfigType.BOOLEAN,
             config_type=ConfigDeliveryType.COMMAND_LINE,
-            tooltip="Immediately download a workshop map via steamcmd and install it into "
-            "maps/workshop/<id>/ (Valve's own convention for a locally cached workshop map), "
-            "rather than relying on the server to fetch it on demand via "
-            "+host_workshop_map. Same id/url/confirmation as Workshop maps above; this list "
-            "is just a log of what's been downloaded this way.",
-            value=[],
-            transform=_normalize_workshop_map,
+            tooltip="When a new entry is added to Workshop maps, immediately download it "
+            "via steamcmd and install it into maps/workshop/<id>/ (Valve's own convention "
+            "for a locally cached workshop map), rather than relying on the server to fetch "
+            "it on demand via +host_workshop_map the first time it's hosted.",
+            value=True,
         ),
         ConfigIndex.STEAM_API_AUTH_KEY: ConfigItem(
             name="api_auth_key",
