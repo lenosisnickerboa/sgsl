@@ -1400,6 +1400,17 @@ class CS2Game(Game):
                     ]
                     self._known_workshop_maps -= cancelled_entries
                     affected.append(ConfigIndex.WORKSHOP_MAPS)
+            # Rescan rather than reuse ORDINARY_MAPS' existing value --
+            # it's only ever otherwise computed once, back in
+            # config_defaults()/config_loaded(), so it wouldn't
+            # otherwise reflect a maps/workshop/<id>/ directory that
+            # _remove_orphaned_workshop_content() just deleted above
+            # (which would leave its "workshop/<id>/<name>" entry, see
+            # _downloaded_workshop_maps(), lingering in SELECTED_MAP's
+            # allowed_values below despite nothing being there for it
+            # anymore) or one _predownload_workshop_map() just added.
+            config[ConfigIndex.ORDINARY_MAPS].value = self._ordinary_maps()
+            affected.append(ConfigIndex.ORDINARY_MAPS)
             # Keep the selected-map dropdown's choices in sync with
             # the editable map list; if the currently selected map was
             # removed, fall back to the first of what's left.
