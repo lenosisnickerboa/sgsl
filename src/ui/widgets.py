@@ -592,6 +592,83 @@ class ConfirmDialog(EnableDisableMixin, ttk.Toplevel):
         return self._result
 
 
+class CancelableProgressDialog(EnableDisableMixin, ttk.Toplevel):
+    """A modal dialog showing `message` with just a Cancel button, for
+    a background operation with no meaningful progress percentage to
+    report. Appears immediately on construction; call show() to block
+    the caller until it's dismissed -- either by the user pressing
+    Cancel (or the window's own close button, treated the same way),
+    or by finish() once whatever operation it represents completes on
+    its own. Returns True if the user cancelled it, False if finish()
+    closed it instead."""
+
+    def __init__(self, title: str, message: str, on_cancel=Nop(), **kwargs):
+        super().__init__(title=title, **kwargs)
+        # Parked off-screen until _center_on_master() repositions it --
+        # same reasoning as Window.__init__: avoids a flash at the
+        # window manager's default placement before centering.
+        self.geometry("+8000+8000")
+
+        self._cancelled = False
+        self.on_cancel = on_cancel
+
+        self.resizable(False, False)
+        self.protocol("WM_DELETE_WINDOW", self._handle_cancel)
+
+        frame = ttk.Frame(self, padding=20)
+        frame.pack(fill=BOTH, expand=YES)
+
+        label = ttk.Label(frame, text=message, wraplength=360, justify=LEFT)
+        label.pack(fill=X, pady=(0, 15))
+
+        button = ttk.Button(frame, text="Cancel", command=self._handle_cancel)
+        button.pack()
+        button.focus_set()
+
+        self._center_on_master()
+
+        # Modal: block interaction with other windows until closed.
+        self.transient(self.master)
+        self.grab_set()
+
+    def _center_on_master(self):
+        master = self.master
+        if master is None:
+            return
+        master.update_idletasks()
+        self.update_idletasks()
+        x = master.winfo_x() + (master.winfo_width() - self.winfo_width()) // 2
+        y = master.winfo_y() + (master.winfo_height() - self.winfo_height()) // 2
+        self.geometry(f"+{x}+{y}")
+
+    def _handle_cancel(self):
+        self._cancelled = True
+        self.grab_release()
+        self.destroy()
+        if self.on_cancel is not None:
+            self.on_cancel()
+
+    def finish(self) -> None:
+        """Close the dialog as if the tracked operation completed on
+        its own (not a cancellation). Safe to call from any thread --
+        hops to the main thread via after() rather than touching the
+        widget directly."""
+        self.after(0, self._do_finish)
+
+    def _do_finish(self) -> None:
+        if not self.winfo_exists():
+            return
+        self.grab_release()
+        self.destroy()
+
+    def show(self) -> bool:
+        """Block the calling code until the dialog is dismissed, then
+        return True if the user cancelled it, False if finish()
+        closed it instead."""
+        self.wait_window(self)
+        return self._cancelled
+
+
 class ChoiceDialog(EnableDisableMixin, ttk.Toplevel):
     """A modal dialog: shows `message` (may be multi-line) with an
     arbitrary row of custom-labeled buttons, each with its own

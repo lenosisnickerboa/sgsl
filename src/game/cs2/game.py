@@ -20,7 +20,7 @@ from game.cs2.config_parser.valve_gamemode_config_parser import (
 from game.game import ExtraResetOption, Game, OperationResult, TerminalLineResult
 from support import bat_runner
 from support import command_log
-from support.dialog import edit_string_dialog_box
+from support.dialog import cancelable_progress_dialog, edit_string_dialog_box, ok_dialog
 from support.rcon_client import run_rcon_command
 from support.run_command import split_run_command
 from support.steam_app_update_check import check_for_steam_app_update
@@ -736,6 +736,15 @@ class CS2Game(Game):
     def get_server_binary_path(self) -> Path:
         return self.server_binary
 
+    def _unique_preserving_order(self, values: list[str]) -> list[str]:
+        """`values` with duplicates removed, keeping each entry's
+        first occurrence and the original order -- SELECTED_MAP's
+        allowed_values is assembled from several overlapping sources
+        (ORDINARY_MAPS, WORKSHOP_MAPS, freshly-loaded not-yet-installed
+        workshop maps, ...) that can end up naming the same map more
+        than once."""
+        return list(dict.fromkeys(values))
+
     def _ordinary_maps(self) -> list[str]:
         maps_dir = self._ordinary_maps_dir()
         names = [p.stem for p in maps_dir.glob("*.vpk")] + [
@@ -925,13 +934,20 @@ class CS2Game(Game):
             )
         self.print(f"Installed workshop item {workshop_id} into {dest_dir}")
 
-    def _download_workshop_map_manually(self, entry: str) -> None:
+    def _download_workshop_map_manually(self, entry: str) -> bool:
         """Fetch `entry` (a "workshop\\<id>\\<name>" WORKSHOP_MAPS_MANUAL
-        entry) via steamcmd, then copy the result into its own
-        maps/workshop/<id>/ subfolder (see _copy_manual_workshop_map()).
-        Runs on a background thread (see bat_runner.run()) -- returns
-        immediately, progress/result is reported via self.print() as
-        it happens."""
+        entry) via steamcmd, showing a cancelable "Download map
+        <name>..." dialog for the duration, then copy the result into
+        its own maps/workshop/<id>/ subfolder (see
+        _copy_manual_workshop_map()) and show a final "Download
+        finished" dialog. The download itself runs on a background
+        thread (see bat_runner.run()), but this method blocks the
+        caller until it finishes or is cancelled.
+
+        Returns True if the download actually completed, False if the
+        user cancelled it -- in which case nothing was copied, and the
+        caller (config_item_changed()) should drop `entry` back out of
+        WORKSHOP_MAPS_MANUAL."""
         workshop_id = str(self._get_workshop_id(entry))
         map_name = self._get_workshop_name(entry) or "unknown"
         steamcmd_dir = self.directory / "steamcmd"
@@ -942,14 +958,16 @@ class CS2Game(Game):
             self.print(line)
 
         def on_result(exit_code):
-            if exit_code != 0:
+            if exit_code != 0 and not handle.cancelled:
                 self.print(
                     f"steamcmd exited with code {exit_code} while downloading "
                     f"workshop item {workshop_id}"
                 )
-            self._copy_manual_workshop_map(workshop_id, map_name)
+            # Runs on bat_runner's own background thread -- closing the
+            # dialog from here is safe, see CancelableProgressDialog.finish().
+            dialog.finish()
 
-        bat_runner.run(
+        handle = bat_runner.run(
             [
                 f"cd {steamcmd_dir}",
                 f"steamcmd +force_install_dir {self.server_root} +login anonymous "
@@ -959,6 +977,19 @@ class CS2Game(Game):
             on_output,
             on_result,
         )
+        dialog = cancelable_progress_dialog(
+            f"Download map {map_name}...",
+            title="Downloading workshop map",
+            on_cancel=handle.cancel,
+        )
+        cancelled = dialog.show()
+        if cancelled:
+            self.print(f"Download of workshop item {workshop_id} was cancelled")
+            return False
+
+        self._copy_manual_workshop_map(workshop_id, map_name)
+        ok_dialog("Download finished")
+        return True
 
     def config_defaults(self) -> Config[IndexT]:
         defaults = build_game_defaults()
@@ -976,7 +1007,9 @@ class CS2Game(Game):
         # it further up the call chain, before config_loaded() ever runs
         # -- otherwise it'd be rejected as not in allowed_values yet and
         # silently fall back to the default map.
-        defaults[ConfigIndex.SELECTED_MAP].allowed_values = list(maps) + workshop_maps
+        defaults[ConfigIndex.SELECTED_MAP].allowed_values = self._unique_preserving_order(
+            list(maps) + workshop_maps
+        )
         if _DefaultMap in maps:
             defaults[ConfigIndex.SELECTED_MAP].value = _DefaultMap
         else:
@@ -1114,7 +1147,9 @@ class CS2Game(Game):
         # loads it, before this method ever runs. Only not_installed_ws_maps
         # (freshly loaded from the saved config, unknown at config_defaults()
         # time) is new here.
-        config[ConfigIndex.SELECTED_MAP].allowed_values += not_installed_ws_maps
+        config[ConfigIndex.SELECTED_MAP].allowed_values = self._unique_preserving_order(
+            config[ConfigIndex.SELECTED_MAP].allowed_values + not_installed_ws_maps
+        )
         # Picks up whatever map groups were just loaded from the saved
         # config, since config_defaults() alone only ever sees an
         # empty ORDINARY_MAPGROUPS (the TOML values haven't been
@@ -1349,8 +1384,8 @@ class CS2Game(Game):
             # Keep the selected-map dropdown's choices in sync with
             # the editable map list; if the currently selected map was
             # removed, fall back to the first of what's left.
-            maps = list(config[ConfigIndex.ORDINARY_MAPS].value) + list(
-                config_item.value
+            maps = self._unique_preserving_order(
+                list(config[ConfigIndex.ORDINARY_MAPS].value) + list(config_item.value)
             )
             config[ConfigIndex.SELECTED_MAP].allowed_values = maps
             if maps and config[ConfigIndex.SELECTED_MAP].value not in maps:
@@ -1360,9 +1395,20 @@ class CS2Game(Game):
             current = set(config_item.value)
             new_entries = current - self._known_manual_workshop_maps
             self._known_manual_workshop_maps = current
-            for entry in new_entries:
-                self._download_workshop_map_manually(entry)
-            return []
+            cancelled_entries = {
+                entry
+                for entry in new_entries
+                if not self._download_workshop_map_manually(entry)
+            }
+            if not cancelled_entries:
+                return []
+            # Cancelled -- drop it back out rather than leave an entry
+            # in the list nothing was actually downloaded for.
+            config_item.value = [
+                entry for entry in config_item.value if entry not in cancelled_entries
+            ]
+            self._known_manual_workshop_maps -= cancelled_entries
+            return [ConfigIndex.WORKSHOP_MAPS_MANUAL]
         elif config_item is config[ConfigIndex.ORDINARY_MAPGROUPS]:
             self._refresh_map_group_choices(config)
             # Covers the case where the removed/renamed group was the

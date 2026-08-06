@@ -142,6 +142,38 @@ def choice_dialog(
     return dialog.show()
 
 
+def cancelable_progress_dialog(
+    message: str,
+    title: str = "Please wait",
+    on_cancel: Optional[Any] = None,
+    master: Optional[Any] = None,
+) -> "ui.CancelableProgressDialog":
+    """Create (but don't yet display) a modal dialog with just a
+    Cancel button, for a background operation with no meaningful
+    progress percentage to show. Unlike every other dialog in this
+    module, this one doesn't show/block on its own -- call .show() on
+    the result to display it and block until it's dismissed (returns
+    True if the user cancelled it), and .finish() (safe from any
+    thread) to close it programmatically once whatever it's tracking
+    completes on its own instead, e.g. from a background thread's own
+    completion callback.
+
+    `on_cancel`, if given, is called when the user presses Cancel (or
+    the window's own close button) -- typically something that aborts
+    the tracked operation, e.g. bat_runner.Handle.cancel. Can also be
+    set/replaced afterwards via the result's own .on_cancel attribute
+    if it isn't known yet at this point (e.g. because the operation it
+    would cancel hasn't started yet either).
+
+    `master`, same as choice_dialog()'s, is the window it centers on."""
+    return ui.CancelableProgressDialog(
+        title=title,
+        message=message,
+        on_cancel=on_cancel,
+        master=_resolve_master(master),
+    )
+
+
 def choice_dialog_with_toggles(
     message: str,
     toggles: list[tuple[str, str, str]],

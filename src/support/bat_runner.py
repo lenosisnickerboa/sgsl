@@ -11,7 +11,57 @@ import threading
 from pathlib import Path
 from typing import Callable, List, Optional, Union
 
+import psutil
+
 from process.process_handler import CREATE_NO_WINDOW
+
+
+class Handle:
+    """Returned by run(); .cancel() forcibly kills the batch file's
+    process tree (the .bat's own cmd.exe host, plus whatever it
+    spawned, e.g. steamcmd.exe) if it's still running -- a no-op if
+    the batch file has already finished, or hasn't actually started
+    yet (in which case it takes effect the moment it does). Safe to
+    call from any thread. done_callback still fires as normal once the
+    (now-killed) process actually exits; check .cancelled to tell a
+    cancellation apart from the process just finishing/failing on its
+    own."""
+
+    def __init__(self) -> None:
+        self._process: Optional[subprocess.Popen] = None
+        self._lock = threading.Lock()
+        self.cancelled = False
+
+    def _set_process(self, process: subprocess.Popen) -> None:
+        with self._lock:
+            self._process = process
+            if self.cancelled:
+                self._kill()
+
+    def cancel(self) -> None:
+        with self._lock:
+            self.cancelled = True
+            self._kill()
+
+    def _kill(self) -> None:
+        if self._process is None or self._process.poll() is not None:
+            return
+        try:
+            parent = psutil.Process(self._process.pid)
+        except psutil.NoSuchProcess:
+            return
+        procs = parent.children(recursive=True) + [parent]
+        for p in procs:
+            try:
+                p.terminate()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
+        _, alive = psutil.wait_procs(procs, timeout=3)
+        for p in alive:
+            try:
+                p.kill()
+            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                pass
 
 
 def run(
@@ -19,10 +69,11 @@ def run(
     cwd: Optional[Union[str, Path]] = None,
     output_callback: Optional[Callable[[str], None]] = None,
     done_callback: Optional[Callable[[int], None]] = None,
-) -> None:
+) -> Handle:
     """
     Write `commands` to a temporary .bat file and run it on a
-    background thread, without blocking the caller.
+    background thread, without blocking the caller. Returns a Handle
+    that can cancel it.
 
     Output is read from a plain pipe, so console programs that only
     flush their output when attached to a real terminal (steamcmd.exe
@@ -55,6 +106,8 @@ def run(
         batch file has finished. Called after output has been fully
         drained, on a background thread.
     """
+
+    handle = Handle()
 
     def _emit(line: str) -> None:
         if output_callback is not None:
@@ -89,6 +142,7 @@ def run(
                 if done_callback is not None:
                     done_callback(1)
                 return
+            handle._set_process(process)
 
             try:
                 if output_callback and process.stdout is not None:
@@ -109,6 +163,7 @@ def run(
             bat_path.unlink(missing_ok=True)
 
     threading.Thread(target=_run_in_background, daemon=True).start()
+    return handle
 
 
 if __name__ == "__main__":
