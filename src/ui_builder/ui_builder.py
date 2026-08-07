@@ -382,17 +382,23 @@ class UiBuilder:
                 # valid value rather than leaving item/widget out of sync.
                 widget.update(previous)
                 return
-            # Other widgets built for this same index (e.g. a shortcut
-            # and its counterpart in the config tabs) need to pick up
-            # the new value too.
-            self.config_changed([index], config)
+            # A single refresh, after config_changed_callback (if any)
+            # has had a chance to react -- e.g. CS2Game's workshop map
+            # pre-download flow, which may still change `item`'s own
+            # value again (drop a cancelled entry, dedupe a re-added
+            # id) before it's actually final. Refreshing only once,
+            # here, means every widget for `index` (this one, plus any
+            # sibling, e.g. a shortcut and its counterpart in the
+            # config tabs) always shows that final, settled value --
+            # never an intermediate one the callback is about to
+            # revise.
+            affected = {index}
             if config_changed_callback is not None:
                 # The game may have reacted by mutating other config
-                # items (e.g. narrowing another item's allowed_values)
-                # — refresh their widgets too.
-                affected = config_changed_callback(item, config)
-                if affected:
-                    self.config_changed(affected, config)
+                # items too (e.g. narrowing another item's
+                # allowed_values) -- refresh their widgets as well.
+                affected.update(config_changed_callback(item, config))
+            self.config_changed(list(affected), config)
 
     def _build_widget(
         self,

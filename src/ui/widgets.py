@@ -1513,20 +1513,30 @@ class ArrayEditor(HintedWidget):
             value = self.item_type(text)
         except (TypeError, ValueError):
             return
-        self.listbox.insert(END, str(value))
         self.new_value.set("")
-        self._notify()
+        # Don't insert into the listbox ourselves -- send the
+        # candidate list to `command` and let the config system's own
+        # refresh (update(), once it's actually settled on a final
+        # value, see UiBuilder._apply_edit()) reflect it. Some
+        # candidates need confirmation/normalization (e.g. a CS2
+        # workshop id/url) or shouldn't appear at all until some
+        # further step succeeds (e.g. that same item's own download),
+        # so inserting the raw typed text up front would flash
+        # something that's not the real final value, or isn't final
+        # yet at all.
+        self._notify(self.values() + [value])
 
     def _on_remove(self):
         selection = self.listbox.curselection()
         if not selection:
             return
-        self.listbox.delete(selection[0])
-        self._notify()
+        values = self.values()
+        del values[selection[0]]
+        self._notify(values)
 
-    def _notify(self):
+    def _notify(self, values: list) -> None:
         if self.command is not None:
-            self.command(self.values())
+            self.command(values)
 
     def values(self) -> list:
         return [self.item_type(v) for v in self.listbox.get(0, END)]

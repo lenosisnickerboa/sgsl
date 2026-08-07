@@ -915,11 +915,12 @@ class CS2Game(Game):
             )
         self.print(f"Installed workshop item {workshop_id} into {dest_dir}")
 
-    def _predownload_workshop_map(self, entry: str) -> bool:
+    def _predownload_workshop_map(self, entry: str, is_update: bool = False) -> bool:
         """Fetch `entry` (a "workshop\\<id>\\<name>" WORKSHOP_MAPS
         entry) via steamcmd, showing a cancelable "Download map
-        <name>..." dialog for the duration, then copy the result into
-        its own maps/workshop/<id>/ subfolder (see
+        <name>..." dialog (or "Updating map <name>...." if `is_update`
+        -- see _dedupe_workshop_maps()) for the duration, then copy the
+        result into its own maps/workshop/<id>/ subfolder (see
         _copy_predownloaded_workshop_map()) and show a final "Download
         finished" dialog. The download itself runs on a background
         thread (see bat_runner.run()), but this method blocks the
@@ -964,9 +965,10 @@ class CS2Game(Game):
             on_output,
             on_result,
         )
+        verb = "Updating" if is_update else "Downloading"
         dialog = cancelable_progress_dialog(
-            f"Download map {map_name}...\nThis may take a while...",
-            title="Downloading workshop map",
+            f"{verb} workshop map {map_name}...\nThis may take a while...",
+            title=f"{verb} workshop map",
             on_cancel=handle.cancel,
         )
         cancelled = dialog.show()
@@ -1373,19 +1375,92 @@ class CS2Game(Game):
                 continue
             if int(entry.name) in current_ids:
                 continue
-            # Best-effort (reraise=False): one locked/in-use directory
-            # (e.g. still open in another process) shouldn't abort the
-            # rest of this cleanup pass -- its failure is still logged,
-            # just not raised.
-            command_log.run(
-                self.print,
-                f'rmdir /s /q "{entry}"',
-                lambda entry=entry: shutil.rmtree(entry),
-                reraise=False,
+            self._remove_workshop_dir(entry)
+
+    def _remove_workshop_dir(self, content_dir: Path) -> None:
+        # Best-effort (reraise=False): one locked/in-use directory
+        # (e.g. still open in another process) shouldn't abort whatever
+        # cleanup pass this is part of -- its failure is still logged,
+        # just not raised.
+        command_log.run(
+            self.print,
+            f'rmdir /s /q "{content_dir}"',
+            lambda: shutil.rmtree(content_dir),
+            reraise=False,
+        )
+
+    def _remove_workshop_content_for_id(self, workshop_id: int) -> None:
+        """Force-delete every cached copy of workshop item
+        `workshop_id` -- all three places content can live, see
+        _remove_orphaned_workshop_content() -- regardless of whether
+        it's still referenced elsewhere. Used when the user re-adds an
+        id/url that's already in WORKSHOP_MAPS, to force a genuinely
+        fresh download rather than silently keep reusing whatever's
+        already cached (see _dedupe_workshop_maps())."""
+        id_str = str(workshop_id)
+        for content_dir in (
+            self._workshop_content_dir() / id_str,
+            self._workshop_predownload_dir(id_str),
+            self._workshop_map_cache_dir(id_str),
+        ):
+            if content_dir.is_dir():
+                self._remove_workshop_dir(content_dir)
+
+    def _dedupe_workshop_maps(self, config_item: ConfigItem) -> set[int]:
+        """If the same workshop id now appears more than once in
+        WORKSHOP_MAPS (the user re-entered an id/url that was already
+        in the list, to refresh it), keep only the last -- i.e. the
+        just re-added -- occurrence, and force-delete whatever's
+        already downloaded for that id (see
+        _remove_workshop_content_for_id()) so a fresh download
+        actually happens.
+
+        Also drops the id from _known_workshop_maps, so
+        config_item_changed() treats it as newly-added below (and
+        pre-downloads it again, if enabled) even if its normalized
+        string happens to come out unchanged -- re-entering the same
+        id is itself the signal to refresh it, regardless of whether
+        the title changed.
+
+        Returns the set of workshop ids that were re-added this way,
+        so config_item_changed() can tell _predownload_workshop_map()
+        to show its dialog as an update rather than a fresh download."""
+        seen_ids: set[int] = set()
+        updated_ids: set[int] = set()
+        deduped: list[str] = []
+        for entry in reversed(config_item.value):
+            workshop_id = (
+                self._get_workshop_id(entry) if self._is_workshop_map(entry) else None
             )
+            if workshop_id is not None:
+                if workshop_id in seen_ids:
+                    updated_ids.add(workshop_id)
+                    continue
+                seen_ids.add(workshop_id)
+            deduped.append(entry)
+        deduped.reverse()
+        if not updated_ids:
+            return updated_ids
+        config_item.value = deduped
+        self.print(
+            "Re-adding workshop item(s) "
+            f"{', '.join(str(i) for i in sorted(updated_ids))} -- removing the "
+            "existing entry and any downloaded content first"
+        )
+        for workshop_id in updated_ids:
+            self._remove_workshop_content_for_id(workshop_id)
+        self._known_workshop_maps = {
+            e
+            for e in self._known_workshop_maps
+            if not (
+                self._is_workshop_map(e) and self._get_workshop_id(e) in updated_ids
+            )
+        }
+        return updated_ids
 
     def config_item_changed(self, config_item, config: Config[IndexT]) -> list[IndexT]:
         if config_item is config[ConfigIndex.WORKSHOP_MAPS]:
+            updated_ids = self._dedupe_workshop_maps(config_item)
             self._remove_orphaned_workshop_content(config_item.value)
             current = set(config_item.value)
             new_entries = current - self._known_workshop_maps
@@ -1395,7 +1470,10 @@ class CS2Game(Game):
                 cancelled_entries = {
                     entry
                     for entry in new_entries
-                    if not self._predownload_workshop_map(entry)
+                    if not self._predownload_workshop_map(
+                        entry,
+                        is_update=self._get_workshop_id(entry) in updated_ids,
+                    )
                 }
                 if cancelled_entries:
                     # Cancelled -- drop it back out rather than leave
