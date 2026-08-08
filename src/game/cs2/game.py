@@ -101,7 +101,7 @@ class CS2Game(Game):
     # Both observed accompanying a broken/crashed server that's still
     # technically running (an unrecoverable bad map, or an engine-level
     # assertion) -- see Game.suspicious_terminal_line_patterns().
-    _SuspiciousTerminalLinePatterns = ["Map error!", ":Assertion failed"]
+    _SuspiciousTerminalLinePatterns = ["Error map!", ": Assertion Failed in "]
 
     def suspicious_terminal_line_patterns(self) -> list[str]:
         return self._SuspiciousTerminalLinePatterns

@@ -1164,11 +1164,29 @@ class HintedWidget(EnableDisableMixin, ttk.Frame):
             super().pack(side=LEFT, expand=YES, padx=5, fill=X)
 
 
+_DefaultResetButtonStyle = "DefaultReset.TButton"
+
+# The icon shown on an active DefaultResetRow button -- a small
+# counter-clockwise arrow, the conventional "revert/reset" symbol, in
+# place of the plain "D" label it used to show.
+_DefaultResetButtonIcon = "↺"
+
+
+def _style_default_reset_button() -> None:
+    """A smaller, lighter-weight variant of the standard TButton style
+    (which DefaultResetRow's button otherwise inherits, unstyled --
+    see ttk's style-name fallback resolution) for its reset button, so
+    it reads as a compact inline icon rather than a full-sized button
+    competing with the row's own control for attention."""
+    style = ttk.Style()
+    style.configure(_DefaultResetButtonStyle, padding=1, font=("TkDefaultFont", 9))
+
+
 class DefaultResetRow(EnableDisableMixin, ttk.Frame):
-    """A small "D" button fixed to the far left of a row, used to reset
-    a config item to its default value, plus -- via set_child() -- the
-    item's own widget packed to the button's right. The button only
-    does anything (and only shows its "D" label) while the item's
+    """A small icon button fixed to the far left of a row, used to
+    reset a config item to its default value, plus -- via set_child()
+    -- the item's own widget packed to the button's right. The button
+    only does anything (and only shows its icon) while the item's
     current value differs from its default -- see set_has_default(),
     which a UI builder calls whenever the item's value changes;
     otherwise it stays blank and disabled, but still occupies its
@@ -1196,7 +1214,14 @@ class DefaultResetRow(EnableDisableMixin, ttk.Frame):
         self._on_reset = on_reset
         self._has_default = True
 
-        self.button = ttk.Button(self, text="", width=2, command=self._handle_click)
+        _style_default_reset_button()
+        self.button = ttk.Button(
+            self,
+            text="",
+            width=2,
+            command=self._handle_click,
+            style=_DefaultResetButtonStyle,
+        )
         self.button.pack(side=LEFT)
         make_tooltip(self.button, text=tooltip)
         self._apply_button_state()
@@ -1220,10 +1245,10 @@ class DefaultResetRow(EnableDisableMixin, ttk.Frame):
             self._on_reset()
 
     def set_has_default(self, is_default: bool) -> None:
-        """Make the reset button active (showing "D") or blank/inert
-        depending on whether the item currently equals its default --
-        called by UiBuilder.config_changed() whenever the item's value
-        changes."""
+        """Make the reset button active (showing its icon) or blank/
+        inert depending on whether the item currently equals its
+        default -- called by UiBuilder.config_changed() whenever the
+        item's value changes."""
         self._has_default = is_default
         self._apply_button_state()
 
@@ -1232,7 +1257,7 @@ class DefaultResetRow(EnableDisableMixin, ttk.Frame):
             self.button.configure(text="")
             self.button.state(["disabled"])
         else:
-            self.button.configure(text="D")
+            self.button.configure(text=_DefaultResetButtonIcon)
             self.button.state(["!disabled"])
 
     def pack(self, side=TOP):
