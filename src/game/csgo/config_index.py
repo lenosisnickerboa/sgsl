@@ -104,6 +104,8 @@ class ConfigIndex(IntEnum):
 
     AUTOMATIC_GAME_UPDATE_CHECK = 67
 
+    PRE_DOWNLOAD_WORKSHOP_MAPS = 68
+
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"
