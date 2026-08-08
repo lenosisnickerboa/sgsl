@@ -974,6 +974,10 @@ class CSGOGame(Game):
         defaults = build_game_defaults()
         maps = self._ordinary_maps()
         defaults[ConfigIndex.ORDINARY_MAPS].value = maps
+        # Also used by ORDINARY_MAPGROUPS' "name" schema field (see
+        # _link_map_group_schema_fields()) to offer only ordinary maps
+        # -- not workshop maps -- as choices when building a map group.
+        defaults[ConfigIndex.ORDINARY_MAPS].allowed_values = maps
         workshop_maps = self._workshop_maps()
         defaults[ConfigIndex.WORKSHOP_MAPS].value = workshop_maps
         # A separate list, not the same object as ORDINARY_MAPS.value —
@@ -1468,7 +1472,11 @@ class CSGOGame(Game):
             # _downloaded_workshop_maps(), lingering in SELECTED_MAP's
             # allowed_values below despite nothing being there for it
             # anymore) or one _predownload_workshop_map() just added.
-            config[ConfigIndex.ORDINARY_MAPS].value = self._ordinary_maps()
+            ordinary_maps = self._ordinary_maps()
+            config[ConfigIndex.ORDINARY_MAPS].value = ordinary_maps
+            # Kept in sync with .value -- see config_defaults()'s
+            # matching comment.
+            config[ConfigIndex.ORDINARY_MAPS].allowed_values = ordinary_maps
             affected.append(ConfigIndex.ORDINARY_MAPS)
             # Keep the selected-map dropdown's choices in sync with
             # the editable map list; if the currently selected map was

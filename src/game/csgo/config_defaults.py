@@ -658,16 +658,19 @@ def build_game_defaults() -> Config[ConfigIndex]:
 
 
 def _link_map_group_schema_fields(defaults: Config[ConfigIndex]) -> None:
-    """Point ORDINARY_MAPGROUPS' struct "name" field at SELECTED_MAP's
+    """Point ORDINARY_MAPGROUPS' struct "name" field at ORDINARY_MAPS'
     allowed_values (rather than leaving it free text), so its editor
-    offers the same choices as that item — done as a separate pass
+    only offers ordinary maps as choices -- not workshop maps, which
+    SELECTED_MAP's own allowed_values also includes, but which have
+    their own separate grouping mechanism instead (a Steam Workshop
+    collection id, see WORKSHOP_MAPGROUPS) -- done as a separate pass
     after the dict above is fully built, since a schema built inline
     within that dict can't yet refer to a sibling entry defined
-    elsewhere in the same literal. SELECTED_MAP's allowed_values is
-    populated later, by CSGOGame.config_defaults()/config_loaded() —
-    this holds a live reference to that ConfigItem, so it stays
+    elsewhere in the same literal. ORDINARY_MAPS' allowed_values is
+    populated later, by CSGOGame.config_defaults()/config_item_changed()
+    -- this holds a live reference to that ConfigItem, so it stays
     correct once that happens (see SchemaField)."""
     schema = defaults[ConfigIndex.ORDINARY_MAPGROUPS].schema
     schema["name"] = SchemaField(
-        ConfigType.STRING_LIST, allowed_values_from=defaults[ConfigIndex.SELECTED_MAP]
+        ConfigType.STRING_LIST, allowed_values_from=defaults[ConfigIndex.ORDINARY_MAPS]
     )

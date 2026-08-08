@@ -729,13 +729,20 @@ def build_game_defaults() -> Config[ConfigIndex]:
 def _link_map_group_schema_fields(defaults: Config[ConfigIndex]) -> None:
     """Point ORDINARY_MAPGROUPS' struct "name" field at SELECTED_MAP's
     allowed_values (rather than leaving it free text), so its editor
-    offers the same choices as that item — done as a separate pass
-    after the dict above is fully built, since a schema built inline
-    within that dict can't yet refer to a sibling entry defined
-    elsewhere in the same literal. SELECTED_MAP's allowed_values is
-    populated later, by CS2Game.config_defaults()/config_loaded() —
-    this holds a live reference to that ConfigItem, so it stays
-    correct once that happens (see SchemaField)."""
+    offers the same choices as that item -- both ordinary maps and
+    workshop maps, since (unlike CS:GO, see CSGOGame's own
+    _link_map_group_schema_fields(), whose _write_map_groups() has no
+    such handling) CS2's own _write_map_groups() special-cases a
+    workshop map entry (writing its bare workshop id, since a
+    "workshop\\<id>\\<name>" string isn't itself a real map name CS2
+    would recognize), so a custom map group here can genuinely mix
+    both kinds -- done as a separate pass after the dict above is
+    fully built, since a schema built inline within that dict can't
+    yet refer to a sibling entry defined elsewhere in the same
+    literal. SELECTED_MAP's allowed_values is populated later, by
+    CS2Game.config_defaults()/config_loaded() -- this holds a live
+    reference to that ConfigItem, so it stays correct once that
+    happens (see SchemaField)."""
     schema = defaults[ConfigIndex.ORDINARY_MAPGROUPS].schema
     schema["name"] = SchemaField(
         ConfigType.STRING_LIST, allowed_values_from=defaults[ConfigIndex.SELECTED_MAP]
