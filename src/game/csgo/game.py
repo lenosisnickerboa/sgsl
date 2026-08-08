@@ -852,6 +852,15 @@ class CSGOGame(Game):
     # any) a given file has instead of replacing the whole stem.
     _MapFileSuffixPattern = re.compile(r"^(.*)(_dir|_\d+)$")
 
+    def _map_file_base(self, original: Path) -> str:
+        """`original`'s stem with any "_dir"/"_NNN" pak-chunk suffix
+        (see _MapFileSuffixPattern) stripped back off -- the name a
+        sidecar file (e.g. a .nav mesh) that isn't itself a chunk would
+        share with the map, used by _copy_predownloaded_workshop_map()
+        to find those and rename them alongside it."""
+        match = self._MapFileSuffixPattern.match(original.stem)
+        return match.group(1) if match else original.stem
+
     def _renamed_map_filename(self, original: Path, new_name: str) -> str:
         match = self._MapFileSuffixPattern.match(original.stem)
         suffix = match.group(2) if match else ""
@@ -865,12 +874,17 @@ class CSGOGame(Game):
         locally rather than hosted on demand, so the engine finds it
         there without sgsl needing to flatten anything.
 
-        Only the actual map file(s) (.vpk/.bsp) are renamed to
-        `map_name` (sanitized -- see _sanitize_map_name()), the title
-        the Steam Web API reported for this WORKSHOP_MAPS entry when
-        it was added, rather than whatever filename the uploader
-        originally used -- anything else downloaded alongside them
-        keeps its own name, unreferenced by either."""
+        The actual map file(s) (.vpk/.bsp) are renamed to `map_name`
+        (sanitized -- see _sanitize_map_name()), the title the Steam
+        Web API reported for this WORKSHOP_MAPS entry when it was
+        added, rather than whatever filename the uploader originally
+        used. Any sidecar file that shares one of those map files' own
+        original name (before renaming) -- e.g. a "<mapname>.nav" bot
+        navigation mesh sitting next to "<mapname>.bsp" -- is renamed
+        right along with it, since the engine only finds it by still
+        matching the (now renamed) map file's stem exactly. Anything
+        else downloaded alongside them (e.g. publish_data.txt) keeps
+        its own name, unreferenced by either."""
         content_dir = self._workshop_predownload_dir(workshop_id)
         source_files = [p for p in content_dir.rglob("*") if p.is_file()]
         if not source_files:
@@ -882,8 +896,15 @@ class CSGOGame(Game):
         dest_dir = self._workshop_map_cache_dir(workshop_id)
         dest_dir.mkdir(parents=True, exist_ok=True)
         sanitized_name = self._sanitize_map_name(map_name)
+        map_file_bases = {
+            self._map_file_base(source_file)
+            for source_file in source_files
+            if source_file.suffix.lower() in (".vpk", ".bsp")
+        }
         for source_file in source_files:
-            if source_file.suffix.lower() in (".vpk", ".bsp"):
+            is_map_file = source_file.suffix.lower() in (".vpk", ".bsp")
+            is_sidecar = source_file.stem in map_file_bases
+            if is_map_file or is_sidecar:
                 dest = dest_dir / self._renamed_map_filename(
                     source_file, sanitized_name
                 )
