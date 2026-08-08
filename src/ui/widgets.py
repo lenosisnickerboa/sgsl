@@ -1177,9 +1177,24 @@ def _style_default_reset_button() -> None:
     (which DefaultResetRow's button otherwise inherits, unstyled --
     see ttk's style-name fallback resolution) for its reset button, so
     it reads as a compact inline icon rather than a full-sized button
-    competing with the row's own control for attention."""
+    competing with the row's own control for attention.
+
+    Also makes its disabled state (no active default to reset --
+    see _apply_button_state()) blend fully into the row's own
+    background, rather than showing ttk's own muted-but-still-visible
+    disabled button color -- which otherwise reads as a stray colored
+    block on every row with nothing to reset, and merges into one
+    solid band wherever several such rows sit next to each other."""
     style = ttk.Style()
+    frame_background = style.lookup("TFrame", "background")
     style.configure(_DefaultResetButtonStyle, padding=1, font=("TkDefaultFont", 9))
+    style.map(
+        _DefaultResetButtonStyle,
+        background=[("disabled", frame_background)],
+        bordercolor=[("disabled", frame_background)],
+        darkcolor=[("disabled", frame_background)],
+        lightcolor=[("disabled", frame_background)],
+    )
 
 
 class DefaultResetRow(EnableDisableMixin, ttk.Frame):
@@ -1222,7 +1237,11 @@ class DefaultResetRow(EnableDisableMixin, ttk.Frame):
             command=self._handle_click,
             style=_DefaultResetButtonStyle,
         )
-        self.button.pack(side=LEFT)
+        # A little vertical breathing room -- without it, two adjacent
+        # active buttons (in consecutive rows, which are packed with no
+        # gap of their own between them) touch edge to edge and read as
+        # one merged block rather than two distinct icons.
+        self.button.pack(side=LEFT, pady=2)
         make_tooltip(self.button, text=tooltip)
         self._apply_button_state()
 
