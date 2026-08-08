@@ -11,14 +11,14 @@ from config.toml_config import Config
 from game.cs2.config_index import ConfigIndex
 from support.steam_workshop import confirm_workshop_item
 
-WorkshopMapPattern = re.compile(r"(\d+)(?:\\([^\\]+))?\s*$")
+WorkshopMapPattern = re.compile(r"(\d+)(?:/([^/]+))?\s*$")
 WorkshopUrlIdPattern = re.compile(r"^https?://\S*[?&]id=(\d+)", re.IGNORECASE)
 
 
 def _parse_workshop_entry(value: str) -> tuple[str, "str | None"]:
     """Extract the workshop id and, if one was already given, the name
     from a raw workshop entry — whether the user typed just the id
-    (123), "workshop\\123", the full "workshop\\123\\<name>", or a
+    (123), "workshop/123", the full "workshop/123/<name>", or a
     Steam Workshop URL (e.g. "https://steamcommunity.com/sharedfiles/
     filedetails/?id=123"), in which case only the id is extracted from
     it."""
@@ -35,7 +35,7 @@ def _parse_workshop_entry(value: str) -> tuple[str, "str | None"]:
 
 def _normalize_workshop_map(value: str) -> str:
     """Normalize a workshop entry (an individual map or a collection
-    used as a map group) down to "workshop\\<id>\\<name>" — the form
+    used as a map group) down to "workshop/<id>/<name>" — the form
     the name is stored in. If no explicit name was given yet (i.e.
     this is a brand new entry, not a re-normalization of an
     already-confirmed one), confirm_workshop_item() fetches its full
@@ -56,7 +56,7 @@ def _normalize_workshop_map(value: str) -> str:
     workshop_id, name = _parse_workshop_entry(value)
     if name is None:
         name = confirm_workshop_item(int(workshop_id), target_game="cs2")
-    return f"workshop\\{workshop_id}\\{name or 'unknown'}"
+    return f"workshop/{workshop_id}/{name or 'unknown'}"
 
 
 def build_game_defaults() -> Config[ConfigIndex]:
@@ -507,7 +507,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Workshop maps downloaded from the Steam workshop. "
             "When adding a new workshop map either use the full url or just the map id. "
-            'It will be transformed to workshop\\map-id\\map-name (or map-name will be "unknown" if it can\'t be determined). ',
+            'It will be transformed to workshop/map-id/map-name (or map-name will be "unknown" if it can\'t be determined). ',
             value=[],
             transform=_normalize_workshop_map,
         ),
@@ -630,7 +630,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Workshop map groups downloaded from the Steam workshop. "
             "When adding a new workshop map group either use the full url or just the map group id. "
-            'It will be transformed to workshop\\map-group-id\\map-group-name (or map-group-name will be "unknown" if it can\'t be determined).',
+            'It will be transformed to workshop/map-group-id/map-group-name (or map-group-name will be "unknown" if it can\'t be determined).',
             value=[],
             transform=_normalize_workshop_map,
         ),
@@ -734,7 +734,7 @@ def _link_map_group_schema_fields(defaults: Config[ConfigIndex]) -> None:
     _link_map_group_schema_fields(), whose _write_map_groups() has no
     such handling) CS2's own _write_map_groups() special-cases a
     workshop map entry (writing its bare workshop id, since a
-    "workshop\\<id>\\<name>" string isn't itself a real map name CS2
+    "workshop/<id>/<name>" string isn't itself a real map name CS2
     would recognize), so a custom map group here can genuinely mix
     both kinds -- done as a separate pass after the dict above is
     fully built, since a schema built inline within that dict can't

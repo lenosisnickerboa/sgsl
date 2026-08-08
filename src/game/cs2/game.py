@@ -245,27 +245,21 @@ class CS2Game(Game):
         )
 
     def _is_workshop_map(self, map: str) -> bool:
-        # Both separators: "workshop\<id>\<name>" is WORKSHOP_MAPS' own
-        # form; "workshop/<id>/<name>" is _downloaded_workshop_maps()'
-        # (an already-downloaded map, still launched via
-        # +host_workshop_map like any other workshop map -- see run()
-        # -- just spelled with forward slashes so it reads distinctly
-        # from a WORKSHOP_MAPS entry, e.g. in SELECTED_MAP's dropdown).
-        return map.startswith("workshop\\") or map.startswith("workshop/")
+        return map.startswith("workshop/")
 
     def _get_workshop_id(self, map: str) -> int:
-        match = re.search(r"workshop[\\/](\d+)[\\/]", map)
+        match = re.search(r"workshop/(\d+)/", map)
         if match:
             return int(match.group(1))
         else:
             return -1
 
     def _get_workshop_name(self, map: str) -> Optional[str]:
-        """The name half of a "workshop\\<id>\\<name>" entry (see
+        """The name half of a "workshop/<id>/<name>" entry (see
         _normalize_workshop_map()) -- the map's title as reported by
         the Steam Web API when the entry was added, or "unknown" if
         that lookup failed at the time."""
-        match = re.search(r"workshop\\\d+\\(.+)$", map)
+        match = re.search(r"workshop/\d+/(.+)$", map)
         return match.group(1) if match else None
 
     def _install_or_update(
@@ -539,7 +533,7 @@ class CS2Game(Game):
         own convention, not really a boolean toggle sgsl has any
         control over). A workshop map is listed by its bare workshop
         id, same as the old mapcyclefile format did, since a
-        "workshop\\<id>\\<name>" entry isn't itself a real map name
+        "workshop/<id>/<name>" entry isn't itself a real map name
         CS2 would recognize here."""
         maps = {
             (
@@ -769,7 +763,7 @@ class CS2Game(Game):
         ):
             workshop_id = path.parent.name
             name = path.stem[: -len("_dir")]
-            entries.append(f"workshop\\{workshop_id}\\{name}")
+            entries.append(f"workshop/{workshop_id}/{name}")
         return entries
 
     # A map's .vpk/.bsp can be split into numbered parts sharing its
@@ -817,14 +811,14 @@ class CS2Game(Game):
                 continue
             title = publish_data.get("publish_data", {}).get("title")
             if title:
-                maps.append(f"workshop\\{map_id}\\{title}")
+                maps.append(f"workshop/{map_id}/{title}")
 
         for legacy_file in maps_dir.glob("**/*_legacy.bin"):
             map_id = legacy_file.parent.name
             if map_id in seen_ids:
                 continue
             seen_ids.add(map_id)
-            maps.append(f"workshop\\{map_id}\\legacy_{map_id}")
+            maps.append(f"workshop/{map_id}/legacy_{map_id}")
 
         return maps
 
@@ -916,7 +910,7 @@ class CS2Game(Game):
         self.print(f"Installed workshop item {workshop_id} into {dest_dir}")
 
     def _predownload_workshop_map(self, entry: str, is_update: bool = False) -> bool:
-        """Fetch `entry` (a "workshop\\<id>\\<name>" WORKSHOP_MAPS
+        """Fetch `entry` (a "workshop/<id>/<name>" WORKSHOP_MAPS
         entry) via steamcmd, showing a cancelable "Download map
         <name>..." dialog (or "Updating map <name>...." if `is_update`
         -- see _dedupe_workshop_maps()) for the duration, then copy the
