@@ -14,6 +14,44 @@ from support.steam_workshop import confirm_workshop_item
 WorkshopMapPattern = re.compile(r"(\d+)(?:/([^/]+))?\s*$")
 WorkshopUrlIdPattern = re.compile(r"^https?://\S*[?&]id=(\d+)", re.IGNORECASE)
 
+# CS:GO's supported game modes -- their launch-time +game_type/
+# +game_mode numeric codes, and the gamemode_<alias>.cfg alias(es)
+# each is known by. Where a mode has more than one recognized alias,
+# the first one listed is treated as canonical (see
+# GameModeCanonicalAlias below) and used to build its
+# gamemode_<alias>_append.cfg path; the rest are just other spellings
+# CS:GO itself accepts.
+GameModeTable: list[tuple[str, str, str, list[str]]] = [
+    ("Casual", "0", "0", ["casual"]),
+    ("Competitive", "0", "1", ["competitive", "comp"]),
+    ("Wingman", "0", "2", ["scrimcomp2v2"]),
+    ("Weapons Expert", "0", "3", ["scrimcomp5v5"]),
+    ("Arms Race", "1", "0", ["armsrace", "arms", "gungame", "gg"]),
+    ("Demolition", "1", "1", ["demolition", "demo"]),
+    ("Deathmatch", "1", "2", ["deathmatch", "dm"]),
+    ("Training", "2", "0", ["training"]),
+    ("Custom", "3", "0", ["custom"]),
+    ("Guardian", "4", "0", ["guardian", "guard", "cooperative"]),
+    ("Co-op Strike", "4", "1", ["coop", "coopstrike", "coopmission"]),
+    ("War Games", "5", "0", ["skirmish"]),
+    ("Danger Zone", "6", "0", ["survival"]),
+]
+
+# Mode display name -> (game_type, game_mode) launch codes.
+GameModeCodes: dict[str, tuple[str, str]] = {
+    mode: (game_type, game_mode) for mode, game_type, game_mode, _ in GameModeTable
+}
+
+GameModeAliases: dict[str, list[str]] = {
+    mode: aliases for mode, _, _, aliases in GameModeTable
+}
+
+# Mode display name -> the alias used to build its
+# gamemode_<alias>_append.cfg path.
+GameModeCanonicalAlias: dict[str, str] = {
+    mode: aliases[0] for mode, _, _, aliases in GameModeTable
+}
+
 
 def _parse_workshop_entry(value: str) -> tuple[str, "str | None"]:
     """Extract the workshop id and, if one was already given, the name
@@ -85,14 +123,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.STRING_LIST,
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Currently selected game mode",
-            value="DeathMatch",
-            allowed_values=[
-                "Casual",
-                "Competitive",
-                "ArmsRace",
-                "Demolition",
-                "DeathMatch",
-            ],
+            value="Deathmatch",
+            allowed_values=[mode for mode, _, _, _ in GameModeTable],
         ),
         ConfigIndex.PLAYER_COUNT: ConfigItem(
             name="maxplayers",
@@ -503,6 +535,24 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Appended after the last argument when starting the server",
             value="",
+        ),
+        ConfigIndex.USE_TMM_VARIANT: ConfigItem(
+            name="use_tmm_variant",
+            visible_name="Use TMM variant",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Launch with the TMM game mode flag set (sv_game_mode_flags). "
+            "Combines with \"Use Short variant\" if both are enabled.",
+            value=False,
+        ),
+        ConfigIndex.USE_SHORT_VARIANT: ConfigItem(
+            name="use_short_variant",
+            visible_name="Use Short variant",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Launch with the Short game mode flag set (sv_game_mode_flags). "
+            "Combines with \"Use TMM variant\" if both are enabled.",
+            value=False,
         ),
         ConfigIndex.REMOVE_MANIFEST_FILE: ConfigItem(
             name="remove_manifest_file",

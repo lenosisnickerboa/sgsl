@@ -10,7 +10,11 @@ from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType
 from config.config_upgrader import ConfigItemUpgrade, ConfigUpgrader
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
-from game.csgo.config_defaults import build_game_defaults
+from game.csgo.config_defaults import (
+    GameModeCanonicalAlias,
+    GameModeCodes,
+    build_game_defaults,
+)
 from game.csgo.config_index import ConfigIndex
 from game.cs2.config_parser.valve_config_parser import ValveConfigParser
 from game.cs2.config_parser.valve_gamemode_config_parser import (
@@ -46,6 +50,11 @@ NewAppId = 4465480
 # choice for a first-time setup. Falls back to the first detected map
 # (see config_defaults()) if it isn't installed.
 _DefaultMap = "de_dust2"
+
+# sv_game_mode_flags bitmask values for USE_TMM_VARIANT/USE_SHORT_VARIANT
+# (see run()) -- ORed together when both are enabled.
+_GameModeFlagTmm = 4
+_GameModeFlagShort = 32
 
 
 class CSGOGame(Game):
@@ -396,19 +405,6 @@ class CSGOGame(Game):
             return None
         return line
 
-    def _game_type_and_mode_codes(self, game_mode: str) -> tuple[str, str]:
-        if game_mode == "Casual":
-            return "0", "0"  # game_type, game_mode
-        if game_mode == "Competitive":
-            return "0", "1"
-        if game_mode == "ArmsRace":
-            return "1", "0"
-        if game_mode == "DeathMatch":
-            return "1", "2"
-        if game_mode == "Demolition":
-            return "1", "1"
-        exit(1)
-
     def run(self, config: Config[IndexT]) -> bool:
         args = [
             "-game",
@@ -430,8 +426,16 @@ class CSGOGame(Game):
             # it while RCON itself is off.
             args.append("-usercon")
         game_mode = config[ConfigIndex.GAME_MODE].value
-        args[3], args[5] = self._game_type_and_mode_codes(game_mode)
+        args[3], args[5] = GameModeCodes[game_mode]
         args[7] = args[9] = str(config[ConfigIndex.PLAYER_COUNT].value)
+        game_mode_flags = 0
+        if config[ConfigIndex.USE_TMM_VARIANT].value:
+            game_mode_flags |= _GameModeFlagTmm
+        if config[ConfigIndex.USE_SHORT_VARIANT].value:
+            game_mode_flags |= _GameModeFlagShort
+        if game_mode_flags:
+            args.append("+sv_game_mode_flags")
+            args.append(str(game_mode_flags))
         # A LAN-only server logs in anonymously instead -- see
         # cvar_overrides below, which always forces the actual sv_lan
         # cvar to 0 regardless of this toggle.
@@ -529,14 +533,18 @@ class CSGOGame(Game):
     _GamemodesServerFileName = "gamemodes_server.txt"
 
     # Which (gameType, gameMode) keyvalues pair gamemodes_server.txt uses
-    # for each of our GAME_MODE values -- mirrors _game_type_and_mode_codes()
-    # above, since these are the same game_type/game_mode split into their
-    # gamemodes_server.txt key names rather than numeric launch codes.
+    # for each of our GAME_MODE values -- the same game_type/game_mode
+    # split into their gamemodes_server.txt key names rather than
+    # GameModeCodes' numeric launch codes. Only covers the modes we
+    # actually know the keyvalues names for; _write_map_groups() below
+    # skips mapgroupsMP registration (falling back to the map group
+    # still working, just without end-of-match vote candidates) for
+    # any GAME_MODE not listed here.
     _GameModeServerKeys: dict[str, tuple[str, str]] = {
         "Casual": ("classic", "casual"),
         "Competitive": ("classic", "competitive"),
-        "ArmsRace": ("gungame", "gungameprogressive"),
-        "DeathMatch": ("gungame", "deathmatch"),
+        "Arms Race": ("gungame", "gungameprogressive"),
+        "Deathmatch": ("gungame", "deathmatch"),
         "Demolition": ("gungame", "gungametrbomb"),
     }
 
@@ -565,7 +573,11 @@ class CSGOGame(Game):
 
         Only this group's own entries are added/overwritten -- anything
         else already in the file (other modes' mapgroupsMP lists, other
-        mapgroup definitions) is left alone."""
+        mapgroup definitions) is left alone. If `game_mode` isn't in
+        _GameModeServerKeys, the mapgroup itself is still registered
+        (so +mapgroup keeps working) but its mapgroupsMP entry is
+        skipped, since we don't know that mode's keyvalues names --
+        mp_endmatch_votenextmap just won't have candidates to offer."""
         path = self._gamemodes_server_path()
         root = ValveConfigParser.read(path) if path.exists() else {}
         doc = root.setdefault("GameModes_Server.txt", {})
@@ -573,14 +585,16 @@ class CSGOGame(Game):
             "name": group_key,
             "maps": {entry["name"]: "" for entry in group},
         }
-        game_type_key, game_mode_key = self._GameModeServerKeys[game_mode]
-        mode_block = (
-            doc.setdefault("gameTypes", {})
-            .setdefault(game_type_key, {})
-            .setdefault("gameModes", {})
-            .setdefault(game_mode_key, {})
-        )
-        mode_block.setdefault("mapgroupsMP", {})[group_key] = ""
+        game_mode_keys = self._GameModeServerKeys.get(game_mode)
+        if game_mode_keys is not None:
+            game_type_key, game_mode_key = game_mode_keys
+            mode_block = (
+                doc.setdefault("gameTypes", {})
+                .setdefault(game_type_key, {})
+                .setdefault("gameModes", {})
+                .setdefault(game_mode_key, {})
+            )
+            mode_block.setdefault("mapgroupsMP", {})[group_key] = ""
         ValveConfigParser.write(path, root)
 
     def _append_workshop_host_args(
@@ -629,8 +643,8 @@ class CSGOGame(Game):
     # cvars sgsl has no config item for. Purely optional -- most
     # gamemodes won't have one.
     def _gamemode_append_cfg_path(self, config: Config[IndexT]) -> Path:
-        gamemode = config[ConfigIndex.GAME_MODE].value.lower()
-        return self._cfg_dir() / f"gamemode_{gamemode}_append.cfg"
+        alias = GameModeCanonicalAlias[config[ConfigIndex.GAME_MODE].value]
+        return self._cfg_dir() / f"gamemode_{alias}_append.cfg"
 
     def _sgsl_overrides_cfg_path(self) -> Path:
         return self._cfg_dir() / "sgsl_overrides.cfg"
@@ -1229,6 +1243,8 @@ class CSGOGame(Game):
                 items=[
                     ConfigIndex.USE_SGSL_OVERRIDES,
                     ConfigIndex.GAME_MODE,
+                    ConfigIndex.USE_TMM_VARIANT,
+                    ConfigIndex.USE_SHORT_VARIANT,
                     ConfigIndex.SELECTED_MAP_GROUP,
                     ConfigIndex.SELECTED_MAP,
                     ConfigIndex.PLAYER_COUNT,
