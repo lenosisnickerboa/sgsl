@@ -10,7 +10,7 @@ from config.config_item import ConfigDeliveryType, ConfigItem, ConfigType
 from config.config_upgrader import ConfigItemUpgrade, ConfigUpgrader
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT
-from game.cs2.config_defaults import build_game_defaults
+from game.cs2.config_defaults import GameModeCanonicalAlias, build_game_defaults
 from game.cs2.config_index import ConfigIndex
 from game.cs2.config_parser.valve_config_parser import ValveConfigParser
 from game.cs2.config_parser.valve_gamemode_config_parser import (
@@ -386,32 +386,17 @@ class CS2Game(Game):
             return None
         return line
 
-    def _game_type_and_mode_codes(self, game_mode: str) -> tuple[str, str]:
-        if game_mode == "Casual":
-            return "0", "0"  # game_type, game_mode
-        if game_mode == "Competitive":
-            return "0", "1"
-        if game_mode == "ArmsRace":
-            return "1", "0"
-        if game_mode == "DeathMatch":
-            return "1", "2"
-        if game_mode == "Demolition":
-            return "1", "1"
-        exit(1)
-
     def run(self, config: Config[IndexT]) -> bool:
         args = [
             "-dedicated",
-            "+game_type",
-            "TYPE",
-            "+game_mode",
-            "MODE",
+            "+game_alias",
+            "ALIAS",
             "-maxplayers",
             "<number>",
         ]
         game_mode = config[ConfigIndex.GAME_MODE].value
-        args[2], args[4] = self._game_type_and_mode_codes(game_mode)
-        args[6] = str(config[ConfigIndex.PLAYER_COUNT].value)
+        args[2] = GameModeCanonicalAlias[game_mode]
+        args[4] = str(config[ConfigIndex.PLAYER_COUNT].value)
         if config[ConfigIndex.CONSOLE_ENABLED].value:
             args.append("-console")
         if config[ConfigIndex.RCON_ENABLE].value:
@@ -605,14 +590,14 @@ class CS2Game(Game):
     def _cfg_dir(self) -> Path:
         return self.server_root / "game" / "csgo" / "cfg"
 
-    # A sibling, user-maintained file sgsl never writes to itself: if
-    # present, its cvars are folded into sgsl_overrides.cfg after
-    # sgsl's own config-item cvars, giving users an escape hatch for
-    # cvars sgsl has no config item for. Purely optional -- most
-    # gamemodes won't have one.
-    def _gamemode_append_cfg_path(self, config: Config[IndexT]) -> Path:
-        gamemode = config[ConfigIndex.GAME_MODE].value.lower()
-        return self._cfg_dir() / f"gamemode_{gamemode}_append.cfg"
+    # A user-maintained file sgsl never writes to itself: if present,
+    # its cvars are always folded into sgsl_overrides.cfg last (after
+    # sgsl's own config-item cvars), giving users an escape hatch for
+    # cvars sgsl has no config item for. Purely optional, and not tied
+    # to any particular game mode -- it applies regardless of which
+    # one is currently selected.
+    def _sgsl_overrides_append_cfg_path(self) -> Path:
+        return self._cfg_dir() / "sgsl_overrides_append.cfg"
 
     def _sgsl_overrides_cfg_path(self) -> Path:
         return self._cfg_dir() / "sgsl_overrides.cfg"
@@ -643,7 +628,7 @@ class CS2Game(Game):
         cvar_overrides: Optional[dict[str, str]] = None,
     ) -> None:
         """(Re)write sgsl_overrides.cfg from scratch with the current
-        config's SERVER_CFG_FILE items, plus any gamemode_<mode>_append.cfg
+        config's SERVER_CFG_FILE items, plus any sgsl_overrides_append.cfg
         cvars folded in last -- entirely replacing whatever was written
         there before, rather than merging with it, since sgsl owns this
         file outright. Every gamemode_<mode>_server.cfg execs this same
@@ -693,7 +678,7 @@ class CS2Game(Game):
                 continue
             entries.append(ConfigEntry(name=name, value=value))
 
-        append_path = self._gamemode_append_cfg_path(config)
+        append_path = self._sgsl_overrides_append_cfg_path()
         if append_path.exists():
             append_entries = ValveGamemodeConfigParser.read(append_path)
             entries.extend(
@@ -1566,10 +1551,10 @@ class CS2Game(Game):
 
     def error_report_files(self) -> list[str]:
         # The Valve-provided gamemode_*.cfg files (the pattern also
-        # matches the gamemode_*_server.cfg files sgsl generates and
-        # any gamemode_*_append.cfg the user maintains), plus
-        # sgsl_overrides.cfg itself -- useful for seeing exactly what
-        # was actually written to disk.
+        # matches the gamemode_*_server.cfg files sgsl generates),
+        # plus sgsl_overrides.cfg and the user-maintained
+        # sgsl_overrides_append.cfg (if any) -- useful for seeing
+        # exactly what was actually written to disk.
         cfg_dir = self._cfg_dir()
         if not cfg_dir.is_dir():
             return []
@@ -1578,7 +1563,10 @@ class CS2Game(Game):
             for path in cfg_dir.glob("gamemode_*.cfg")
             if path.is_file()
         ]
-        overrides_path = self._sgsl_overrides_cfg_path()
-        if overrides_path.is_file():
-            files.append(str(overrides_path.relative_to(self.directory)))
+        for path in (
+            self._sgsl_overrides_cfg_path(),
+            self._sgsl_overrides_append_cfg_path(),
+        ):
+            if path.is_file():
+                files.append(str(path.relative_to(self.directory)))
         return files

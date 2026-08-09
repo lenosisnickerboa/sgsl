@@ -14,6 +14,36 @@ from support.steam_workshop import confirm_workshop_item
 WorkshopMapPattern = re.compile(r"(\d+)(?:/([^/]+))?\s*$")
 WorkshopUrlIdPattern = re.compile(r"^https?://\S*[?&]id=(\d+)", re.IGNORECASE)
 
+# CS2's own game mode aliases -- the string(s) its "+game_alias"
+# launch argument recognizes for each mode, keyed by GAME_MODE's
+# display name. Where a mode has more than one recognized alias, the
+# first one listed is treated as canonical (see GameModeCanonicalAlias
+# below) and used to actually launch the server; the rest are just
+# other spellings CS2 itself accepts.
+GameModeAliasTable: list[tuple[str, list[str]]] = [
+    ("Casual", ["casual"]),
+    ("Competitive", ["competitive", "comp"]),
+    ("Wingman", ["scrimcomp2v2", "wingman"]),
+    ("Weapons Expert", ["scrimcomp5v5"]),
+    ("Training Day", ["new_user_training"]),
+    ("Arms Race", ["ar", "armsrace", "gungameprogressive"]),
+    ("Demolition", ["gungametrbomb"]),
+    ("Deathmatch", ["dm", "deathmatch"]),
+    ("Training", ["training"]),
+    ("Custom", ["custom"]),
+    ("Guardian", ["guard", "guardian", "cooperative"]),
+    ("Co-op Mission", ["coop", "coopmision"]),
+    ("War Games", ["skirmish"]),
+    ("Danger Zone", ["survival"]),
+]
+
+GameModeAliases: dict[str, list[str]] = dict(GameModeAliasTable)
+
+# Mode display name -> the alias actually passed to +game_alias.
+GameModeCanonicalAlias: dict[str, str] = {
+    mode: aliases[0] for mode, aliases in GameModeAliasTable
+}
+
 
 def _parse_workshop_entry(value: str) -> tuple[str, "str | None"]:
     """Extract the workshop id and, if one was already given, the name
@@ -85,13 +115,15 @@ def build_game_defaults() -> Config[ConfigIndex]:
             type=ConfigType.STRING_LIST,
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Currently selected game mode",
-            value="DeathMatch",
+            value="Deathmatch",
             allowed_values=[
                 "Casual",
                 "Competitive",
-                "ArmsRace",
-                "Demolition",
-                "DeathMatch",
+                "Wingman",
+                "Training Day",
+                "Deathmatch",
+                "Arms Race",
+                "Custom",
             ],
         ),
         ConfigIndex.PLAYER_COUNT: ConfigItem(
@@ -559,11 +591,10 @@ def build_game_defaults() -> Config[ConfigIndex]:
         ),
         ConfigIndex.USE_SGSL_OVERRIDES: ConfigItem(
             name="use_sgsl_overrides",
-            visible_name="Generate sgsl_overrides.cfg",
+            visible_name="Use SGSL overrides",
             type=ConfigType.BOOLEAN,
-            tooltip="Write sgsl's configured cvars to sgsl_overrides.cfg, which every "
-            "gamemode_*_server.cfg execs. Disable to leave sgsl_overrides.cfg empty and "
-            "rely entirely on the game's own gamemode cfg files.",
+            tooltip="Disable this option to use the exact config files from Vavlve instead of "
+            "the config you have specified.",
             value=True,
         ),
         ConfigIndex.RUN_COMMAND_EDIT: ConfigItem(
