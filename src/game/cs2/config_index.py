@@ -118,6 +118,9 @@ class ConfigIndex(IntEnum):
 
     USE_SGSL_OVERRIDES = 77
 
+    USE_TMM_VARIANT = 78
+    USE_SHORT_VARIANT = 79
+
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"

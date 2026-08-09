@@ -593,7 +593,8 @@ def build_game_defaults() -> Config[ConfigIndex]:
             name="use_sgsl_overrides",
             visible_name="Use SGSL overrides",
             type=ConfigType.BOOLEAN,
-            tooltip="Disable this option to use the exact config files from Vavlve instead of "
+            tooltip="This is the main switch for controlling if SGSL config should be used or not."
+            "Disable this option to use the exact config files from Valve instead of "
             "the config you have specified.",
             value=True,
         ),
@@ -620,6 +621,24 @@ def build_game_defaults() -> Config[ConfigIndex]:
             config_type=ConfigDeliveryType.COMMAND_LINE,
             tooltip="Appended after the last argument when starting the server",
             value="",
+        ),
+        ConfigIndex.USE_TMM_VARIANT: ConfigItem(
+            name="use_tmm_variant",
+            visible_name="Use TMM variant",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Launch with the TMM game mode flag set (sv_game_mode_flags). "
+            'Combines with "Use Short variant" if both are enabled.',
+            value=False,
+        ),
+        ConfigIndex.USE_SHORT_VARIANT: ConfigItem(
+            name="use_short_variant",
+            visible_name="Use Short variant",
+            type=ConfigType.BOOLEAN,
+            config_type=ConfigDeliveryType.COMMAND_LINE,
+            tooltip="Launch with the Short game mode flag set (sv_game_mode_flags). "
+            'Combines with "Use TMM variant" if both are enabled.',
+            value=False,
         ),
         ConfigIndex.REMOVE_MANIFEST_FILE: ConfigItem(
             name="remove_manifest_file",

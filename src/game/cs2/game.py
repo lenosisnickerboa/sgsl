@@ -40,6 +40,11 @@ AppId = 730
 # (see config_defaults()) if it isn't installed.
 _DefaultMap = "de_dust2"
 
+# sv_game_mode_flags bitmask values for USE_TMM_VARIANT/USE_SHORT_VARIANT
+# (see run()) -- ORed together when both are enabled.
+_GameModeFlagTmm = 4
+_GameModeFlagShort = 32
+
 # sgsl's own curated shortlist of the 20 most commonly used CS2/
 # Source-engine dedicated server admin console commands (no
 # authoritative usage-frequency source exists) -- covering match
@@ -397,6 +402,14 @@ class CS2Game(Game):
         game_mode = config[ConfigIndex.GAME_MODE].value
         args[2] = GameModeCanonicalAlias[game_mode]
         args[4] = str(config[ConfigIndex.PLAYER_COUNT].value)
+        game_mode_flags = 0
+        if config[ConfigIndex.USE_TMM_VARIANT].value:
+            game_mode_flags |= _GameModeFlagTmm
+        if config[ConfigIndex.USE_SHORT_VARIANT].value:
+            game_mode_flags |= _GameModeFlagShort
+        if game_mode_flags:
+            args.append("+sv_game_mode_flags")
+            args.append(str(game_mode_flags))
         if config[ConfigIndex.CONSOLE_ENABLED].value:
             args.append("-console")
         if config[ConfigIndex.RCON_ENABLE].value:
@@ -1211,6 +1224,8 @@ class CS2Game(Game):
                 items=[
                     ConfigIndex.USE_SGSL_OVERRIDES,
                     ConfigIndex.GAME_MODE,
+                    ConfigIndex.USE_TMM_VARIANT,
+                    ConfigIndex.USE_SHORT_VARIANT,
                     ConfigIndex.SELECTED_MAP_GROUP,
                     ConfigIndex.SELECTED_MAP,
                     ConfigIndex.PLAYER_COUNT,
