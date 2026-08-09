@@ -756,8 +756,27 @@ class CS2Game(Game):
         allowed_values is assembled from several overlapping sources
         (ORDINARY_MAPS, WORKSHOP_MAPS, freshly-loaded not-yet-installed
         workshop maps, ...) that can end up naming the same map more
-        than once."""
-        return list(dict.fromkeys(values))
+        than once. A workshop map can end up listed under two
+        different strings for the same underlying id -- e.g. sgsl's
+        own pre-download cache names it from its filename
+        (_downloaded_workshop_maps(), folded into _ordinary_maps()),
+        while CS2's native Steamworks cache names it from its real
+        Workshop title (_workshop_maps()) -- so those are deduped by
+        id rather than by exact string; anything else is deduped by
+        exact string, same as before."""
+        seen = set()
+        unique = []
+        for value in values:
+            key = (
+                f"workshop/{self._get_workshop_id(value)}"
+                if self._is_workshop_map(value)
+                else value
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            unique.append(value)
+        return unique
 
     def _ordinary_maps(self) -> list[str]:
         maps_dir = self._ordinary_maps_dir()
