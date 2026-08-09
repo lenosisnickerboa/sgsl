@@ -82,7 +82,9 @@ Or you can just try and see if it works for you. This seems to be a moving targe
 
 ## Custom user config
 
-If there is some special tweak you want to add, not supported by sgsl.exe, first of all you can of course request it by opening an issue. It can also be accomplished by adding your own config file in <install -path>\server\game\csgo\cfg and naming it gamemode_<gamemode>_append.cfg. All config from this file will be added last to the gamemode_<gamemode>.cfg file prior to starting the game allowing you to add or override whatever you like. Same format is used as in the original config file.
+Before starting a game server, sgsl writes all of its own cvars into `sgsl_overrides.cfg` (in `<install-path>\server\csgo\cfg`), and makes sure every `gamemode_<gamemode>.cfg` shipped by the game has a sibling `gamemode_<gamemode>_server.cfg` that simply execs `sgsl_overrides.cfg` -- this is what actually applies sgsl's settings, regardless of which gamemode ends up running. The "Generate sgsl_overrides.cfg" option on the General tab (on by default) controls this: turn it off to leave `sgsl_overrides.cfg` empty and let the game's own gamemode cfg files fully control server behavior instead.
+
+If there is some special tweak you want to add, not supported by sgsl.exe, first of all you can of course request it by opening an issue. It can also be accomplished by adding your own config file in <install-path>\server\csgo\cfg and naming it gamemode_<gamemode>_append.cfg. All config from this file will be folded into `sgsl_overrides.cfg`, last, prior to starting the game, allowing you to add or override whatever you like. Same format is used as in the original config file.
 
 ## Finding workshop content
 

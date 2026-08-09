@@ -116,6 +116,8 @@ class ConfigIndex(IntEnum):
 
     AUTOMATIC_GAME_UPDATE_CHECK = 75
 
+    USE_SGSL_OVERRIDES = 77
+
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"
