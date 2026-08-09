@@ -1020,7 +1020,9 @@ def _check_for_server_update_in_background(game: Game, manual: bool = False) -> 
 
         def finish():
             if needs_update:
-                print_to_terminal(f"A newer {game.get_long_name()} server build is available")
+                print_to_terminal(
+                    f"A newer {game.get_long_name()} server build is available"
+                )
                 _show_server_update_available_dialog(game)
             else:
                 message = (
@@ -1132,7 +1134,7 @@ def _check_suspicious_terminal_line(game: Game, line: str) -> None:
     ok_dialog(
         "Something suspicious has happened on the server:\n\n"
         f"{line}\n\n"
-        "The server may be broken.",
+        "The server may be in a broken state.",
         title="Suspicious server output detected",
     )
 
@@ -1143,9 +1145,10 @@ if game is None:
     setup_install_game(current_dir)
 else:
     setup_detected_game_server(game)
-    if game.automatic_update_check_enabled(
-        g_game_config
-    ) and not g_server_should_be_running:
+    if (
+        game.automatic_update_check_enabled(g_game_config)
+        and not g_server_should_be_running
+    ):
         # See the AUTOMATIC_UPDATE_CHECK root.after() above for why
         # this is deferred rather than called directly.
         root.after(0, lambda: _check_for_server_update_in_background(game))
