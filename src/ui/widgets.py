@@ -1281,7 +1281,12 @@ class DefaultResetRow(EnableDisableMixin, ttk.Frame):
 
     def pack(self, side=TOP):
         if side == TOP:
-            super().pack(side=TOP, fill=X)
+            # A little vertical breathing room between rows, same
+            # reasoning as the reset button's own pady above -- without
+            # it, consecutive rows (each already tightly packed inside
+            # itself) touch edge to edge and are hard to tell apart at
+            # a glance.
+            super().pack(side=TOP, fill=X, pady=(0, 6))
         else:
             super().pack(side=LEFT, expand=YES, fill=X)
 
@@ -2411,7 +2416,10 @@ class StaticText(EnableDisableMixin, ttk.Frame):
 
     def pack(self, side=LEFT):
         if side == TOP:
-            super().pack(side=TOP, padx=5, pady=2, fill=X, anchor=W)
+            # Matches DefaultResetRow.pack()'s own inter-row spacing,
+            # so a STATIC_TEXT item lines up with the rest of the
+            # tab's vertical rhythm.
+            super().pack(side=TOP, padx=5, pady=(0, 6), fill=X, anchor=W)
         else:
             super().pack(side=LEFT, padx=5, fill=X, anchor=W)
 
