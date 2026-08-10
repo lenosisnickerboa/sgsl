@@ -305,11 +305,17 @@ class Game(ABC):
         return True, None
 
     @abstractmethod
-    def run(self, config: Config[IndexT]) -> bool:
+    def run(self, config: Config[IndexT], use_sgsl_overrides: bool) -> bool:
         """Launch the game. Returns True if the server was actually
         started, or False if the launch was aborted (e.g. the user
         cancelled an "edit run command" dialog) — callers must not
-        treat the server as running in that case."""
+        treat the server as running in that case.
+
+        `use_sgsl_overrides` is the application-level USE_SGSL_OVERRIDES
+        setting (see app.config_defaults.build_app_defaults()) -- unlike
+        `config`, this game's own per-game config, it applies the same
+        way across every game rather than being configured per-game.
+        Ignore it entirely if a subclass has no use for it."""
         raise NotImplementedError
 
     @abstractmethod

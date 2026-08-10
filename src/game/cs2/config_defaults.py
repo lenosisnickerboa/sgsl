@@ -660,15 +660,6 @@ def build_game_defaults() -> Config[ConfigIndex]:
             ),
             read_only=True,
         ),
-        ConfigIndex.USE_SGSL_OVERRIDES: ConfigItem(
-            name="use_sgsl_overrides",
-            visible_name="Use SGSL overrides",
-            type=ConfigType.BOOLEAN,
-            tooltip="This is the main switch for controlling if SGSL config should be used or not."
-            "Disable this option to use the exact config files from Valve instead of "
-            "the config you have specified.",
-            value=True,
-        ),
         ConfigIndex.RUN_COMMAND_EDIT: ConfigItem(
             name="run_command_edit",
             visible_name="Edit run command",

@@ -49,6 +49,13 @@ def build_app_defaults() -> Config[ConfigIndex]:
             "(left open if it was already open, or if install/update fails)",
             value=True,
         ),
+        ConfigIndex.USE_SGSL_OVERRIDES: ConfigItem(
+            name="use_sgsl_overrides",
+            visible_name="Use SGSL overrides",
+            type=ConfigType.BOOLEAN,
+            tooltip="Use the config setup in SGSL to write game configuration. Disable to use unmodified game configuration files. This is useful if you want to use the game's own configuration files.",
+            value=True,
+        ),
     }
     for item in defaults.values():
         finalize_default(item)

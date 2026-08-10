@@ -15,6 +15,7 @@ class ConfigIndex(IntEnum):
     SNAP_WINDOWS_ENABLED = 3
     AUTO_OPEN_TERMINAL_ON_INSTALL_OR_UPDATE = 4
     AUTOMATIC_UPDATE_CHECK = 5
+    USE_SGSL_OVERRIDES = 6
 
 
 _values = [item.value for item in ConfigIndex]

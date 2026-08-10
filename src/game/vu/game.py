@@ -270,7 +270,7 @@ class VUGame(Game):
 
         bat_runner.run(commands, self.directory, on_output, on_result)
 
-    def run(self, config: Config[IndexT]) -> bool:
+    def run(self, config: Config[IndexT], use_sgsl_overrides: bool) -> bool:
         args = [
             "-serverInstancePath",
             f"{self.server_root}",

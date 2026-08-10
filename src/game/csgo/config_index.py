@@ -106,8 +106,6 @@ class ConfigIndex(IntEnum):
 
     PRE_DOWNLOAD_WORKSHOP_MAPS = 68
 
-    USE_SGSL_OVERRIDES = 69
-
     USE_TMM_VARIANT = 70
     USE_SHORT_VARIANT = 71
 

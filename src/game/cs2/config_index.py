@@ -116,8 +116,6 @@ class ConfigIndex(IntEnum):
 
     AUTOMATIC_GAME_UPDATE_CHECK = 75
 
-    USE_SGSL_OVERRIDES = 77
-
     USE_TMM_VARIANT = 78
     USE_SHORT_VARIANT = 79
 

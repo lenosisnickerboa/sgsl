@@ -400,7 +400,9 @@ def on_start_stop_game_server(game: Game):
             f"Starting game server for {game.get_long_name()} in directory {game.get_directory()}..."
         )
         set_status_line(f"Starting {game.get_long_name()}...")
-        if not game.run(g_game_config):
+        if not game.run(
+            g_game_config, g_app_config[ConfigIndex.USE_SGSL_OVERRIDES].value
+        ):
             print_to_terminal(
                 f"Starting game server for {game.get_long_name()} in directory {game.get_directory()} was cancelled."
             )
@@ -735,8 +737,9 @@ def setup_detected_game_server(game: Game):
             TabSpec(
                 title="General",
                 items=[
-                    ConfigIndex.SNAP_WINDOWS_ENABLED,
+                    ConfigIndex.USE_SGSL_OVERRIDES,
                     ConfigIndex.AUTOMATIC_UPDATE_CHECK,
+                    ConfigIndex.SNAP_WINDOWS_ENABLED,
                 ],
             ),
             TabSpec(

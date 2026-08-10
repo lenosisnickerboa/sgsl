@@ -444,7 +444,7 @@ class CSGOGame(Game):
             )
         return True, None
 
-    def run(self, config: Config[IndexT]) -> bool:
+    def run(self, config: Config[IndexT], use_sgsl_overrides: bool) -> bool:
         args = [
             "-game",
             "csgo",
@@ -554,7 +554,7 @@ class CSGOGame(Game):
             else:
                 args.append("+map")
                 args.append(launch_map)
-        self._write_sgsl_overrides_cfg(config, cvar_overrides)
+        self._write_sgsl_overrides_cfg(config, use_sgsl_overrides, cvar_overrides)
         self._write_gamemode_server_cfgs()
         args = (
             split_run_command(config[ConfigIndex.CUSTOM_RUN_COMMAND_PRE].value)
@@ -711,6 +711,7 @@ class CSGOGame(Game):
     def _write_sgsl_overrides_cfg(
         self,
         config: Config[IndexT],
+        use_sgsl_overrides: bool,
         cvar_overrides: Optional[dict[str, str]] = None,
     ) -> None:
         """(Re)write sgsl_overrides.cfg from scratch with the current
@@ -721,9 +722,12 @@ class CSGOGame(Game):
         file (see _write_gamemode_server_cfgs()), so it applies
         regardless of which gamemode ends up running.
 
-        If USE_SGSL_OVERRIDES is off, the file is written with just the
-        header and a note that overrides are disabled -- gamemode
-        behavior is then left entirely up to the game's own cfg files.
+        `use_sgsl_overrides` is the application-level USE_SGSL_OVERRIDES
+        setting (shared with every other game, not configured per-game
+        -- see app.config_defaults); if False, the file is written with
+        just the header and a note that overrides are disabled --
+        gamemode behavior is then left entirely up to the game's own
+        cfg files.
 
         `cvar_overrides`, if given, replaces (or adds, for cvars with
         no matching config item) specific cvar values on top of the
@@ -736,7 +740,7 @@ class CSGOGame(Game):
             timestamp
         ) + self._cfg_banner("START", timestamp)
 
-        if not config[ConfigIndex.USE_SGSL_OVERRIDES].value:
+        if not use_sgsl_overrides:
             entries.append("// sgsl overrides disabled")
             entries += self._cfg_banner("END", timestamp)
             ValveGamemodeConfigParser.write(self._sgsl_overrides_cfg_path(), entries)
@@ -1280,7 +1284,6 @@ class CSGOGame(Game):
             TabSpec(
                 title="General",
                 items=[
-                    ConfigIndex.USE_SGSL_OVERRIDES,
                     ConfigIndex.GAME_MODE,
                     ConfigIndex.USE_TMM_VARIANT,
                     ConfigIndex.USE_SHORT_VARIANT,

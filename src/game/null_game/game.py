@@ -85,7 +85,7 @@ class NullGame(Game):
 
         threading.Timer(self._InstallUpdateDelaySeconds, finish).start()
 
-    def run(self, config: Config[IndexT]) -> bool:
+    def run(self, config: Config[IndexT], use_sgsl_overrides: bool) -> bool:
         self.print(f"Running {self.get_long_name()} from {self.server_root}")
         args = f"game_mode={config[ConfigIndex.GAME_MODE].value} map={config[ConfigIndex.SELECTED_MAP].value} player_count={config[ConfigIndex.PLAYER_COUNT].value} friendly_fire={config[ConfigIndex.FRIENDLY_FIRE_ENABLED].value}"
         args = " ".join(

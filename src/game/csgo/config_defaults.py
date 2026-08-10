@@ -593,15 +593,6 @@ def build_game_defaults() -> Config[ConfigIndex]:
             ),
             read_only=True,
         ),
-        ConfigIndex.USE_SGSL_OVERRIDES: ConfigItem(
-            name="use_sgsl_overrides",
-            visible_name="Generate sgsl_overrides.cfg",
-            type=ConfigType.BOOLEAN,
-            tooltip="Write sgsl's configured cvars to sgsl_overrides.cfg, which every "
-            "gamemode_*_server.cfg execs. Disable to leave sgsl_overrides.cfg empty and "
-            "rely entirely on the game's own gamemode cfg files.",
-            value=True,
-        ),
         ConfigIndex.RUN_COMMAND_EDIT: ConfigItem(
             name="run_command_edit",
             visible_name="Edit run command",
