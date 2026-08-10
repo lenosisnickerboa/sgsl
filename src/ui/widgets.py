@@ -2424,6 +2424,272 @@ class StaticText(EnableDisableMixin, ttk.Frame):
             super().pack(side=LEFT, padx=5, fill=X, anchor=W)
 
 
+class MapGroupEditor(HintedWidget):
+    """Edits a STRUCT_MAP value shaped like CS2/CS:GO's
+    ordinary_mapgroups: each key is a map group name, and its value is
+    a STRUCT_LIST of single-field structs drawn from a closed set of
+    choices (see ConfigType.STRUCT_MAP, value_type=STRUCT_LIST) --
+    i.e. "a list of named groups, each just a set of maps chosen from
+    one live list of every known map". Rather than StructMapEditor's
+    generic table/tree (which requires typing/selecting one map at a
+    time into an Add row), this shows one group at a time: a dropdown
+    picks which group is being edited, and its maps are switched
+    on/off in a checklist dropdown of every known map.
+
+    Not a fit for a STRUCT_MAP with more than one schema field (e.g.
+    VU's ordinary_mapgroups, which also carries a mode and round count
+    per entry) -- ui_builder.py only builds this widget for a
+    single-field schema whose field has a closed set of choices (see
+    UiBuilder._field_choices()), falling back to StructMapEditor
+    otherwise.
+
+    `field_name` is that one schema field's name (e.g. "name");
+    `all_maps` is the closed set of choices for it (e.g. every
+    currently known map) -- both taken from the ConfigItem's schema/
+    allowed_values_from at construction time; unlike SELECTED_MAP's
+    own combobox, there's no live refresh if the set of known maps
+    changes later (matches StructMapEditor's existing behavior for
+    this same field).
+
+    The maps checklist is a plain (non-modal, undecorated) popup
+    window, not a tk.Menu -- a Menu dismisses itself the instant any
+    entry is clicked, which would force reopening it after every
+    single map toggled. The popup instead stays open until something
+    outside it is clicked (or Escape is pressed), so several maps can
+    be toggled in one go."""
+
+    def __init__(
+        self,
+        master,
+        name: str,
+        key_type: type,
+        key_name: str,
+        field_name: str,
+        all_maps: list,
+        initial_value: list,
+        tooltip: str,
+        command=Nop(),
+        compact: bool = True,
+        **kwargs,
+    ):
+        super().__init__(master, name=name, compact=compact, **kwargs)
+
+        self.command = command
+        self.key_type = key_type
+        self.field_name = field_name
+        self.groups = self._groups_from_value(initial_value)
+
+        group_row = ttk.Frame(self.container)
+        group_row.pack(side=TOP, fill=X, padx=5, pady=2)
+        ttk.Label(group_row, text=key_name).pack(side=LEFT, padx=(4, 2))
+        self.group_combobox = ttk.Combobox(
+            group_row, values=list(self.groups), state="readonly", exportselection=False
+        )
+        self.group_combobox.pack(side=LEFT, padx=(0, 5))
+        self.group_combobox.bind("<<ComboboxSelected>>", self._on_group_selected)
+
+        self.new_group_name = ttk.StringVar()
+        self.new_group_entry = ttk.Entry(
+            group_row, textvariable=self.new_group_name, width=12
+        )
+        self.new_group_entry.pack(side=LEFT, padx=(5, 0))
+        self.new_group_entry.bind("<Return>", self._on_add_group)
+        self.add_group_button = ttk.Button(
+            group_row, text="Add group", command=self._on_add_group
+        )
+        self.add_group_button.pack(side=LEFT, padx=(5, 0))
+        self.remove_group_button = ttk.Button(
+            group_row, text="Remove group", command=self._on_remove_group
+        )
+        self.remove_group_button.pack(side=LEFT, padx=(5, 0))
+
+        maps_row = ttk.Frame(self.container)
+        maps_row.pack(side=TOP, fill=X, padx=5, pady=2)
+        ttk.Label(maps_row, text="Maps").pack(side=LEFT, padx=(4, 2))
+        self.maps_button = ttk.Button(maps_row, command=self._toggle_maps_popup)
+        self.maps_button.pack(side=LEFT, fill=X, expand=YES)
+
+        self._map_vars = {}
+        self.maps_popup = tk.Toplevel(self.maps_button)
+        self.maps_popup.withdraw()
+        self.maps_popup.wm_overrideredirect(True)
+        self.maps_popup.attributes("-topmost", True)
+        popup_frame = ttk.Frame(self.maps_popup, padding=4, relief="solid", borderwidth=1)
+        popup_frame.pack(fill=BOTH, expand=YES)
+        for map_name in all_maps:
+            var = ttk.BooleanVar(value=False)
+            checkbutton = ttk.Checkbutton(
+                popup_frame,
+                text=map_name,
+                variable=var,
+                command=lambda map_name=map_name: self._on_toggle_map(map_name),
+            )
+            checkbutton.pack(anchor=W)
+            self._map_vars[map_name] = var
+        self.maps_popup.bind("<Escape>", lambda event: self._close_maps_popup())
+        # "Click outside closes it" -- bound on the whole window
+        # (add="+" so several MapGroupEditor instances, e.g. one on a
+        # custom tab and one on the "All" tab, can each add their own
+        # handler without clobbering the others') rather than on the
+        # popup itself, since an override-redirect popup gets no
+        # window-manager focus-out/click-away notifications of its
+        # own to hook into.
+        self.winfo_toplevel().bind("<Button-1>", self._on_toplevel_click, add="+")
+
+        make_tooltip(self.group_combobox, text=tooltip)
+        if not compact:
+            make_tooltip(self.hint, text=tooltip)
+
+        self.current_group = next(iter(self.groups), None)
+        self._select_group(self.current_group)
+
+    def _groups_from_value(self, value: list) -> dict:
+        return {
+            str(entry["key"]): [item[self.field_name] for item in entry["value"]]
+            for entry in value
+        }
+
+    def _select_group(self, group: Optional[str]) -> None:
+        """Point the combobox and maps checklist at `group` (already
+        assumed to be `self.current_group`), reflecting its current
+        maps in the checklist -- or, if there is no such group (e.g.
+        the last one was just removed), an empty, disabled checklist."""
+        self.current_group = group
+        if group is not None:
+            self.group_combobox.set(group)
+        else:
+            self.group_combobox.set("")
+        maps = self.groups.get(group, []) if group is not None else []
+        for map_name, var in self._map_vars.items():
+            var.set(map_name in maps)
+        self._apply_state(self.maps_button, "disabled" if group is None else "!disabled")
+        self._update_maps_button_text()
+
+    def _update_maps_button_text(self) -> None:
+        count = len(self.groups.get(self.current_group, [])) if self.current_group else 0
+        self.maps_button.configure(
+            text=f"{count} map(s) selected" if self.current_group else "No group selected"
+        )
+
+    def _on_group_selected(self, event=None) -> None:
+        self._select_group(self.group_combobox.get())
+
+    def _toggle_maps_popup(self) -> None:
+        if self.maps_popup.winfo_viewable():
+            self._close_maps_popup()
+        else:
+            self._open_maps_popup()
+
+    def _open_maps_popup(self) -> None:
+        if self.current_group is None:
+            return
+        x = self.maps_button.winfo_rootx()
+        y = self.maps_button.winfo_rooty() + self.maps_button.winfo_height()
+        self.maps_popup.geometry(f"+{x}+{y}")
+        self.maps_popup.deiconify()
+        self.maps_popup.lift()
+        self.maps_popup.focus_set()
+
+    def _close_maps_popup(self) -> None:
+        self.maps_popup.withdraw()
+
+    def _on_toplevel_click(self, event) -> None:
+        try:
+            if not self.maps_popup.winfo_viewable():
+                return
+        except tk.TclError:
+            # This widget (and its popup) were destroyed, but the
+            # add="+" binding on the toplevel outlives it -- nothing
+            # left to close.
+            return
+        if self._widget_within(event.widget, self.maps_popup):
+            return
+        if self._widget_within(event.widget, self.maps_button):
+            # Its own command (see _toggle_maps_popup()) handles this
+            # click -- closing it here first would just reopen it.
+            return
+        self._close_maps_popup()
+
+    @staticmethod
+    def _widget_within(widget, ancestor) -> bool:
+        while widget is not None:
+            if widget is ancestor:
+                return True
+            widget = widget.master
+        return False
+
+    def _on_toggle_map(self, map_name: str) -> None:
+        if self.current_group is None:
+            return
+        maps = self.groups[self.current_group]
+        if self._map_vars[map_name].get():
+            if map_name not in maps:
+                maps.append(map_name)
+        else:
+            if map_name in maps:
+                maps.remove(map_name)
+        self._update_maps_button_text()
+        self._notify()
+
+    def _on_add_group(self, event=None) -> None:
+        text = self.new_group_name.get().strip()
+        if not text:
+            return
+        try:
+            key = str(self.key_type(text))
+        except (TypeError, ValueError):
+            return
+        self.new_group_name.set("")
+        if key not in self.groups:
+            self.groups[key] = []
+            self.group_combobox.configure(values=list(self.groups))
+        self._select_group(key)
+        self._notify()
+
+    def _on_remove_group(self) -> None:
+        if self.current_group is None:
+            return
+        del self.groups[self.current_group]
+        self.group_combobox.configure(values=list(self.groups))
+        self._select_group(next(iter(self.groups), None))
+        self._notify()
+
+    def _notify(self) -> None:
+        if self.command is not None:
+            self.command(self.values())
+
+    def values(self) -> list:
+        return [
+            {"key": self.key_type(key), "value": [{self.field_name: m} for m in maps]}
+            for key, maps in self.groups.items()
+        ]
+
+    def update(self, value: list) -> None:
+        self.groups = self._groups_from_value(value)
+        self.group_combobox.configure(values=list(self.groups))
+        # Keep editing whichever group is still selected, if it still
+        # exists (e.g. after successfully toggling one of its maps --
+        # config_changed() round-trips every edit through here, see
+        # StructMapEditor.update()'s own reasoning) rather than always
+        # resetting to the first group.
+        group = self.current_group if self.current_group in self.groups else next(
+            iter(self.groups), None
+        )
+        self._select_group(group)
+
+    def set_read_only(self, read_only: bool) -> None:
+        flag = "disabled" if read_only else "!disabled"
+        self._apply_state(self.group_combobox, flag)
+        self._apply_state(self.new_group_entry, flag)
+        self._apply_state(self.add_group_button, flag)
+        self._apply_state(self.remove_group_button, flag)
+        if read_only:
+            self._close_maps_popup()
+        if not read_only and self.current_group is None:
+            return
+        self._apply_state(self.maps_button, flag)
+
+
 class CheckButton(HintedWidget):
     def __init__(
         self,

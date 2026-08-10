@@ -519,19 +519,44 @@ class UiBuilder:
                 compact=compact,
             )
         elif item.type is ConfigType.STRUCT_MAP:
-            widget = ui.StructMapEditor(
-                master=master,
-                name=item.visible_name,
-                key_type=self._python_type(item.item_type),
-                key_name=item.key_name,
-                schema=self._python_schema(item.schema),
-                field_choices=self._field_choices(item.schema),
-                initial_value=item.value,
-                tooltip=tooltip,
-                command=on_widget_changed,
-                compact=compact,
-                value_is_list=item.value_type is ConfigType.STRUCT_LIST,
-            )
+            field_choices = self._field_choices(item.schema)
+            single_field = next(iter(item.schema)) if len(item.schema) == 1 else None
+            if (
+                item.value_type is ConfigType.STRUCT_LIST
+                and single_field is not None
+                and field_choices.get(single_field)
+            ):
+                # A map-group-shaped STRUCT_MAP (one field, a closed
+                # set of choices, a list of them per key) -- e.g.
+                # CS2/CS:GO's ordinary_mapgroups -- gets the
+                # group-picker + toggle-checklist editor instead of
+                # StructMapEditor's generic table/tree.
+                widget = ui.MapGroupEditor(
+                    master=master,
+                    name=item.visible_name,
+                    key_type=self._python_type(item.item_type),
+                    key_name=item.key_name,
+                    field_name=single_field,
+                    all_maps=field_choices[single_field],
+                    initial_value=item.value,
+                    tooltip=tooltip,
+                    command=on_widget_changed,
+                    compact=compact,
+                )
+            else:
+                widget = ui.StructMapEditor(
+                    master=master,
+                    name=item.visible_name,
+                    key_type=self._python_type(item.item_type),
+                    key_name=item.key_name,
+                    schema=self._python_schema(item.schema),
+                    field_choices=field_choices,
+                    initial_value=item.value,
+                    tooltip=tooltip,
+                    command=on_widget_changed,
+                    compact=compact,
+                    value_is_list=item.value_type is ConfigType.STRUCT_LIST,
+                )
         else:
             raise ValueError(
                 f"{item.name}: builder does not support ConfigType.{item.type.name} yet"
