@@ -14,6 +14,7 @@ from game.csgo.config_defaults import (
     GameModeCanonicalAlias,
     GameModeCodes,
     build_game_defaults,
+    game_modes_from_workshop_tags,
 )
 from game.csgo.config_index import ConfigIndex
 from game.cs2.config_parser.valve_config_parser import ValveConfigParser
@@ -29,6 +30,7 @@ from support.dialog import cancelable_progress_dialog, edit_string_dialog_box, o
 from support.rcon_client import run_rcon_command
 from support.run_command import split_run_command
 from support.steam_app_update_check import check_for_steam_app_update
+from support.steam_workshop import fetch_published_file_details
 
 GameExe = "srcds.exe"
 
@@ -404,6 +406,43 @@ class CSGOGame(Game):
         if " Long frame " in line:  # harmless and uninteresting
             return None
         return line
+
+    def validate_before_start(self, config: Config[IndexT]) -> tuple[bool, Optional[str]]:
+        """Warn if the currently selected map (or, when a map group is
+        active, any map in it) doesn't support the currently selected
+        game mode, per MAP_GAME_MODES -- easy to end up with
+        accidentally (e.g. after switching game mode without also
+        checking the map), and not otherwise caught until the server
+        is actually running. Skipped entirely for a Steam Workshop
+        collection map group, since its actual maps aren't known
+        locally (see _active_workshop_collection())."""
+        if self._active_workshop_collection(config) is not None:
+            return True, None
+        game_mode = config[ConfigIndex.GAME_MODE].value
+        map_game_modes = self._map_game_modes(config)
+        map_group = self._active_map_group(config)
+        if map_group is not None:
+            unsupported = [
+                entry["name"]
+                for entry in map_group
+                if game_mode not in map_game_modes.get(entry["name"], [])
+            ]
+            if unsupported:
+                selected_map_group = config[ConfigIndex.SELECTED_MAP_GROUP].value
+                return False, (
+                    f"The currently selected map group {selected_map_group} contains "
+                    f"maps ({', '.join(unsupported)}) not supporting the currently "
+                    f"selected game mode {game_mode}"
+                )
+            return True, None
+        selected_map = config[ConfigIndex.SELECTED_MAP].value
+        supported = map_game_modes.get(selected_map, [])
+        if game_mode not in supported:
+            return False, (
+                f"The currently selected map {selected_map} doesn't support game "
+                f"mode {game_mode}. Supported game modes are: {', '.join(supported)}"
+            )
+        return True, None
 
     def run(self, config: Config[IndexT]) -> bool:
         args = [
@@ -1349,6 +1388,7 @@ class CSGOGame(Game):
                     ConfigIndex.WORKSHOP_MAPS,
                     ConfigIndex.PRE_DOWNLOAD_WORKSHOP_MAPS,
                     ConfigIndex.WORKSHOP_MAPS_HELP_TEXT,
+                    ConfigIndex.MAP_GAME_MODES,
                 ],
             ),
             TabSpec(
@@ -1490,6 +1530,50 @@ class CSGOGame(Game):
         }
         return updated_ids
 
+    def _map_game_modes(self, config: Config[IndexT]) -> dict[str, list[str]]:
+        """Map name -> the list of GAME_MODE values it supports, per
+        MAP_GAME_MODES -- a map with no entry at all (e.g. a custom
+        map never configured, or a workshop map whose Steam tags
+        matched nothing) has no entry in the returned dict either,
+        same as one explicitly stored with an empty list."""
+        return {
+            entry["key"]: [item["mode"] for item in entry["value"]]
+            for entry in config[ConfigIndex.MAP_GAME_MODES].value
+        }
+
+    def _populate_workshop_map_game_modes(
+        self, config: Config[IndexT], entries: set[str]
+    ) -> None:
+        """For each newly-added workshop map in `entries` ("workshop/
+        <id>/<name>" strings), look up its Steam Workshop "Game Mode"
+        tags (e.g. "Wingman", "Deathmatch") and, if any map to one of
+        GAME_MODE's own modes, add a MAP_GAME_MODES entry for it under
+        that same key -- so a freshly added map starts pre-configured
+        the same way Valve's own maps are (see MapGameModesDefaults),
+        instead of showing up in its checklist with nothing selected.
+
+        Skipped for any entry that already has a MAP_GAME_MODES entry
+        (e.g. re-adding a map that was previously configured, or one
+        that already got a default some other way), so this never
+        clobbers a user's own edits. Best-effort: a failed or
+        no-tags-recognized Steam lookup for one map just leaves it
+        unconfigured, same as if it had never been tagged at all --
+        never raises."""
+        map_game_modes = config[ConfigIndex.MAP_GAME_MODES]
+        known_keys = {entry["key"] for entry in map_game_modes.value}
+        for map_entry in entries:
+            if map_entry in known_keys:
+                continue
+            details = fetch_published_file_details(self._get_workshop_id(map_entry))
+            if details is None:
+                continue
+            modes = game_modes_from_workshop_tags(details.tags)
+            if not modes:
+                continue
+            map_game_modes.add_struct_map_entry(
+                map_entry, [{"mode": mode} for mode in modes]
+            )
+
     def config_item_changed(self, config_item, config: Config[IndexT]) -> list[IndexT]:
         if config_item is config[ConfigIndex.WORKSHOP_MAPS]:
             updated_ids = self._dedupe_workshop_maps(config_item)
@@ -1497,7 +1581,14 @@ class CSGOGame(Game):
             current = set(config_item.value)
             new_entries = current - self._known_workshop_maps
             self._known_workshop_maps = current
-            affected = [ConfigIndex.SELECTED_MAP]
+            # MAP_GAME_MODES' key list is exactly SELECTED_MAP's
+            # allowed_values (see key_allowed_values_from), so it needs
+            # refreshing (UiBuilder.config_changed()'s set_keys() hook)
+            # any time SELECTED_MAP's does -- both on an add and a
+            # remove, not just when there's new Steam tag data to fold
+            # in below.
+            affected = [ConfigIndex.SELECTED_MAP, ConfigIndex.MAP_GAME_MODES]
+            cancelled_entries = set()
             if new_entries and config[ConfigIndex.PRE_DOWNLOAD_WORKSHOP_MAPS].value:
                 cancelled_entries = {
                     entry
@@ -1518,6 +1609,14 @@ class CSGOGame(Game):
                     ]
                     self._known_workshop_maps -= cancelled_entries
                     affected.append(ConfigIndex.WORKSHOP_MAPS)
+            # Only entries that survived predownload (or, if
+            # predownload is off, every new entry -- there's no
+            # cancellation step to survive) actually count as "added";
+            # only for those do we look up Steam's own tags to
+            # pre-populate MAP_GAME_MODES.
+            added_entries = new_entries - cancelled_entries
+            if added_entries:
+                self._populate_workshop_map_game_modes(config, added_entries)
             # Rescan rather than reuse ORDINARY_MAPS' existing value --
             # it's only ever otherwise computed once, back in
             # config_defaults()/config_loaded(), so it wouldn't

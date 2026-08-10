@@ -111,6 +111,8 @@ class ConfigIndex(IntEnum):
     USE_TMM_VARIANT = 70
     USE_SHORT_VARIANT = 71
 
+    MAP_GAME_MODES = 72
+
 
 _values = [item.value for item in ConfigIndex]
 assert len(_values) == len(set(_values)), "Duplicate ConfigIndex values!"
