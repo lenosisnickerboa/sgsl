@@ -22,8 +22,6 @@ Make static functions instead of methods where possible
 
 ## Map images
 
-## Game icons?
-
 ## Custom widgets
 
 Replace shortcuts with custom widget tray
@@ -40,9 +38,6 @@ Defaults -> todays shortcut menu
 Allow filtering of stdout/stderr
 
 Current filtering should be moved as defaults for filtering stdout
-
-## Introduce map <-> game mode relation
-
 
 # CS2
 

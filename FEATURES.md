@@ -10,20 +10,21 @@
     - Similar config tabs over all applications
     - A "Masked" tab containing all secrets (password/keys/...)
     - An "All" tab containing all available config options
-- Default config item handling gor global, per config tab or config item.
-- Show all available maps and allow them to be used by name
+    - Default config item handling for global, per config tab or config item.
+    - Show all available maps and allow them to be used by name
+    - Map <-> game mode relation, possible to override
     - Define server name, password, listen address and port, ...
     - Server tickrate
     - Password protect your game server
     - Create map groups
     - Optional map vote
     - Optional bots
-    - RCON server config
+    - RCON server config + shortcuts
     - Automatic/manual config save in toml config file
 - RCON client (connects to game server using server config)
 - Extend existing config options by defining custom pre and post options when starting game server
-- Further extend config options by writing your own config files which are appended to existing ones
-- If your run into any problems, an error report can be created and attached to a github issue
+- Further extend config options by writing your own config file which is appended to existing one
+- If you run into any problems, an error report can be created and attached to a github issue
 - A button takes you to the sgsl github page
 - Automatically check for sgsl updates
 - Terminal window showing all sgsl and game server output
