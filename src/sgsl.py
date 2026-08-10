@@ -26,6 +26,7 @@ from support.browser import open_url
 from support.dialog import (
     choice_dialog,
     choice_dialog_with_toggles,
+    confirm_dialog,
     link_dialog,
     ok_dialog,
     ok_dialog_exit,
@@ -381,16 +382,24 @@ def on_toggle_app_configure_window():
 
 
 def on_start_stop_game_server(game: Game):
-    global g_start_stop_server, g_server_should_be_running, g_shown_suspicious_line_patterns
+    global g_start_stop_server, g_server_should_be_running, g_shown_suspicious_line_patterns, g_game_config
 
     if not game.is_running():
+        ok, warning = game.validate_before_start(g_game_config)
+        if not ok:
+            message = (
+                f"{warning}\n\n"
+                "Press OK to ignore warning and start server anyway.\n"
+                "Press Cancel to cancel starting the server and fix the configuration."
+            )
+            if not confirm_dialog(message, title="Configuration warning"):
+                return
         g_shown_suspicious_line_patterns = set()
         _write_config_files()
         print_to_terminal(
             f"Starting game server for {game.get_long_name()} in directory {game.get_directory()}..."
         )
         set_status_line(f"Starting {game.get_long_name()}...")
-        global g_game_config
         if not game.run(g_game_config):
             print_to_terminal(
                 f"Starting game server for {game.get_long_name()} in directory {game.get_directory()} was cancelled."

@@ -396,6 +396,54 @@ class CS2Game(Game):
             return None
         return line
 
+    def _map_game_modes(self, config: Config[IndexT]) -> dict[str, list[str]]:
+        """Map name -> the list of GAME_MODE values it supports, per
+        MAP_GAME_MODES -- a map with no entry at all (e.g. a custom
+        map never configured, or a workshop map whose Steam tags
+        matched nothing) has no entry in the returned dict either,
+        same as one explicitly stored with an empty list."""
+        return {
+            entry["key"]: [item["mode"] for item in entry["value"]]
+            for entry in config[ConfigIndex.MAP_GAME_MODES].value
+        }
+
+    def validate_before_start(self, config: Config[IndexT]) -> tuple[bool, Optional[str]]:
+        """Warn if the currently selected map (or, when a map group is
+        active, any map in it) doesn't support the currently selected
+        game mode, per MAP_GAME_MODES -- easy to end up with
+        accidentally (e.g. after switching game mode without also
+        checking the map), and not otherwise caught until the server
+        is actually running. Skipped entirely for a Steam Workshop
+        collection map group, since its actual maps aren't known
+        locally (see _active_workshop_collection())."""
+        if self._active_workshop_collection(config) is not None:
+            return True, None
+        game_mode = config[ConfigIndex.GAME_MODE].value
+        map_game_modes = self._map_game_modes(config)
+        map_group = self._active_map_group(config)
+        if map_group is not None:
+            unsupported = [
+                entry["name"]
+                for entry in map_group
+                if game_mode not in map_game_modes.get(entry["name"], [])
+            ]
+            if unsupported:
+                selected_map_group = config[ConfigIndex.SELECTED_MAP_GROUP].value
+                return False, (
+                    f"The currently selected map group {selected_map_group} contains "
+                    f"maps ({', '.join(unsupported)}) not supporting the currently "
+                    f"selected game mode {game_mode}"
+                )
+            return True, None
+        selected_map = config[ConfigIndex.SELECTED_MAP].value
+        supported = map_game_modes.get(selected_map, [])
+        if game_mode not in supported:
+            return False, (
+                f"The currently selected map {selected_map} doesn't support game "
+                f"mode {game_mode}. Supported game modes are: {', '.join(supported)}"
+            )
+        return True, None
+
     def run(self, config: Config[IndexT]) -> bool:
         args = [
             "-dedicated",

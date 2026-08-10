@@ -289,6 +289,21 @@ class Game(ABC):
         that supports it."""
         return False
 
+    def validate_before_start(self, config: Config[IndexT]) -> tuple[bool, Optional[str]]:
+        """Sanity-check `config` right before the server is actually
+        started, catching a problem a user could otherwise easily miss
+        (e.g. the selected map not supporting the selected game mode).
+
+        Returns (True, None) if there's nothing to warn about -- the
+        default, since most games have no such check. A subclass
+        overrides this to actually validate something; on finding a
+        problem, it returns (False, warning) with a human-readable
+        explanation of what's wrong. This is advisory, not a hard
+        block: a caller is expected to show `warning` in a Cancel/OK
+        confirmation dialog and let the user decide whether to start
+        the server anyway, rather than refuse outright."""
+        return True, None
+
     @abstractmethod
     def run(self, config: Config[IndexT]) -> bool:
         """Launch the game. Returns True if the server was actually
