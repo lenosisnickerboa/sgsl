@@ -451,6 +451,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Maps installed by the game",
             value=[],  # filled in, along with allowed_values, by VUGame.config_defaults()
             read_only=True,
+            display_rows=15,
         ),
     }
     _link_map_group_schema_fields(defaults)

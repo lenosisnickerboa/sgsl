@@ -511,7 +511,7 @@ class UiBuilder:
                 command=on_widget_changed,
                 compact=compact,
                 fixed_length=item.array_length is not None,
-                listbox_height=item.array_length or 5,
+                listbox_height=item.display_rows or item.array_length or 5,
             )
         elif item.type is ConfigType.STRUCT:
             widget = ui.StructEditor(

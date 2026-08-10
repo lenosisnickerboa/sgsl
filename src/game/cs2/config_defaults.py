@@ -633,6 +633,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="Maps installed by the game (as opposed to workshop maps)",
             value=[],  # filled in from maps() in CS2Game.config_defaults()
             read_only=True,
+            display_rows=15,
         ),
         ConfigIndex.WORKSHOP_MAPS: ConfigItem(
             name="workshop_maps",
@@ -645,6 +646,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             'It will be transformed to workshop/map-id/map-name (or map-name will be "unknown" if it can\'t be determined). ',
             value=[],
             transform=_normalize_workshop_map,
+            display_rows=15,
         ),
         ConfigIndex.WORKSHOP_MAPS_HELP_TEXT: ConfigItem(
             name="workshop_maps_help_text",
@@ -786,6 +788,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             'It will be transformed to workshop/map-group-id/map-group-name (or map-group-name will be "unknown" if it can\'t be determined).',
             value=[],
             transform=_normalize_workshop_map,
+            display_rows=15,
         ),
         ConfigIndex.MAP_GAME_MODES: ConfigItem(
             name="map_game_modes",
