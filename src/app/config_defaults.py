@@ -56,6 +56,15 @@ def build_app_defaults() -> Config[ConfigIndex]:
             tooltip="Use the config setup in SGSL to write game configuration. Disable to use unmodified game configuration files. This is useful if you want to use the game's own configuration files.",
             value=True,
         ),
+        ConfigIndex.WARN_ABOUT_CONFIG_PROBLEMS: ConfigItem(
+            name="warn_about_config_problems",
+            visible_name="Warn about configuration problems",
+            type=ConfigType.BOOLEAN,
+            tooltip="Check for game configuration problems (e.g. the selected map not supporting "
+            "the selected game mode) and show a warning dialog before starting a game server. "
+            "Disable to start the server unconditionally without this check.",
+            value=True,
+        ),
     }
     for item in defaults.values():
         finalize_default(item)

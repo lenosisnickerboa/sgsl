@@ -385,15 +385,16 @@ def on_start_stop_game_server(game: Game):
     global g_start_stop_server, g_server_should_be_running, g_shown_suspicious_line_patterns, g_game_config
 
     if not game.is_running():
-        ok, warning = game.validate_before_start(g_game_config)
-        if not ok:
-            message = (
-                f"{warning}\n\n"
-                "Press OK to ignore warning and start server anyway.\n"
-                "Press Cancel to cancel starting the server and fix the configuration."
-            )
-            if not confirm_dialog(message, title="Configuration warning"):
-                return
+        if g_app_config[ConfigIndex.WARN_ABOUT_CONFIG_PROBLEMS].value:
+            ok, warning = game.validate_before_start(g_game_config)
+            if not ok:
+                message = (
+                    f"{warning}\n\n"
+                    "Press OK to ignore warning and start server anyway.\n"
+                    "Press Cancel to cancel starting the server and fix the configuration."
+                )
+                if not confirm_dialog(message, title="Configuration warning"):
+                    return
         g_shown_suspicious_line_patterns = set()
         _write_config_files()
         print_to_terminal(
@@ -738,6 +739,7 @@ def setup_detected_game_server(game: Game):
                 title="General",
                 items=[
                     ConfigIndex.USE_SGSL_OVERRIDES,
+                    ConfigIndex.WARN_ABOUT_CONFIG_PROBLEMS,
                     ConfigIndex.AUTOMATIC_UPDATE_CHECK,
                     ConfigIndex.SNAP_WINDOWS_ENABLED,
                 ],

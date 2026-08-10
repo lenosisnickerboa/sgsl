@@ -16,6 +16,7 @@ class ConfigIndex(IntEnum):
     AUTO_OPEN_TERMINAL_ON_INSTALL_OR_UPDATE = 4
     AUTOMATIC_UPDATE_CHECK = 5
     USE_SGSL_OVERRIDES = 6
+    WARN_ABOUT_CONFIG_PROBLEMS = 7
 
 
 _values = [item.value for item in ConfigIndex]
