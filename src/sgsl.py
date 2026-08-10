@@ -69,6 +69,10 @@ g_shown_suspicious_line_patterns: set = set()
 # yet stopped/crashed) -- checked by poll_game_running() against
 # game.is_running() to notice a crash.
 g_server_should_be_running = False
+# Whether starting the server just auto-opened the terminal (see
+# _auto_open_terminal_for_server_start()) -- if so, on_start_stop_game_server()
+# closes it again once the server is (successfully, not crashed) stopped.
+g_auto_opened_terminal_for_server = False
 # after() id of the next poll_game_running() call, so it can be
 # cancelled before root is destroyed -- otherwise Tk can still try to
 # fire it against an already-torn-down interpreter right as the app
@@ -105,6 +109,21 @@ def _auto_open_terminal_for_install_or_update() -> bool:
     # A real click updates the checkbox's own visual state as part of
     # the click itself before on_toggle_terminal_window() ever runs;
     # this programmatic call has no such click, so it's done here.
+    g_terminal_open_close.on()
+    return True
+
+
+def _auto_open_terminal_for_server_start() -> bool:
+    """Same as _auto_open_terminal_for_install_or_update(), but gated
+    on AUTO_OPEN_TERMINAL_ON_SERVER_START -- a separate setting since
+    someone may want one without the other (e.g. watch installs but
+    not routine restarts, or vice versa)."""
+    if (
+        not g_app_config[ConfigIndex.AUTO_OPEN_TERMINAL_ON_SERVER_START].value
+        or g_terminal_window.is_visible()
+    ):
+        return False
+    on_toggle_terminal_window()
     g_terminal_open_close.on()
     return True
 
@@ -382,7 +401,7 @@ def on_toggle_app_configure_window():
 
 
 def on_start_stop_game_server(game: Game):
-    global g_start_stop_server, g_server_should_be_running, g_shown_suspicious_line_patterns, g_game_config
+    global g_start_stop_server, g_server_should_be_running, g_shown_suspicious_line_patterns, g_game_config, g_auto_opened_terminal_for_server
 
     if not game.is_running():
         if g_app_config[ConfigIndex.WARN_ABOUT_CONFIG_PROBLEMS].value:
@@ -395,6 +414,7 @@ def on_start_stop_game_server(game: Game):
                 )
                 if not confirm_dialog(message, title="Configuration warning"):
                     return
+        g_auto_opened_terminal_for_server = _auto_open_terminal_for_server_start()
         g_shown_suspicious_line_patterns = set()
         _write_config_files()
         print_to_terminal(
@@ -431,6 +451,9 @@ def on_start_stop_game_server(game: Game):
             )
             return
 
+        if g_auto_opened_terminal_for_server:
+            g_auto_opened_terminal_for_server = False
+            g_terminal_window.hide()
         g_server_should_be_running = False
         g_start_stop_server.set_name(name="Start")
         g_start_stop_server.set_tooltip(tooltip="Start server")
@@ -753,6 +776,7 @@ def setup_detected_game_server(game: Game):
                     ConfigIndex.TERMINAL_ENABLED,
                     ConfigIndex.TERMINAL_LOG_MAX_LINES,
                     ConfigIndex.AUTO_OPEN_TERMINAL_ON_INSTALL_OR_UPDATE,
+                    ConfigIndex.AUTO_OPEN_TERMINAL_ON_SERVER_START,
                 ],
             ),
         ],

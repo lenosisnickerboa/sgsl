@@ -49,6 +49,15 @@ def build_app_defaults() -> Config[ConfigIndex]:
             "(left open if it was already open, or if install/update fails)",
             value=True,
         ),
+        ConfigIndex.AUTO_OPEN_TERMINAL_ON_SERVER_START: ConfigItem(
+            name="auto_open_terminal_on_server_start",
+            visible_name="Auto open terminal on server start",
+            type=ConfigType.BOOLEAN,
+            tooltip="If the terminal isn't already open, open it automatically when the "
+            "game server is started, and close it again once the server is stopped "
+            "(left open if it was already open, or if the server crashes)",
+            value=True,
+        ),
         ConfigIndex.USE_SGSL_OVERRIDES: ConfigItem(
             name="use_sgsl_overrides",
             visible_name="Use SGSL overrides",
