@@ -80,20 +80,11 @@ class RconWindow(SnapWindow, tb.Toplevel):
         # Packed after entry_row (also side=BOTTOM), so it claims the
         # region just above it -- between the output log and the
         # command entry, as intended.
-        quick_commands_frame = tb.Frame(self)
-        quick_commands_frame.pack(side=BOTTOM, fill=X, padx=5, pady=(0, 5))
-        for index, quick_command in enumerate(quick_commands):
-            row, column = divmod(index, _QuickCommandColumns)
-            button = tb.Button(
-                quick_commands_frame,
-                text=quick_command,
-                bootstyle="secondary",
-                command=lambda c=quick_command: self._insert_quick_command(c),
-            )
-            button.grid(row=row, column=column, padx=1, pady=1, sticky="ew")
-            make_tooltip(button, text=f'Insert "{quick_command}" into the command entry')
+        self.quick_commands_frame = tb.Frame(self)
+        self.quick_commands_frame.pack(side=BOTTOM, fill=X, padx=5, pady=(0, 5))
         for column in range(_QuickCommandColumns):
-            quick_commands_frame.columnconfigure(column, weight=1)
+            self.quick_commands_frame.columnconfigure(column, weight=1)
+        self.set_quick_commands(quick_commands)
 
         self.output = ScrolledText(
             self, padding=5, autohide=False, height=20, vbar=True
@@ -169,6 +160,26 @@ class RconWindow(SnapWindow, tb.Toplevel):
     def _set_command_text(self, text: str) -> None:
         self.command_var.set(text)
         self.entry.icursor(END)
+
+    def set_quick_commands(self, quick_commands: list[str]) -> None:
+        """(Re)build the quick-insert button grid from `quick_commands`
+        -- called once from __init__, and again whenever the
+        RCON_SHORTCUTS config item is edited (see sgsl.py's
+        on_config_item_changed()), so an already-open RCON window
+        picks up the change immediately rather than only on next
+        launch."""
+        for child in self.quick_commands_frame.winfo_children():
+            child.destroy()
+        for index, quick_command in enumerate(quick_commands):
+            row, column = divmod(index, _QuickCommandColumns)
+            button = tb.Button(
+                self.quick_commands_frame,
+                text=quick_command,
+                bootstyle="secondary",
+                command=lambda c=quick_command: self._insert_quick_command(c),
+            )
+            button.grid(row=row, column=column, padx=1, pady=1, sticky="ew")
+            make_tooltip(button, text=f'Insert "{quick_command}" into the command entry')
 
     def _insert_quick_command(self, command: str) -> None:
         """Fill the command entry with `command` (plus a trailing

@@ -1502,7 +1502,20 @@ class ArrayEditor(HintedWidget):
     current items sit in a listbox, with an entry + Add button to
     append new ones and a Remove button to delete the selected one.
     `item_type` (a plain Python type, e.g. str/int/float) is used to
-    parse text typed into the Add entry — see ConfigItem.item_type."""
+    parse text typed into the Add entry — see ConfigItem.item_type.
+
+    `fixed_length`, if True (for a ConfigItem with array_length set —
+    see its docstring), drops Add/Remove in favor of in-place editing:
+    selecting a row loads its value into the entry, and the button
+    (now labeled "Update") replaces that row's value rather than
+    appending. This is the only way to edit such a list, since
+    growing or shrinking it could never pass validation.
+
+    `listbox_height`, in rows, defaults to 5 (a scrollable window onto
+    a longer list); pass the list's own length (or more) to show every
+    entry at once with no scrolling -- particularly useful for a
+    fixed_length list, where scrolling to find the right row to select
+    is otherwise the only way to reach entries past the fold."""
 
     def __init__(
         self,
@@ -1513,20 +1526,27 @@ class ArrayEditor(HintedWidget):
         command=Nop(),
         item_type=str,
         compact: bool = True,
+        fixed_length: bool = False,
+        listbox_height: int = 5,
         **kwargs,
     ):
         super().__init__(master, name=name, compact=compact, **kwargs)
 
         self.command = command
         self.item_type = item_type
+        self.fixed_length = fixed_length
 
         listbox_row = ttk.Frame(self.container)
         listbox_row.pack(side=TOP, fill=BOTH, expand=YES, padx=5, pady=(2, 0))
 
-        self.listbox = tk.Listbox(listbox_row, height=5, exportselection=False)
+        self.listbox = tk.Listbox(
+            listbox_row, height=listbox_height, exportselection=False
+        )
         self.listbox.pack(side=LEFT, fill=BOTH, expand=YES)
         for value in initial_value:
             self.listbox.insert(END, str(value))
+        if fixed_length:
+            self.listbox.bind("<<ListboxSelect>>", self._on_select)
 
         self.scrollbar = ttk.Scrollbar(
             listbox_row, orient=VERTICAL, command=self.listbox.yview
@@ -1542,17 +1562,32 @@ class ArrayEditor(HintedWidget):
         self.entry.pack(side=LEFT, fill=X, expand=YES)
         self.entry.bind("<Return>", self._on_add)
 
-        self.add_button = ttk.Button(entry_row, text="Add", command=self._on_add)
+        self.add_button = ttk.Button(
+            entry_row,
+            text="Update" if fixed_length else "Add",
+            command=self._on_add,
+        )
         self.add_button.pack(side=LEFT, padx=(5, 0))
 
-        self.remove_button = ttk.Button(
-            entry_row, text="Remove", command=self._on_remove
-        )
-        self.remove_button.pack(side=LEFT, padx=(5, 0))
+        # A fixed-length list can never lose an entry (nothing shorter
+        # than array_length would validate), so there's nothing for a
+        # Remove button to do.
+        self.remove_button = None
+        if not fixed_length:
+            self.remove_button = ttk.Button(
+                entry_row, text="Remove", command=self._on_remove
+            )
+            self.remove_button.pack(side=LEFT, padx=(5, 0))
 
         make_tooltip(self.listbox, text=tooltip)
         if not compact:
             make_tooltip(self.hint, text=tooltip)
+
+    def _on_select(self, event=None):
+        selection = self.listbox.curselection()
+        if not selection:
+            return
+        self.new_value.set(self.listbox.get(selection[0]))
 
     def _on_add(self, event=None):
         text = self.new_value.get().strip()
@@ -1562,7 +1597,6 @@ class ArrayEditor(HintedWidget):
             value = self.item_type(text)
         except (TypeError, ValueError):
             return
-        self.new_value.set("")
         # Don't insert into the listbox ourselves -- send the
         # candidate list to `command` and let the config system's own
         # refresh (update(), once it's actually settled on a final
@@ -1573,7 +1607,16 @@ class ArrayEditor(HintedWidget):
         # so inserting the raw typed text up front would flash
         # something that's not the real final value, or isn't final
         # yet at all.
-        self._notify(self.values() + [value])
+        if self.fixed_length:
+            selection = self.listbox.curselection()
+            if not selection:
+                return
+            values = self.values()
+            values[selection[0]] = value
+            self._notify(values)
+        else:
+            self.new_value.set("")
+            self._notify(self.values() + [value])
 
     def _on_remove(self):
         selection = self.listbox.curselection()
@@ -1597,12 +1640,13 @@ class ArrayEditor(HintedWidget):
 
     def set_read_only(self, read_only: bool) -> None:
         # The listbox/scrollbar stay enabled so the list is still
-        # scrollable — only the controls that add/remove items are
-        # disabled.
+        # scrollable — only the controls that add/remove/update items
+        # are disabled.
         flag = "disabled" if read_only else "!disabled"
         self._apply_state(self.entry, flag)
         self._apply_state(self.add_button, flag)
-        self._apply_state(self.remove_button, flag)
+        if self.remove_button is not None:
+            self._apply_state(self.remove_button, flag)
 
 
 # Name of the ttk style applied to StructListEditor/StructMapEditor's

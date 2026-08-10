@@ -26,36 +26,6 @@ GameExe = "vu.com"
 # All relative to server root directory
 GameExeWithPath = Path(GameExe)
 
-# sgsl's own curated shortlist of the 20 most commonly used VU/
-# Frostbite ("Plasma" RCON) dedicated server admin console commands
-# (no authoritative usage-frequency source exists) -- covering match
-# control, player admin, and core server settings. See RconWindow's
-# own docstring for how these are used (one-click-insert buttons, not
-# sent immediately).
-RconQuickCommands = [
-    "admin.say",
-    "admin.yell",
-    "admin.listPlayers",
-    "admin.kickPlayer",
-    "admin.banPlayer",
-    "admin.shutDown",
-    "mapList.list",
-    "mapList.nextLevelIndex",
-    "mapList.runNextRound",
-    "mapList.restartRound",
-    "mapList.endRound",
-    "vars.serverName",
-    "vars.gamePassword",
-    "vars.roundTimeLimit",
-    "vars.maxPlayers",
-    "vars.friendlyFire",
-    "banList.list",
-    "banList.save",
-    "serverInfo",
-    "version",
-]
-
-
 class VUGame(Game):
     def __init__(self, directory: Union[str, Path], terminal):
         super().__init__(directory, terminal)
@@ -90,8 +60,8 @@ class VUGame(Game):
     def rcon_password_configured(self, config: Config[IndexT]) -> bool:
         return bool(config[ConfigIndex.RCON_PASSWORD].value)
 
-    def rcon_quick_commands(self) -> list[str]:
-        return RconQuickCommands
+    def rcon_quick_commands(self, config: Config[IndexT]) -> list[str]:
+        return config[ConfigIndex.RCON_SHORTCUTS].value
 
     def send_rcon_command(self, command: str, config: Config[IndexT]) -> str:
         # Unlike Source engine RCON (cs2/csgo), VU's RCON speaks the
@@ -646,9 +616,15 @@ class VUGame(Game):
                     ConfigIndex.LISTEN_ADDRESS,
                     ConfigIndex.LISTEN_PORT_FROSTBITE,
                     ConfigIndex.LISTEN_PORT_HARMONY,
+                ],
+            ),
+            TabSpec(
+                title="RCON",
+                items=[
                     ConfigIndex.RCON_ENABLE,
                     ConfigIndex.LISTEN_PORT_RCON,
                     ConfigIndex.RCON_PASSWORD,
+                    ConfigIndex.RCON_SHORTCUTS,
                 ],
             ),
             TabSpec(

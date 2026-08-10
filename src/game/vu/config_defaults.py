@@ -17,6 +17,35 @@ _FunBotsConfigLuaPath = str(
     Path("server") / "Admin" / "mods" / "fun-bots" / "ext" / "Shared" / "Config.lua"
 )
 
+# RCON_SHORTCUTS' default value: sgsl's own curated shortlist of the
+# 20 most commonly used VU/Frostbite ("Plasma" RCON) dedicated server
+# admin console commands (no authoritative usage-frequency source
+# exists) -- covering match control, player admin, and core server
+# settings. See RconWindow's own docstring for how these are used
+# (one-click-insert buttons, not sent immediately).
+RconQuickCommands = [
+    "admin.say",
+    "admin.yell",
+    "admin.listPlayers",
+    "admin.kickPlayer",
+    "admin.banPlayer",
+    "admin.shutDown",
+    "mapList.list",
+    "mapList.nextLevelIndex",
+    "mapList.runNextRound",
+    "mapList.restartRound",
+    "mapList.endRound",
+    "vars.serverName",
+    "vars.gamePassword",
+    "vars.roundTimeLimit",
+    "vars.maxPlayers",
+    "vars.friendlyFire",
+    "banList.list",
+    "banList.save",
+    "serverInfo",
+    "version",
+]
+
 
 def build_game_defaults() -> Config[ConfigIndex]:
     defaults = {
@@ -134,6 +163,18 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="The RCON password for remote administration, only takes effect while "
             "RCON is enabled -- distinct from the server (join) password above",
             value="",
+        ),
+        ConfigIndex.RCON_SHORTCUTS: ConfigItem(
+            name="rcon_shortcuts",
+            visible_name="RCON quick command shortcuts",
+            type=ConfigType.ARRAY,
+            item_type=ConfigType.STRING,
+            tooltip=f"The {len(RconQuickCommands)} one-click-insert commands shown as "
+            "buttons in the RCON console window, one per button. Select an entry "
+            "then edit it and click Update to change it -- the list can't grow or "
+            "shrink, since it has exactly one entry per button.",
+            value=list(RconQuickCommands),
+            array_length=len(RconQuickCommands),
         ),
         ConfigIndex.SERVER_NAME: ConfigItem(
             name="vars.serverName",

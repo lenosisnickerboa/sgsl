@@ -56,6 +56,7 @@ class ConfigIndex(IntEnum):
     MODS_VOTEMAP_PATCH_ENABLED = 45
     MODS_VOTEMAP_PATCH_URL = 46
     RCON_PASSWORD = 47
+    RCON_SHORTCUTS = 48
 
 
 _values = [item.value for item in ConfigIndex]

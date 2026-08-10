@@ -455,11 +455,13 @@ class Game(ABC):
         to override in that case."""
         raise NotImplementedError
 
-    def rcon_quick_commands(self) -> list[str]:
+    def rcon_quick_commands(self, config: Config[IndexT]) -> list[str]:
         """A curated shortlist of this game's commonly used RCON
         commands, shown as one-click-insert buttons in the RCON
-        console (see ui.rcon_window.RconWindow). Empty by default --
-        override for a game whose console supports RCON at all (see
+        console (see ui.rcon_window.RconWindow) -- typically just
+        `config[ConfigIndex.RCON_SHORTCUTS].value`, so it stays live-
+        editable via that config item. Empty by default -- override
+        for a game whose console supports RCON at all (see
         supports_rcon()); returning no commands just means no buttons
         are shown, rather than failing outright."""
         return []

@@ -675,7 +675,10 @@ def setup_detected_game_server(game: Game):
         game.config_item_changed(config_item, g_game_config)
 
     def on_config_item_changed(config_item, config):
-        return game.config_item_changed(config_item, config)
+        changed = game.config_item_changed(config_item, config)
+        if config_item.name == "rcon_shortcuts" and g_rcon_window is not None:
+            g_rcon_window.set_quick_commands(config_item.value)
+        return changed
 
     global g_ui_builder
     g_ui_builder = UiBuilder()
@@ -710,7 +713,7 @@ def setup_detected_game_server(game: Game):
             on_close_rcon_window,
             command_callback=send_rcon_command,
             install_dir=game.get_directory(),
-            quick_commands=game.rcon_quick_commands(),
+            quick_commands=game.rcon_quick_commands(g_game_config),
             title=f"RCON — {game.get_long_name()}",
         )
 

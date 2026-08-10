@@ -262,6 +262,15 @@ class ConfigItem:
     string value. Setting it on a non-STRING item raises ValueError
     immediately.
 
+    `array_length`, only valid for ARRAY items, requires the list to
+    contain exactly this many elements at all times (e.g. one entry
+    per fixed UI slot, like RCON_SHORTCUTS' one-command-per-button
+    list). Setting it on a non-ARRAY item raises ValueError
+    immediately. A UI should build an in-place-edit control (see
+    ArrayEditor's fixed_length) rather than plain Add/Remove for such
+    an item, since neither operation could otherwise ever pass
+    validation.
+
     `tooltip`, if provided, is shown by a UI in place of `visible_name`
     when hovering over this item's widget. If unset, a UI should fall
     back to `visible_name`.
@@ -313,6 +322,7 @@ class ConfigItem:
     allowed_values: Optional[list[Any]] = None
     range: Optional[Range] = None
     max_length: Optional[int] = None
+    array_length: Optional[int] = None
     tooltip: Optional[str] = None
     read_only: bool = False
     default_value: Any = None
@@ -372,6 +382,8 @@ class ConfigItem:
             )
         if self.max_length is not None and self.type is not ConfigType.STRING:
             raise ValueError(f"{self.name}: max_length only applies to STRING items")
+        if self.array_length is not None and self.type is not ConfigType.ARRAY:
+            raise ValueError(f"{self.name}: array_length only applies to ARRAY items")
         if self.transform is not None:
             self.value = self._apply_transform(self.value)
         self._validate()
@@ -443,6 +455,11 @@ class ConfigItem:
         if not isinstance(self.value, list):
             raise TypeError(
                 f"{self.name}: expected ARRAY (list), got {type(self.value).__name__}"
+            )
+        if self.array_length is not None and len(self.value) != self.array_length:
+            raise ValueError(
+                f"{self.name}: expected exactly {self.array_length} entries, "
+                f"got {len(self.value)}"
             )
         for i, element in enumerate(self.value):
             try:

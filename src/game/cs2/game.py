@@ -50,37 +50,6 @@ _DefaultMap = "de_dust2"
 _GameModeFlagTmm = 4
 _GameModeFlagShort = 32
 
-# sgsl's own curated shortlist of the 20 most commonly used CS2/
-# Source-engine dedicated server admin console commands (no
-# authoritative usage-frequency source exists) -- covering match
-# control, player admin, and core server settings. Shared with csgo
-# (see CSGOGame.rcon_quick_commands()), since both speak the same
-# Source engine console. See RconWindow's own docstring for how these
-# are used (one-click-insert buttons, not sent immediately).
-RconQuickCommands = [
-    "status",
-    "changelevel",
-    "map",
-    "mp_restartgame",
-    "mp_warmup_start",
-    "mp_warmup_end",
-    "mp_pause_match",
-    "mp_unpause_match",
-    "kick",
-    "kickid",
-    "banid",
-    "removeid",
-    "sv_cheats",
-    "sv_password",
-    "rcon_password",
-    "say",
-    "bot_kick",
-    "bot_add",
-    "sv_gravity",
-    "mp_maxrounds",
-]
-
-
 class CS2Game(Game):
     def __init__(self, directory: Union[str, Path], terminal):
         super().__init__(directory, terminal)
@@ -125,8 +94,8 @@ class CS2Game(Game):
     def rcon_password_configured(self, config: Config[IndexT]) -> bool:
         return bool(config[ConfigIndex.RCON_PASSWORD].value)
 
-    def rcon_quick_commands(self) -> list[str]:
-        return RconQuickCommands
+    def rcon_quick_commands(self, config: Config[IndexT]) -> list[str]:
+        return config[ConfigIndex.RCON_SHORTCUTS].value
 
     def send_rcon_command(self, command: str, config: Config[IndexT]) -> str:
         # RCON has no port of its own on Source engine servers -- it
@@ -1333,8 +1302,14 @@ class CS2Game(Game):
                     ConfigIndex.LISTEN_ADDRESS,
                     ConfigIndex.LISTEN_PORT,
                     ConfigIndex.CONSOLE_ENABLED,
+                ],
+            ),
+            TabSpec(
+                title="RCON",
+                items=[
                     ConfigIndex.RCON_ENABLE,
                     ConfigIndex.RCON_PASSWORD,
+                    ConfigIndex.RCON_SHORTCUTS,
                 ],
             ),
             TabSpec(

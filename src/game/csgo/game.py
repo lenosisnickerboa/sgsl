@@ -22,7 +22,6 @@ from game.cs2.config_parser.valve_gamemode_config_parser import (
     ConfigEntry,
     ValveGamemodeConfigParser,
 )
-from game.cs2.game import RconQuickCommands
 from game.game import ExtraResetOption, Game, OperationResult, TerminalLineResult
 from support import bat_runner
 from support import command_log
@@ -97,8 +96,8 @@ class CSGOGame(Game):
     def rcon_password_configured(self, config: Config[IndexT]) -> bool:
         return bool(config[ConfigIndex.RCON_PASSWORD].value)
 
-    def rcon_quick_commands(self) -> list[str]:
-        return RconQuickCommands
+    def rcon_quick_commands(self, config: Config[IndexT]) -> list[str]:
+        return config[ConfigIndex.RCON_SHORTCUTS].value
 
     def send_rcon_command(self, command: str, config: Config[IndexT]) -> str:
         # RCON has no port of its own on Source engine servers -- it
@@ -1319,8 +1318,14 @@ class CSGOGame(Game):
                     ConfigIndex.LISTEN_ADDRESS,
                     ConfigIndex.LISTEN_PORT,
                     ConfigIndex.CONSOLE_ENABLED,
+                ],
+            ),
+            TabSpec(
+                title="RCON",
+                items=[
                     ConfigIndex.RCON_ENABLE,
                     ConfigIndex.RCON_PASSWORD,
+                    ConfigIndex.RCON_SHORTCUTS,
                 ],
             ),
             TabSpec(

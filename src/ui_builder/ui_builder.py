@@ -510,6 +510,8 @@ class UiBuilder:
                 item_type=self._python_type(item.item_type),
                 command=on_widget_changed,
                 compact=compact,
+                fixed_length=item.array_length is not None,
+                listbox_height=item.array_length or 5,
             )
         elif item.type is ConfigType.STRUCT:
             widget = ui.StructEditor(

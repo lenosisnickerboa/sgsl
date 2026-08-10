@@ -160,6 +160,38 @@ def _normalize_workshop_map(value: str) -> str:
     return f"workshop/{workshop_id}/{name or 'unknown'}"
 
 
+# RCON_SHORTCUTS' default value: sgsl's own curated shortlist of the
+# 20 most commonly used CS2/Source-engine dedicated server admin
+# console commands (no authoritative usage-frequency source exists)
+# -- covering match control, player admin, and core server settings.
+# Shared with csgo (see game.csgo.game.CSGOGame.rcon_quick_commands()),
+# since both speak the same Source engine console. See RconWindow's
+# own docstring for how these are used (one-click-insert buttons, not
+# sent immediately).
+RconQuickCommands = [
+    "status",
+    "changelevel",
+    "map",
+    "mp_restartgame",
+    "mp_warmup_start",
+    "mp_warmup_end",
+    "mp_pause_match",
+    "mp_unpause_match",
+    "kick",
+    "kickid",
+    "banid",
+    "removeid",
+    "sv_cheats",
+    "sv_password",
+    "rcon_password",
+    "say",
+    "bot_kick",
+    "bot_add",
+    "sv_gravity",
+    "mp_maxrounds",
+]
+
+
 def build_game_defaults() -> Config[ConfigIndex]:
     defaults = {
         ConfigIndex.SELECTED_MAP: ConfigItem(
@@ -816,6 +848,18 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="The RCON password for remote administration, only takes effect while "
             "RCON is enabled",
             value="",
+        ),
+        ConfigIndex.RCON_SHORTCUTS: ConfigItem(
+            name="rcon_shortcuts",
+            visible_name="RCON quick command shortcuts",
+            type=ConfigType.ARRAY,
+            item_type=ConfigType.STRING,
+            tooltip=f"The {len(RconQuickCommands)} one-click-insert commands shown as "
+            "buttons in the RCON console window, one per button. Select an entry "
+            "then edit it and click Update to change it -- the list can't grow or "
+            "shrink, since it has exactly one entry per button.",
+            value=list(RconQuickCommands),
+            array_length=len(RconQuickCommands),
         ),
         ConfigIndex.CONSOLE_ENABLED: ConfigItem(
             name="console_enabled",

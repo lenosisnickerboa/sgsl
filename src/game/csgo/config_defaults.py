@@ -8,6 +8,7 @@ from config.config_item import (
     SchemaField,
 )
 from config.toml_config import Config
+from game.cs2.config_defaults import RconQuickCommands
 from game.csgo.config_index import ConfigIndex
 from support.steam_workshop import confirm_workshop_item
 
@@ -750,6 +751,18 @@ def build_game_defaults() -> Config[ConfigIndex]:
             tooltip="The RCON password for remote administration, only takes effect while "
             "RCON is enabled",
             value="",
+        ),
+        ConfigIndex.RCON_SHORTCUTS: ConfigItem(
+            name="rcon_shortcuts",
+            visible_name="RCON quick command shortcuts",
+            type=ConfigType.ARRAY,
+            item_type=ConfigType.STRING,
+            tooltip=f"The {len(RconQuickCommands)} one-click-insert commands shown as "
+            "buttons in the RCON console window, one per button. Select an entry "
+            "then edit it and click Update to change it -- the list can't grow or "
+            "shrink, since it has exactly one entry per button.",
+            value=list(RconQuickCommands),
+            array_length=len(RconQuickCommands),
         ),
         ConfigIndex.CONSOLE_ENABLED: ConfigItem(
             name="console_enabled",

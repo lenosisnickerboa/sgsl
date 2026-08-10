@@ -1,7 +1,5 @@
 # General improvements
 
-## RCON shortcuts configurable
-
 ## Archive functionality for everything downloaded
 
 Stuff that may disappear otherwise
