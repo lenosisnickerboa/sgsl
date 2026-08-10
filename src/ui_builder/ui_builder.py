@@ -317,6 +317,14 @@ class UiBuilder:
         (e.g. StringCombobox.set_values()), their current
         allowed_values too, e.g. when one item's edit narrows or
         widens another item's choices (see Game.config_item_changed).
+        Likewise, for a STRUCT_MAP item with key_allowed_values_from
+        set (e.g. MAP_GAME_MODES, keyed by SELECTED_MAP's known maps),
+        refreshes MapGroupEditor's fixed key list from that other
+        item's current allowed_values via set_keys() -- so e.g. adding
+        or removing a workshop map updates MAP_GAME_MODES' key list
+        too, as long as a Game lists it as affected whenever it lists
+        the item key_allowed_values_from points at (see
+        CS2Game.config_item_changed()'s WORKSHOP_MAPS handling).
         Also re-applies read_only, so a Game can dynamically
         enable/disable an item's widget (e.g. in response to another
         item's edit) by toggling ConfigItem.read_only and listing the
@@ -334,6 +342,13 @@ class UiBuilder:
             for widget in self._widgets.get(index, []):
                 if item.allowed_values is not None and hasattr(widget, "set_values"):
                     widget.set_values(item.allowed_values)
+                key_source = item.key_allowed_values_from
+                if (
+                    key_source is not None
+                    and key_source.allowed_values is not None
+                    and hasattr(widget, "set_keys")
+                ):
+                    widget.set_keys(list(key_source.allowed_values))
                 widget.update(item.value)
                 widget.set_read_only(item.read_only)
             for row in self._reset_rows.get(index, []):
@@ -531,13 +546,29 @@ class UiBuilder:
                 # CS2/CS:GO's ordinary_mapgroups -- gets the
                 # group-picker + toggle-checklist editor instead of
                 # StructMapEditor's generic table/tree.
+                all_keys = None
+                if (
+                    item.key_allowed_values_from is not None
+                    and item.key_allowed_values_from.allowed_values is not None
+                ):
+                    # The item's own keys are externally managed (e.g.
+                    # MAP_GAME_MODES' keys are exactly SELECTED_MAP's
+                    # known maps, workshop included) -- show that fixed
+                    # list instead of just whatever keys the item's
+                    # current value happens to contain, and hide the
+                    # add/remove-key controls entirely (there's nothing
+                    # for the user to type; the key set comes from
+                    # elsewhere).
+                    all_keys = list(item.key_allowed_values_from.allowed_values)
                 widget = ui.MapGroupEditor(
                     master=master,
                     name=item.visible_name,
                     key_type=self._python_type(item.item_type),
                     key_name=item.key_name,
                     field_name=single_field,
-                    all_maps=field_choices[single_field],
+                    all_values=field_choices[single_field],
+                    values_label=self._field_values_label(item.schema) or "Maps",
+                    all_keys=all_keys,
                     initial_value=item.value,
                     tooltip=tooltip,
                     command=on_widget_changed,
@@ -610,6 +641,19 @@ class UiBuilder:
             if candidates is not None:
                 choices[field_name] = list(candidates)
         return choices
+
+    def _field_values_label(
+        self, schema: dict[str, Union[ConfigType, SchemaField]]
+    ) -> Optional[str]:
+        """The cosmetic values_label of whichever schema field carries
+        one (see SchemaField.values_label) -- passed to MapGroupEditor
+        as what to call its checklist's choices as a group (e.g. "Game
+        modes"). None if no field sets one, letting the caller fall
+        back to a generic default."""
+        for field in schema.values():
+            if isinstance(field, SchemaField) and field.values_label is not None:
+                return field.values_label
+        return None
 
     def _integer_range(self, item: ConfigItem) -> list[int]:
         lo, hi = _INT_MIN, _INT_MAX

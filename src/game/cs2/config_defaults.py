@@ -44,6 +44,77 @@ GameModeCanonicalAlias: dict[str, str] = {
     mode: aliases[0] for mode, aliases in GameModeAliasTable
 }
 
+# MAP_GAME_MODES' default value: which of GAME_MODE's modes each of
+# Valve's own official (Current Maps) maps officially supports, as
+# documented at https://developer.valvesoftware.com/wiki/Counter-Strike_2/Maps
+# (fetched 2026-08-10). Keyed by each map's internal name (its .vpk/
+# .bsp file name, e.g. "de_dust2" -- the same form SELECTED_MAP's own
+# allowed_values use), not its display name ("Dust II").
+#
+# Valve's own table documents a few modes GAME_MODE doesn't currently
+# offer (Demolition, Flying Scoutsman, Retakes) -- those are left out
+# here entirely, since MAP_GAME_MODES' "mode" field only accepts
+# GAME_MODE's own allowed_values (see _link_map_group_schema_fields()
+# below). Training Day and Custom aren't part of Valve's per-map
+# matrix at all (Training Day is its own dedicated map; Custom is
+# workshop-driven), so no map is ever listed as supporting them here.
+MapGameModesDefaults: dict[str, list[str]] = {
+    "ar_baggage": ["Arms Race"],
+    "ar_pool_day": ["Arms Race"],
+    "ar_shoots": ["Arms Race"],
+    "ar_shoots_night": ["Arms Race"],
+    "cs_agency": ["Competitive", "Casual", "Deathmatch"],
+    "cs_italy": ["Competitive", "Casual", "Deathmatch"],
+    "cs_office": ["Competitive", "Casual", "Deathmatch"],
+    "de_ancient": ["Competitive"],
+    "de_ancient_night": ["Casual", "Deathmatch"],
+    "de_anubis": ["Competitive", "Casual", "Deathmatch"],
+    "de_cache": ["Competitive", "Casual", "Deathmatch"],
+    "de_dust2": ["Competitive", "Casual", "Deathmatch"],
+    "de_golden": ["Competitive", "Casual", "Deathmatch"],
+    "de_inferno": ["Competitive", "Wingman", "Casual", "Deathmatch"],
+    "de_mirage": ["Competitive", "Casual", "Deathmatch"],
+    "de_nuke": ["Competitive", "Wingman", "Casual", "Deathmatch"],
+    "de_overpass": ["Competitive", "Wingman", "Casual", "Deathmatch"],
+    "de_palacio": ["Competitive", "Casual", "Deathmatch"],
+    "de_rooftop": ["Wingman"],
+    "de_train": ["Competitive", "Casual", "Deathmatch"],
+    "de_vertigo": ["Competitive", "Wingman", "Casual", "Deathmatch"],
+}
+
+# Steam Workshop's own "Game Mode" tag vocabulary for CS2 maps -- the
+# filter categories listed at https://steamcommunity.com/app/730/workshop/
+# (fetched 2026-08-10), mapped to GAME_MODE's own values. Used to
+# pre-populate a newly added workshop map's MAP_GAME_MODES entry from
+# whatever its author tagged it as supporting -- see
+# CS2Game._populate_workshop_map_game_modes().
+#
+# "Classic" covers both Casual and Competitive -- Steam doesn't split
+# them the way GAME_MODE does, since they're the same underlying
+# game_type (see GameModeTable's csgo equivalent/_GameModeServerKeys'
+# "classic" key). Demolition, Training, Co-op Strike, and Flying
+# Scoutsman are tags Steam recognizes that GAME_MODE doesn't currently
+# offer, so they're left unmapped -- same limitation as
+# MapGameModesDefaults above.
+WorkshopTagToGameModes: dict[str, list[str]] = {
+    "classic": ["Casual", "Competitive"],
+    "deathmatch": ["Deathmatch"],
+    "armsrace": ["Arms Race"],
+    "wingman": ["Wingman"],
+    "custom": ["Custom"],
+}
+
+
+def game_modes_from_workshop_tags(tags: list[str]) -> list[str]:
+    """The subset of GAME_MODE's own values a workshop map's Steam
+    tags (e.g. ["Wingman", "CS2"]) indicate it supports, in
+    GameModeAliasTable's stable order -- see WorkshopTagToGameModes.
+    Empty if no recognized game-mode tag is present."""
+    recognized = set()
+    for tag in tags:
+        recognized.update(WorkshopTagToGameModes.get(tag.lower(), []))
+    return [mode for mode, _ in GameModeAliasTable if mode in recognized]
+
 
 def _parse_workshop_entry(value: str) -> tuple[str, "str | None"]:
     """Extract the workshop id and, if one was already given, the name
@@ -693,6 +764,24 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value=[],
             transform=_normalize_workshop_map,
         ),
+        ConfigIndex.MAP_GAME_MODES: ConfigItem(
+            name="map_game_modes",
+            visible_name="Map game modes",
+            type=ConfigType.STRUCT_MAP,
+            tooltip="Which game modes each map supports. Defaults to Valve's own "
+            "documented support per map -- see "
+            "https://developer.valvesoftware.com/wiki/Counter-Strike_2/Maps",
+            value=[
+                {"key": map_name, "value": [{"mode": mode} for mode in modes]}
+                for map_name, modes in MapGameModesDefaults.items()
+            ],
+            item_type=ConfigType.STRING,
+            value_type=ConfigType.STRUCT_LIST,
+            key_name="map",
+            schema={
+                "mode": ConfigType.STRING,
+            },
+        ),
         # -- Server / network --
         ConfigIndex.SERVER_FREQUENCY: ConfigItem(
             name="server_frequency",
@@ -801,8 +890,29 @@ def _link_map_group_schema_fields(defaults: Config[ConfigIndex]) -> None:
     literal. SELECTED_MAP's allowed_values is populated later, by
     CS2Game.config_defaults()/config_loaded() -- this holds a live
     reference to that ConfigItem, so it stays correct once that
-    happens (see SchemaField)."""
+    happens (see SchemaField).
+
+    Also points MAP_GAME_MODES' struct "mode" field at GAME_MODE's
+    allowed_values, the same way -- unlike SELECTED_MAP's, GAME_MODE's
+    allowed_values is already fully populated by this point (a fixed
+    list, not one filled in later), but the field is still linked here
+    rather than inline above for the same "can't reference a sibling
+    dict entry mid-literal" reason.
+
+    And points MAP_GAME_MODES itself (not one of its schema fields --
+    see ConfigItem.key_allowed_values_from) at SELECTED_MAP too, so its
+    editor's key list is every known map (ordinary and workshop) rather
+    than just whichever maps MapGameModesDefaults happened to already
+    have an entry for -- see MapGroupEditor."""
     schema = defaults[ConfigIndex.ORDINARY_MAPGROUPS].schema
     schema["name"] = SchemaField(
         ConfigType.STRING_LIST, allowed_values_from=defaults[ConfigIndex.SELECTED_MAP]
     )
+
+    map_game_modes = defaults[ConfigIndex.MAP_GAME_MODES]
+    map_game_modes.schema["mode"] = SchemaField(
+        ConfigType.STRING_LIST,
+        allowed_values_from=defaults[ConfigIndex.GAME_MODE],
+        values_label="Game modes",
+    )
+    map_game_modes.key_allowed_values_from = defaults[ConfigIndex.SELECTED_MAP]

@@ -120,10 +120,19 @@ class SchemaField:
     created — see _validate_struct_fields().
 
     `allowed_values_from` only applies to STRING_LIST fields; setting
-    it on any other type raises ValueError immediately."""
+    it on any other type raises ValueError immediately.
+
+    `values_label`, only meaningful alongside `allowed_values_from`,
+    is a cosmetic override for what a UI should call this field's
+    choices as a group (e.g. "Game modes") when it can't reuse
+    `allowed_values_from`'s own visible_name verbatim (e.g. because
+    that reads fine standalone -- "Selected map" -- but not as a
+    checklist heading). Left unset, a UI should fall back to whatever
+    generic label it would otherwise use."""
 
     type: ConfigType
     allowed_values_from: Optional["ConfigItem"] = None
+    values_label: Optional[str] = None
 
     def __post_init__(self) -> None:
         if (
@@ -204,6 +213,17 @@ class ConfigItem:
     of the generic "key" — purely cosmetic, it has no effect on the
     entry dict's actual "key"/"value" field names or on serialization.
     Defaults to "key" if unset.
+
+    `key_allowed_values_from`, only valid for STRUCT_MAP items, holds a
+    live reference to another ConfigItem whose `allowed_values` is the
+    closed, externally-managed set of keys this item's entries are
+    drawn from (e.g. MAP_GAME_MODES' keys are exactly SELECTED_MAP's
+    known maps). Purely a UI hint, not enforced here: a UI should use
+    it to show that fixed key list (e.g. as a dropdown, rather than a
+    free-text add/remove control) instead of just whatever keys the
+    item's own value currently happens to contain. Left unset for a
+    STRUCT_MAP whose keys the user manages directly (e.g.
+    ORDINARY_MAPGROUPS' arbitrary group names).
 
     For STRUCT_LIST items, `schema` declares the fields of the STRUCT
     every element must match, the same as for a STRUCT item. The
@@ -287,6 +307,7 @@ class ConfigItem:
     schema: Optional[dict[str, Union[ConfigType, SchemaField]]] = None
     value_type: Optional[ConfigType] = None
     key_name: Optional[str] = None
+    key_allowed_values_from: Optional["ConfigItem"] = None
     validator: Optional[Callable[[Any], bool]] = None
     transform: Optional[Callable[[Any], Any]] = None
     allowed_values: Optional[list[Any]] = None
@@ -338,6 +359,10 @@ class ConfigItem:
             raise ValueError(f"{self.name}: value_type only applies to STRUCT_MAP items")
         elif self.key_name is not None:
             raise ValueError(f"{self.name}: key_name only applies to STRUCT_MAP items")
+        elif self.key_allowed_values_from is not None:
+            raise ValueError(
+                f"{self.name}: key_allowed_values_from only applies to STRUCT_MAP items"
+            )
         if self.range is not None and self.type not in (
             ConfigType.INTEGER,
             ConfigType.FLOAT,
