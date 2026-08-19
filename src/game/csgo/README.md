@@ -4,7 +4,9 @@
 
 ## Installation [Publisher docs](https://developer.valvesoftware.com/wiki/Counter-Strike:_Global_Offensive/Dedicated_Servers) and [here](https://steamcommunity.com/sharedfiles/filedetails/?id=3678325098)
 
-Just a general note; installation takes time and terminal output is not continous (it is buffered) so you will just have to be patient. For me an install takes about 15 minutes.
+As stated under Limitations on the starting page; the csgo implementation is mostly there for you to test. csgo was re-released in 2026 but I'm having a hard time getting it to work. I release the csgo support as is and hopefully someone can figure out how best to add support for this game.
+
+Installation takes time and terminal output is not continous (it is buffered) so you will just have to be patient. For me an install takes about 15 minutes.
 
 Depending on how you want to run your server, here comes some scenarios.
 
@@ -24,22 +26,22 @@ I tried connecting using the console (connect localhost) and also the in-game se
    Open this [link](https://store.steampowered.com/app/4465480/CounterStrikeGlobal_Offensive/)
    Add the game to your library, then head into Steam and install it as usual.
    Start it up and make sure you can run multiplayer.
-   This info taken from [here](https://store.steampowered.com/app/4465480/CounterStrikeGlobal_Offensive/)
+   This info is taken from [here](https://store.steampowered.com/app/4465480/CounterStrikeGlobal_Offensive/)
 1. Drop sgsl.exe into an empty folder where you want your CSGO game server installed and click sgsl.exe. 
 1. When sgsl.exe launches, select csgo and click the install button.
 1. ENJOY!
 
-Your friends should now be able to connect to you using the console command "connect <your-ip>" (but it didn't work for me) or by connecting via the local server browser steam://open/servers. You can create a Windows shortcut with target "steam://open/servers" and name "CSGO local servers" or simply run it with WIN+R, enter steam://open/servers and press ENTER.
+Your friends should now be able to connect to you using the console command "connect \<your-ip\>" (but it didn't work for me) or by connecting via the local server browser steam://open/servers. You can create a Windows shortcut with target "steam://open/servers" and name "CSGO local servers" or simply run it with WIN+R, enter steam://open/servers and press ENTER.
 
 ### I want workshop maps
 
 I'm not sure what the exact requirements are after googling, AI:ing, ... Some suggest you need a GSLT, some an API auth key. I didn't have to configure any of them but here's a description on how to configure both should you not get workshop maps working.
 
-1. Get your original csgo working as described above.
+1. Get your original csgo client working as described above.
 1. Register some stuff with Valve, like [GSLT](https://zap-hosting.com/guides/docs/csgo-gslt/) which can be done [here](http://steamcommunity.com/dev/managegameservers) and [API auth key](https://steamcommunity.com/dev/apikey). Use 4465480 for the appId.
 1. Drop sgsl.exe into an empty folder where you want your csgo game server installed and click sgsl.exe. 
-1. When sgsl.exe launches select csgo and, click the install button. I recommend first opening the terminal (Toggle to the far right).
-1. Enter the GSLT, API auth key
+1. When sgsl.exe launches select csgo and, click the install button.
+1. After the sgsl restart, enter the GSLT, API auth key in the "Steam" game config tab.
 1. ENJOY!
 
 ### My friends are scattered over the Internet
@@ -56,7 +58,7 @@ If you want your server publically available in the Valve server browser, and ha
 1. Register some stuff with Valve, like [GSLT](https://developer.valvesoftware.com/wiki/Counter-Strike_2/Dedicated_Servers#Registering_Game_Server_Login_Token) which can be done [here](http://steamcommunity.com/dev/managegameservers) and and [API auth key](https://steamcommunity.com/dev/apikey)
 1. Drop sgsl.exe into an empty folder where you want your CSGO game server installed and click sgsl.exe. 
 1. When sgsl.exe launches, select csgo and click the install button. I recommend first opening the terminal (Toggle to the far right).
-1. Enter the GSLT, API auth key. Also, set some good server name and password.
+1. After the sgsl restart, enter the GSLT, API auth key in the "Steam" game config tab. Also, set some good server name and password.
 1. Open up ports for CSGO in your router and firewall, e.g. look [here](https://portforward.com/counter-strike-global-offensive/)
 1. ENJOY!
 
@@ -82,9 +84,9 @@ Or you can just try and see if it works for you. This seems to be a moving targe
 
 ## Custom user config
 
-Before starting a game server, sgsl writes all of its own cvars into `sgsl_overrides.cfg` (in `<install-path>\server\csgo\cfg`), and makes sure every `gamemode_<gamemode>.cfg` shipped by the game has a sibling `gamemode_<gamemode>_server.cfg` that simply execs `sgsl_overrides.cfg` -- this is what actually applies sgsl's settings, regardless of which gamemode ends up running. The "Generate sgsl_overrides.cfg" option on the General tab (on by default) controls this: turn it off to leave `sgsl_overrides.cfg` empty and let the game's own gamemode cfg files fully control server behavior instead.
+Before starting a game server, sgsl writes all of its own cvars into `sgsl_overrides.cfg` (in `<install-path>\server\game\csgo\cfg`), and makes sure every `gamemode_<gamemode>.cfg` shipped by the game has a sibling `gamemode_<gamemode>_server.cfg` that simply execs `sgsl_overrides.cfg` -- this is what actually applies sgsl's settings, regardless of which gamemode ends up running. The "Generate sgsl_overrides.cfg" option on the General tab (on by default) controls this: turn it off to leave `sgsl_overrides.cfg` empty and let the game's own gamemode cfg files fully control server behavior instead.
 
-If there is some special tweak you want to add, not supported by sgsl.exe, first of all you can of course request it by opening an issue. It can also be accomplished by adding your own config file in <install-path>\server\csgo\cfg and naming it gamemode_<gamemode>_append.cfg. All config from this file will be folded into `sgsl_overrides.cfg`, last, prior to starting the game, allowing you to add or override whatever you like. Same format is used as in the original config file.
+If there is some special tweak you want to add, not supported by sgsl.exe, first of all you can of course request it by opening an issue. It can also be accomplished by adding your own config file in <install-path>\server\game\csgo\cfg and naming it sgsl_overrides_append.cfg. All config from this file will be copied into `sgsl_overrides.cfg`, last, prior to starting the game, allowing you to add or override whatever you like. Same format is used as in the original config file. This only happens while "Generate sgsl_overrides.cfg" is enabled -- it's ignored (like the rest of `sgsl_overrides.cfg`) when that option is off.
 
 ## Finding workshop content
 
@@ -95,10 +97,6 @@ Also, read the [cs2 docs](../cs2/README.md) for more info.
 ## Quirks
 
 Sometimes, for no reason, I get very low fps. Restarting the csgo client GUI helps. Don't know why.
-
-## LAN only play
-
-Valve seems to (according to what I read online) have stopped supporting "sv_lan 1", i.e. a server which runs completely locally. Or rather, the server runs locally but the client will not be able to connect to a server setting "sv_lan 1". Therefore, as suggested, again online, I have set "sv_lan 0" unconditionally and use the "+sv_setsteamaccount" only when user select a public game. Most users will not notice this since it seems the sv_lan option is still there, just thought I'd mention it if someone happens to see that sv_lan is always set to 0.
 
 ## Notes
 

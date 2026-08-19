@@ -1,6 +1,6 @@
 # Developers readme
 
-Developed on windows 11
+Developed on windows 11 with vscode and some extensions.
 
 ## Things recommended to install
 
@@ -13,8 +13,8 @@ Developed on windows 11
 
 # Configure git
 In a terminal:
-  git config --global user.email "you@example.com"
-  git config --global user.name "Your Name"
+  git config --global user.email "you@example.com"<br>
+  git config --global user.name "Your Name"<br>
 
 ## Required python extensions
 
@@ -45,4 +45,4 @@ Installs all the python dependencies
 
 ### sgsl-show-what-failed.bat
 
-A wrapper running sgsl-for-test.exe (if found) or sgsl.exe (if not running sgsl-for-test.exe) adding a pause at the end allowing the developer to see any python output.
+A wrapper running sgsl-for-test.exe (if found) or sgsl.exe (if not running sgsl-for-test.exe) adding a pause at the end allowing the developer to see any python error output.
