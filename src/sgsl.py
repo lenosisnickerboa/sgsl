@@ -1,7 +1,9 @@
 import copy
 import os
 import shutil
+import sys
 import threading
+import traceback
 from datetime import datetime
 from pathlib import Path
 from config.config_item import ConfigType
@@ -83,6 +85,18 @@ g_app_config = None
 g_app_config_file = None
 g_game_config = None
 g_game_config_file = None
+# Set when the matching config file existed but couldn't be loaded
+# (unparseable in a way TomlConfigParser.read() didn't already absorb,
+# or an upgrader/game hook raised on it). Startup falls back to
+# defaults instead of dying; _write_config_files() then leaves that
+# file untouched on exit so the user still has their broken original
+# to fix rather than a defaults dump written over it.
+g_app_config_load_failed = False
+g_game_config_load_failed = False
+# (title, message) dialogs queued by _report_config_load_failure()
+# during startup, shown by _show_startup_config_errors() once the main
+# window is up -- see those two for why it can't be immediate.
+g_startup_config_errors = []
 # The current Game instance -- needed by module-level functions (e.g.
 # _write_config_files(), on_toggle_rcon_window()) that only ever run
 # after setup_detected_game_server(game) has set this, since `game`
@@ -233,9 +247,60 @@ def restore_status_line_delayed():
     root.after(5000, restore_status_line)
 
 
+def _report_config_load_failure(config_file: Path, what: str) -> None:
+    """A config file existed but couldn't be loaded during startup.
+    Log the traceback and queue a dialog about it, then let startup
+    carry on with defaults -- a bad file in the working directory
+    shouldn't be an unexplained failure to launch (especially for the
+    --noconsole release build, where an uncaught exception here just
+    vanishes).
+
+    The dialog is queued rather than shown now: this all runs before
+    root.mainloop(), while the main window is still parked off-screen
+    (see ui.Window), so a modal ok_dialog() here would wait_window()
+    on a dialog nobody can see -- a silent hang instead of a silent
+    crash. _show_startup_config_errors(), scheduled via root.after()
+    once the loop is live and the window is centered, drains the
+    queue."""
+    details = traceback.format_exc()
+    # The app config is read before the terminal window exists, so
+    # this can run with g_terminal_window still None -- print only
+    # once there's somewhere to print to.
+    if g_terminal_window is not None:
+        print_to_terminal(f"Failed to load {what} from {config_file}:\n{details}")
+    g_startup_config_errors.append(
+        (
+            "Configuration could not be loaded",
+            f"Couldn't read {what}:\n\n"
+            f"{config_file}\n\n"
+            f"{details}\n"
+            "The application has started with default settings. Your existing "
+            "file was left untouched -- fix or delete it and restart to load "
+            "your own settings again.",
+        )
+    )
+
+
+def _show_startup_config_errors() -> None:
+    """Drain the queue filled by _report_config_load_failure(), one
+    modal dialog per entry. Scheduled via root.after(0, ...) so it
+    only runs once mainloop() is going and the main window is on
+    screen for the dialog to sit over."""
+    while g_startup_config_errors:
+        title, message = g_startup_config_errors.pop(0)
+        ok_dialog(message, title=title)
+
+
 def _write_config_files() -> None:
-    TomlConfigParser.write(g_app_config_file, g_app_config, version=APP_CONFIG_VERSION)
-    if g_game_config is not None:
+    # A file we couldn't load at startup is left exactly as the user
+    # has it (see g_app_config_load_failed) -- overwriting it here
+    # would replace their broken-but-recoverable original with a
+    # defaults dump.
+    if not g_app_config_load_failed:
+        TomlConfigParser.write(
+            g_app_config_file, g_app_config, version=APP_CONFIG_VERSION
+        )
+    if g_game_config is not None and not g_game_config_load_failed:
         TomlConfigParser.write(
             g_game_config_file, g_game_config, version=g_game.config_version()
         )
@@ -680,22 +745,34 @@ def setup_detected_game_server(game: Game):
 
     global g_game_config
     global g_game_config_file
+    global g_game_config_load_failed
     g_game_config_file = game.get_directory() / "game.toml"
-    g_game_config = TomlConfigParser.read(g_game_config_file, game.config_defaults())
-    apply_upgraders(
-        g_game_config,
-        TomlConfigParser.read_version(g_game_config_file),
-        game.config_upgraders(),
-    )
-    game.config_loaded(g_game_config)
+    try:
+        g_game_config = TomlConfigParser.read(
+            g_game_config_file, game.config_defaults()
+        )
+        apply_upgraders(
+            g_game_config,
+            TomlConfigParser.read_version(g_game_config_file),
+            game.config_upgraders(),
+        )
+        game.config_loaded(g_game_config)
 
-    # A saved value (e.g. a previously edited AVAILABLE_MAPS list) may
-    # have just overridden a default independently of any item derived
-    # from it (e.g. SELECTED_MAP's allowed_values) — give the game a
-    # chance to re-derive those before any widget is built from this
-    # config, the same way it would react to a live UI edit.
-    for config_item in list(g_game_config.values()):
-        game.config_item_changed(config_item, g_game_config)
+        # A saved value (e.g. a previously edited AVAILABLE_MAPS list)
+        # may have just overridden a default independently of any item
+        # derived from it (e.g. SELECTED_MAP's allowed_values) — give
+        # the game a chance to re-derive those before any widget is
+        # built from this config, the same way it would react to a
+        # live UI edit.
+        for config_item in list(g_game_config.values()):
+            game.config_item_changed(config_item, g_game_config)
+    except Exception:
+        g_game_config = game.config_defaults()
+        g_game_config_load_failed = True
+        game.config_loaded(g_game_config)
+        _report_config_load_failure(
+            g_game_config_file, f"{game.get_long_name()} settings (game.toml)"
+        )
 
     def on_config_item_changed(config_item, config):
         changed = game.config_item_changed(config_item, config)
@@ -1107,15 +1184,32 @@ def _main_window_title() -> str:
 root = ui.Window(title=_main_window_title())
 root.protocol("WM_DELETE_WINDOW", on_close_main_window)
 
-current_dir = os.getcwd()
+if getattr(sys, "frozen", False):
+    # Frozen build: sgsl.exe lives in the folder it's meant to manage
+    # (the game server files, sgsl.toml, game.toml, ...). Anchor to the
+    # executable's own directory rather than os.getcwd(), which is set
+    # by whatever launched us -- e.g. C:\WINDOWS\system32 for a Start
+    # menu / UAC-elevated launch, which is neither writable nor what
+    # the user means by "here" (it made startup crash trying to mkdir
+    # C:\WINDOWS\system32\server during game detection).
+    current_dir = os.path.dirname(sys.executable)
+else:
+    # Running from source (python src/sgsl.py): the working directory
+    # is deliberately chosen by whoever started it.
+    current_dir = os.getcwd()
 
 g_app_config_file = Path(current_dir) / "sgsl.toml"
-g_app_config = TomlConfigParser.read(g_app_config_file, build_app_defaults())
-apply_upgraders(
-    g_app_config,
-    TomlConfigParser.read_version(g_app_config_file),
-    APP_CONFIG_UPGRADERS,
-)
+try:
+    g_app_config = TomlConfigParser.read(g_app_config_file, build_app_defaults())
+    apply_upgraders(
+        g_app_config,
+        TomlConfigParser.read_version(g_app_config_file),
+        APP_CONFIG_UPGRADERS,
+    )
+except Exception:
+    g_app_config = build_app_defaults()
+    g_app_config_load_failed = True
+    _report_config_load_failure(g_app_config_file, "application settings (sgsl.toml)")
 ui.SnapWindow.enabled = g_app_config[ConfigIndex.SNAP_WINDOWS_ENABLED].value
 
 g_terminal_window = terminal.TerminalWindow(
@@ -1197,6 +1291,12 @@ else:
 root.center_on_screen()
 
 g_poll_game_running_job = root.after(_PollGameRunningIntervalMs, poll_game_running)
+
+if g_startup_config_errors:
+    # Deferred to the running loop, on top of the now-centered main
+    # window -- see _show_startup_config_errors() / the AUTOMATIC_
+    # UPDATE_CHECK root.after() above.
+    root.after(0, _show_startup_config_errors)
 
 print_to_terminal(f"sgsl.exe {VERSION} entering mainloop...")
 root.mainloop()

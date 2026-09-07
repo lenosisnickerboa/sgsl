@@ -69,7 +69,17 @@ class Game(ABC):
         self.directory = Path(directory)
         self.terminal = terminal
         self.server_root = self.directory / "server"
-        self.server_root.mkdir(parents=True, exist_ok=True)
+        try:
+            self.server_root.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            # Not fatal: GameFactory.create() constructs every game
+            # type just to probe detect(), so a working directory we
+            # can't write to (e.g. the app launched from a read-only
+            # or system location) must not stop the app from opening.
+            # Whatever later actually needs server/ (install/update/
+            # run) will report the failure with its own context.
+            if self.terminal:
+                self.terminal(f"Warning: couldn't create {self.server_root}: {e}")
         self.process_handler = None
         self.filter_stdout = None
         self.filter_stderr = None

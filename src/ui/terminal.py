@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
-from ttkbootstrap.scrolled import ScrolledText
+from ttkbootstrap.widgets.scrolled import ScrolledText
 from datetime import datetime
 from ui.widgets import SnapWindow, make_tooltip
 

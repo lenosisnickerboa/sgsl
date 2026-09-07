@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Callable, Optional, Union
 import ttkbootstrap as tb
 from ttkbootstrap.constants import *
-from ttkbootstrap.scrolled import ScrolledText
+from ttkbootstrap.widgets.scrolled import ScrolledText
 from ui.widgets import SnapWindow, make_tooltip
 
 # Quick-command buttons per row, regardless of how many are given.

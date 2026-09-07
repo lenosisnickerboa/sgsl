@@ -1,6 +1,11 @@
 from typing import Callable, Optional, Union
 
-from config.config_item import ConfigItem, ConfigType, SchemaField, describe_default_value
+from config.config_item import (
+    ConfigItem,
+    ConfigType,
+    SchemaField,
+    describe_default_value,
+)
 from config.tab_spec import TabSpec
 from config.toml_config import Config, IndexT, reset_to_defaults
 import ui.widgets as ui
@@ -288,8 +293,12 @@ class UiBuilder:
         alignable = [widget for widget in widgets if hasattr(widget, "set_hint_width")]
         if not alignable:
             return
-        for widget in alignable:
-            widget.hint_frame.update_idletasks()
+        # One idle flush for the whole tab, not one per widget: it's a
+        # global "process all pending geometry" call, so a single one
+        # makes every hint_frame's winfo_reqwidth()/reqheight() real.
+        # Per-widget (here or in HintedWidget.__init__) it's O(n^2) and
+        # visibly hangs a large config window before it can open.
+        alignable[0].hint_frame.update_idletasks()
         max_width = max(widget.hint_frame.winfo_reqwidth() for widget in alignable)
         for widget in alignable:
             widget.set_hint_width(max_width)

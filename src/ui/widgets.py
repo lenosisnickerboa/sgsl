@@ -6,10 +6,10 @@ import tkinter.font as tkfont
 import tkinter.ttk as tkttk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
-from ttkbootstrap.tooltip import ToolTip
+from ttkbootstrap.widgets.tooltip import ToolTip
 from ttkbootstrap.utility import scale_size
-from ttkbootstrap.scrolled import ScrolledFrame
-from ttkbootstrap.tableview import Tableview
+from ttkbootstrap.widgets.scrolled import ScrolledFrame as BsScrolledFrame
+from ttkbootstrap.widgets.tableview import Tableview as BsTableview
 import ui.helpers as helpers
 from app.resources import resource_path
 from support.browser import open_url
@@ -1010,7 +1010,7 @@ class Tab(EnableDisableMixin, ttk.Frame):
         self.notebook_widget = self
 
 
-class ScrollableTab(EnableDisableMixin, ttk.scrolled.ScrolledFrame):
+class ScrollableTab(EnableDisableMixin, BsScrolledFrame):
     """A notebook tab whose content scrolls vertically once it grows
     past its viewport height (see set_visible_height)."""
 
@@ -1071,7 +1071,7 @@ class StatusLine(EnableDisableMixin, ttk.Frame):
         self.value.set(text)
 
 
-class ScrolledFrame(EnableDisableMixin, ttk.scrolled.ScrolledFrame):
+class ScrolledFrame(EnableDisableMixin, BsScrolledFrame):
     def __init__(self, master, **kwargs):
         super().__init__(master, padding=5, autohide=True, scrollheight=20, **kwargs)
 
@@ -1079,7 +1079,7 @@ class ScrolledFrame(EnableDisableMixin, ttk.scrolled.ScrolledFrame):
         super().pack(side=LEFT, fill=BOTH, expand=YES)
 
 
-class TableView(EnableDisableMixin, ttk.tableview.Tableview):
+class TableView(EnableDisableMixin, BsTableview):
     def __init__(self, master, columns: list, rows: list, **kwargs):
         super().__init__(master, coldata=columns, rowdata=rows, **kwargs)
 
@@ -1131,14 +1131,16 @@ class HintedWidget(EnableDisableMixin, ttk.Frame):
             self.hint_frame = ttk.Frame(self)
             self.hint = ttk.Label(self.hint_frame, text=name, anchor=W)
             self.hint.pack(fill=BOTH, expand=YES)
-            # Force Tk to actually compute the label's natural size
-            # before freezing hint_frame at it — pack_propagate(False)
-            # freezes whatever the *currently computed* request is,
-            # which without this is still an unset placeholder (Tk
-            # only computes it lazily), collapsing the frame to ~0.
-            self.hint_frame.update_idletasks()
-            self._hint_natural_height = self.hint_frame.winfo_reqheight()
-            self.hint_frame.pack_propagate(False)
+            # Natural height is snapshotted later, in set_hint_width(),
+            # not here: freezing the frame needs Tk to have actually
+            # computed the label's requested size, which takes an
+            # `update idletasks`. Doing that per widget in __init__ is
+            # O(n^2) over a whole config window (each call reprocesses
+            # every earlier widget's pending geometry too) and made a
+            # large game.toml take tens of seconds to open. The UI
+            # builder already does one batched flush per tab in
+            # _align_hint_widths() right before it calls set_hint_width().
+            self._hint_natural_height = None
             self.hint_frame.pack(side=LEFT, padx=5)
             self.container = self
 
@@ -1148,14 +1150,22 @@ class HintedWidget(EnableDisableMixin, ttk.Frame):
         same width without clipping any of their text. No-op for
         compact widgets, which have no separate hint label.
 
-        Also re-asserts height explicitly: once pack_propagate(False)
-        is set, configuring only `width` makes Tk stop treating the
-        untouched `height` as "auto" too, collapsing it toward zero —
-        so it has to be pinned every time width is."""
-        if hasattr(self, "hint_frame"):
-            self.hint_frame.configure(
-                width=pixel_width, height=self._hint_natural_height
-            )
+        Must be called after the caller has flushed pending geometry
+        once for the batch (see _align_hint_widths): the first call
+        snapshots the frame's natural height and freezes it with
+        pack_propagate(False), and that height reads as a placeholder
+        until Tk has computed the label's real requested size.
+
+        Also re-asserts height explicitly every time: once
+        pack_propagate(False) is set, configuring only `width` makes
+        Tk stop treating the untouched `height` as "auto" too,
+        collapsing it toward zero — so it has to be pinned alongside."""
+        if not hasattr(self, "hint_frame"):
+            return
+        if self._hint_natural_height is None:
+            self._hint_natural_height = self.hint_frame.winfo_reqheight()
+            self.hint_frame.pack_propagate(False)
+        self.hint_frame.configure(width=pixel_width, height=self._hint_natural_height)
 
     def pack(self, side=LEFT):
         if side == TOP:
