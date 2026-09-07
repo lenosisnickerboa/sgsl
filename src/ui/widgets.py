@@ -330,7 +330,13 @@ class SnapWindow:
 
 class Window(SnapWindow, EnableDisableMixin, ttk.Window):
     def __init__(self, title: str):
-        super().__init__(themename="superhero", title=title)
+        # iconphoto=None tells ttkbootstrap not to apply its own bundled
+        # app icon (its default is to skin every window with the
+        # ttkbootstrap logo) -- we set app/assets/icon.ico ourselves
+        # just below. See also _set_app_user_model_id() in sgsl.py,
+        # which claims the Windows taskbar identity before ttkbootstrap
+        # can point it at "ttkbootstrap.app".
+        super().__init__(themename="superhero", title=title, iconphoto=None)
         # Parked off-screen until center_on_screen() repositions it --
         # a withdrawn toplevel never runs its geometry manager, so
         # winfo_width()/height() would still read Tk's 200x200 default
@@ -345,10 +351,7 @@ class Window(SnapWindow, EnableDisableMixin, ttk.Window):
 
         # Two separate calls, since iconbitmap() only ever applies one
         # or the other per call:
-        #   - Plain (no -default) applies immediately to THIS window,
-        #     overriding the icon ttkbootstrap's own __init__ above
-        #     already gave it via iconphoto() -- -default alone
-        #     wouldn't touch a window that already has an icon.
+        #   - Plain (no -default) applies immediately to THIS window.
         #   - -default registers it as the fallback for every other
         #     Toplevel (terminal, configure windows, dialogs, ...)
         #     opened afterwards that doesn't set its own icon, which

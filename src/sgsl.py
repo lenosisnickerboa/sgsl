@@ -1181,6 +1181,27 @@ def _main_window_title() -> str:
     return title
 
 
+def _set_app_user_model_id() -> None:
+    """Give Windows an explicit, app-specific taskbar identity before
+    the first window is created. Without this the taskbar groups us
+    under whatever claims the id first -- ttkbootstrap 2.x sets it to
+    "ttkbootstrap.app" (with its own logo) in Window.__init__, and the
+    id can only be set once per process, so this has to win the race.
+    Best-effort and win32-only; a no-op everywhere else."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(
+            "SimpleGameServerLauncher.sgsl"
+        )
+    except Exception:
+        pass
+
+
+_set_app_user_model_id()
+
 root = ui.Window(title=_main_window_title())
 root.protocol("WM_DELETE_WINDOW", on_close_main_window)
 
