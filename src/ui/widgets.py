@@ -1510,6 +1510,31 @@ class StringCombobox(HintedWidget):
             self.combobox.set(values[0])
 
 
+def _theme_classic_tk_widget(widget) -> None:
+    """ttkbootstrap 1.x seeded the Tk option database so classic (non-
+    ttk) widgets like tk.Listbox / tk.Toplevel inherited the active
+    theme's colors; 2.x doesn't, leaving them at Tk's default
+    'SystemWindow'/'SystemButtonFace' white. Apply the current theme's
+    colors explicitly to the handful of raw tk widgets we still use so
+    they match the rest of the (ttk) UI again."""
+    colors = ttk.Style().colors
+    if isinstance(widget, tk.Listbox):
+        widget.configure(
+            background=colors.inputbg,
+            foreground=colors.inputfg,
+            selectbackground=colors.selectbg,
+            selectforeground=colors.selectfg,
+            disabledforeground=colors.border,
+            highlightthickness=1,
+            highlightbackground=colors.border,
+            highlightcolor=colors.border,
+            borderwidth=0,
+            relief="flat",
+        )
+    else:
+        widget.configure(background=colors.bg)
+
+
 class ArrayEditor(HintedWidget):
     """Edits a list of scalar values (a TOML array config item): the
     current items sit in a listbox, with an entry + Add button to
@@ -1555,6 +1580,7 @@ class ArrayEditor(HintedWidget):
         self.listbox = tk.Listbox(
             listbox_row, height=listbox_height, exportselection=False
         )
+        _theme_classic_tk_widget(self.listbox)
         self.listbox.pack(side=LEFT, fill=BOTH, expand=YES)
         for value in initial_value:
             self.listbox.insert(END, str(value))
@@ -2595,6 +2621,7 @@ class MapGroupEditor(HintedWidget):
 
         self._value_vars = {}
         self.values_popup = tk.Toplevel(self.values_button)
+        _theme_classic_tk_widget(self.values_popup)
         self.values_popup.withdraw()
         self.values_popup.wm_overrideredirect(True)
         self.values_popup.attributes("-topmost", True)
