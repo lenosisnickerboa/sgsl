@@ -2660,10 +2660,23 @@ class MapGroupEditor(HintedWidget):
         """Set the group dropdown's choices to `keys` and widen it to
         fit whichever of them is longest -- otherwise it defaults to a
         fairly narrow fixed width that truncates anything longer than
-        a short group name, e.g. a "workshop/<id>/<name>" map key."""
-        keys = list(keys)
+        a short group name, e.g. a "workshop/<id>/<name>" map key.
+
+        Sized from a real pixel measurement of the longest key, not
+        len(): the Combobox `width` option counts in units of the "0"
+        glyph, so with a proportional font (wide caps and spaces in
+        names like "workshop/<id>/<Name>") a plain character count
+        undershoots the actual text width, and it also leaves nothing
+        for the dropdown arrow -- both of which clip the longest names.
+        """
+        keys = [str(k) for k in keys]
         self.group_combobox.configure(values=keys)
-        self.group_combobox.configure(width=max((len(str(k)) for k in keys), default=10))
+        font = tkfont.nametofont("TkTextFont")
+        zero_px = font.measure("0") or 1
+        widest_px = max((font.measure(key) for key in keys), default=zero_px * 10)
+        # ceil(widest_px / zero_px), plus a few chars of slack for the
+        # dropdown arrow and the entry's internal padding.
+        self.group_combobox.configure(width=-(-widest_px // zero_px) + 4)
 
     def _groups_from_value(self, value: list) -> dict:
         existing = {
