@@ -84,7 +84,7 @@ You can ignore it, select "More info" and you will get this window:
 
 <img src="assets/windows_protected_your_pc_override.png" alt="windows protection override">
 
-And you're off to the races.
+Select 'Run anyway' and you're off to the races.
 
 ## The main window
 
