@@ -72,6 +72,10 @@ Select "Install game server". By default a terminal window is shown during insta
 
 The game will be installed into a directory "server".
 
+You will be notified when a new version is available (when starting sgsl.exe) . Simply click on the link in the dialog box, download and replace sgsl.exe with the new file.
+
+You will probably get a Windows warning when starting sgsl.exe (it has not been signed by Microsoft). You can ignore it, select something like "Run anyway" and you're good to go.
+
 ## The main window
 
 <img src="assets/top_window.png" alt="Main window">
