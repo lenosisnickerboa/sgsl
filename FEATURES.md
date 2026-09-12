@@ -74,7 +74,17 @@ The game will be installed into a directory "server".
 
 You will be notified when a new version is available (when starting sgsl.exe) . Simply click on the link in the dialog box, download and replace sgsl.exe with the new file.
 
-You will probably get a Windows warning when starting sgsl.exe (it has not been signed by Microsoft). You can ignore it, select something like "Run anyway" and you're good to go.
+You will probably get a Windows warning when starting sgsl.exe (it has not been signed by Microsoft).
+
+Something like this:
+
+<img src="assets/windows_protected_your_pc.png" alt="windows protection">
+
+You can ignore it, select "More info" and you will get this window:
+
+<img src="assets/windows_protected_your_pc_override.png" alt="windows protection override">
+
+And you're off to the races.
 
 ## The main window
 
