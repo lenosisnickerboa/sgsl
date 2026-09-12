@@ -209,7 +209,7 @@ class ConfigItem:
     entries, each still validated against `schema`).
 
     `key_name`, only valid for STRUCT_MAP items, is the human-readable
-    name a UI should show for the map's key (e.g. "map_group") instead
+    name a UI should show for the map's key (e.g. "Map group") instead
     of the generic "key" — purely cosmetic, it has no effect on the
     entry dict's actual "key"/"value" field names or on serialization.
     Defaults to "key" if unset.

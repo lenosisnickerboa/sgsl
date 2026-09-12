@@ -434,7 +434,7 @@ def build_game_defaults() -> Config[ConfigIndex]:
             value=[],
             item_type=ConfigType.STRING,
             value_type=ConfigType.STRUCT_LIST,
-            key_name="map_group",
+            key_name="Map group",
             schema={
                 "name": ConfigType.STRING,
                 "mode": ConfigType.STRING,
